@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1C1C1E;
+  background: #FAFAF8;
+  --primary: #0A1628;
+  --secondary: #C9A84C;
+  --accent: #F5F0E8;
+  --background: #FAFAF8;
+  --text: #1C1C1E;
+  --muted: #6B7280;
+  --success: #10B981;
+  --danger: #DC2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  border-radius: 0.5rem;
+}
+
+::selection {
+  background: rgba(201, 168, 76, 0.2);
+}
+
+h1,h2,h3,h4,h5,h6 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.text-gold {
+  color: var(--secondary);
+}
+
+.bg-frost {
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(16px);
+}
+
+.card-surface {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 25px 80px rgba(10, 22, 40, 0.08);
+}
+
+.section-divider {
+  border-top: 1px solid rgba(201, 168, 76, 0.16);
+}
+
+.bg-hero-pattern {
+  background-image: linear-gradient(180deg, rgba(10, 22, 40, 0.88), rgba(10, 22, 40, 0.52)), radial-gradient(circle at top left, rgba(201,168,76,0.15), transparent 35%), radial-gradient(circle at bottom right, rgba(245,240,232,0.18), transparent 30%);
+  background-color: #0A1628;
+  background-blend-mode: overlay;
+}
+
+.placeholder-photo {
+  background: linear-gradient(135deg, rgba(10,22,40,0.24), rgba(201,168,76,0.18));
+  border: 1px solid rgba(255,255,255,0.12);
+}
