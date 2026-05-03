@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { type ReactNode } from 'react'
 import { Star } from 'lucide-react'
 
 interface LawyerCardProps {
@@ -15,19 +14,19 @@ interface LawyerCardProps {
 
 export function LawyerCard({ id, name, role, barId, specialties, bio, rating, variant = 'grid' }: LawyerCardProps) {
   return (
-    <div className={`rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl ${variant === 'horizontal' ? 'flex flex-col md:flex-row gap-6' : ''}`}>
-      <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-3xl font-semibold text-slate-400 placeholder-photo">
+    <div className={`card-elevated p-6 transition hover:-translate-y-0.5 ${variant === 'horizontal' ? 'flex flex-col gap-6 md:flex-row' : ''}`}>
+      <div className="placeholder-photo flex h-32 w-32 items-center justify-center overflow-hidden rounded-full text-3xl font-semibold text-on-surface-variant">
         {name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
       </div>
       <div className="flex-1">
         <div className="flex flex-col gap-2">
-          <p className="text-sm uppercase tracking-[0.24em] text-amber-600">{role}</p>
-          <h3 className="text-2xl font-semibold text-primary">{name}</h3>
-          <p className="text-sm text-slate-500">Bar Council ID: {barId}</p>
-          <p className="mt-3 text-sm leading-6 text-slate-600">{bio}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">{role}</p>
+          <h3 className="font-display text-2xl font-semibold text-on-surface">{name}</h3>
+          <p className="text-sm text-on-surface-variant">Bar Council ID: {barId}</p>
+          <p className="mt-3 text-sm leading-6 text-on-surface-variant">{bio}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {specialties.map((tag) => (
-              <span key={tag} className="rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+              <span key={tag} className="rounded-md border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
                 {tag}
               </span>
             ))}
@@ -35,10 +34,10 @@ export function LawyerCard({ id, name, role, barId, specialties, bio, rating, va
         </div>
       </div>
       <div className="mt-4 flex items-center justify-between gap-3 md:mt-0 md:w-36 md:flex-col md:items-end">
-        <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-          <Star className="h-4 w-4 text-amber-500" /> {rating.toFixed(1)}
+        <div className="inline-flex items-center gap-1 rounded-md bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface">
+          <Star className="h-4 w-4 text-gold" /> {rating.toFixed(1)}
         </div>
-        <Link href={`/lawyers/${id}`} className="rounded-full border border-amber-500 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50">
+        <Link href={`/lawyers/${id}`} className="rounded-md border border-gold bg-surface px-4 py-2 text-sm font-semibold text-gold transition hover:bg-gold/10">
           View Full Profile
         </Link>
       </div>

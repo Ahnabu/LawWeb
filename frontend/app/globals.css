@@ -1,24 +1,95 @@
 @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ─── Tailwind v4 Theme Tokens ─── */
+@theme {
+  --color-primary: var(--clr-primary);
+  --color-on-primary: var(--clr-on-primary);
+  --color-primary-container: var(--clr-primary-container);
 
-:root {
-  color-scheme: light;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #1C1C1E;
-  background: #FAFAF8;
-  --primary: #0A1628;
-  --secondary: #C9A84C;
-  --accent: #F5F0E8;
-  --background: #FAFAF8;
-  --text: #1C1C1E;
-  --muted: #6B7280;
-  --success: #10B981;
-  --danger: #DC2626;
+  --color-secondary: var(--clr-secondary);
+  --color-on-secondary: var(--clr-on-secondary);
+  --color-secondary-container: var(--clr-secondary-container);
+
+  --color-surface: var(--clr-surface);
+  --color-surface-container: var(--clr-surface-container);
+  --color-surface-container-high: var(--clr-surface-container-high);
+  --color-surface-dim: var(--clr-surface-dim);
+  --color-on-surface: var(--clr-on-surface);
+  --color-on-surface-variant: var(--clr-on-surface-variant);
+
+  --color-outline: var(--clr-outline);
+  --color-outline-variant: var(--clr-outline-variant);
+
+  --color-error: var(--clr-error);
+  --color-success: #10B981;
+  --color-gold: #C9A84C;
+  --color-whatsapp: #25D366;
+  --color-navy: #0A1628;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-bengali: 'Hind Siliguri', sans-serif;
 }
 
+/* ─── Light Theme (default) ─── */
+:root {
+  color-scheme: light;
+
+  --clr-primary: #0A1628;
+  --clr-on-primary: #ffffff;
+  --clr-primary-container: #101c2e;
+
+  --clr-secondary: #C9A84C;
+  --clr-on-secondary: #ffffff;
+  --clr-secondary-container: #fed977;
+
+  --clr-surface: #fbf8fa;
+  --clr-surface-container: #f0edef;
+  --clr-surface-container-high: #eae7e9;
+  --clr-surface-dim: #dcd9db;
+  --clr-on-surface: #1b1b1d;
+  --clr-on-surface-variant: #45474c;
+
+  --clr-outline: #75777d;
+  --clr-outline-variant: #c5c6cd;
+
+  --clr-error: #ba1a1a;
+
+  /* Legacy compat */
+  --background: #fbf8fa;
+  --text: #1b1b1d;
+}
+
+/* ─── Dark Theme ─── */
+.dark {
+  color-scheme: dark;
+
+  --clr-primary: #bbc7df;
+  --clr-on-primary: #243249;
+  --clr-primary-container: #0d1520;
+
+  --clr-secondary: #e6c364;
+  --clr-on-secondary: #3d2e00;
+  --clr-secondary-container: #584400;
+
+  --clr-surface: #0f1724;
+  --clr-surface-container: #162035;
+  --clr-surface-container-high: #1d2940;
+  --clr-surface-dim: #0a1018;
+  --clr-on-surface: #e4e2e3;
+  --clr-on-surface-variant: #c5c6cd;
+
+  --clr-outline: #8e9099;
+  --clr-outline-variant: #2a3245;
+
+  --clr-error: #ffb4ab;
+
+  --background: #0f1724;
+  --text: #e4e2e3;
+}
+
+/* ─── Base ─── */
 * {
   box-sizing: border-box;
 }
@@ -30,8 +101,15 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--background);
-  color: var(--text);
+  font-family: var(--font-body);
+  background: var(--clr-surface);
+  color: var(--clr-on-surface);
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+/* ─── Typography ─── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
 }
 
 button,
@@ -44,43 +122,92 @@ select {
 input,
 textarea,
 select {
-  border-radius: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--clr-outline-variant);
+  background: var(--clr-surface);
+  color: var(--clr-on-surface);
+  padding: 0.625rem 0.875rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--clr-secondary);
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
 }
 
 ::selection {
-  background: rgba(201, 168, 76, 0.2);
+  background: rgba(201, 168, 76, 0.25);
 }
 
-h1,h2,h3,h4,h5,h6 {
-  font-family: 'Playfair Display', Georgia, serif;
+/* ─── Design System Utilities ─── */
+
+/* Glassmorphism Navbar */
+.glass-nav {
+  background: rgba(251, 248, 250, 0.82);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-bottom: 1px solid var(--clr-outline-variant);
 }
 
-.text-gold {
-  color: var(--secondary);
+.dark .glass-nav {
+  background: rgba(15, 23, 36, 0.85);
 }
 
-.bg-frost {
-  background: rgba(255,255,255,0.82);
-  backdrop-filter: blur(16px);
+/* Card Surfaces - Tonal Layer approach */
+.card-elevated {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-outline-variant);
+  border-radius: 12px;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
-.card-surface {
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 25px 80px rgba(10, 22, 40, 0.08);
+.card-elevated:hover {
+  border-color: var(--clr-outline);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.section-divider {
-  border-top: 1px solid rgba(201, 168, 76, 0.16);
+.dark .card-elevated {
+  background: var(--clr-surface-container);
 }
 
+/* Inlay surfaces (sidebars, footer) */
+.surface-inlay {
+  background: var(--clr-surface-container);
+}
+
+/* Hero Pattern */
 .bg-hero-pattern {
-  background-image: linear-gradient(180deg, rgba(10, 22, 40, 0.88), rgba(10, 22, 40, 0.52)), radial-gradient(circle at top left, rgba(201,168,76,0.15), transparent 35%), radial-gradient(circle at bottom right, rgba(245,240,232,0.18), transparent 30%);
+  background-image:
+    linear-gradient(180deg, rgba(10, 22, 40, 0.92), rgba(10, 22, 40, 0.6)),
+    radial-gradient(circle at 20% 30%, rgba(201, 168, 76, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(187, 199, 223, 0.08), transparent 35%);
   background-color: #0A1628;
-  background-blend-mode: overlay;
 }
 
+/* Section Divider */
+.section-divider {
+  border-top: 1px solid var(--clr-outline-variant);
+}
+
+/* Placeholder photo */
 .placeholder-photo {
-  background: linear-gradient(135deg, rgba(10,22,40,0.24), rgba(201,168,76,0.18));
-  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(135deg, rgba(10, 22, 40, 0.2), rgba(201, 168, 76, 0.15));
+  border: 1px solid var(--clr-outline-variant);
+}
+
+/* Bengali text utility */
+.text-bengali {
+  font-family: var(--font-bengali);
+  line-height: 1.8;
+}
+
+/* Smooth all transitions for theme switching */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease !important;
 }

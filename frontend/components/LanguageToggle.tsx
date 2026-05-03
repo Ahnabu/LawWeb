@@ -25,7 +25,7 @@ export function LanguageToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="rounded-full border border-slate-300/70 bg-white/90 px-3 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:border-amber-500"
+      className="rounded-md border border-outline-variant bg-surface px-3 py-2 text-sm font-medium text-on-surface-variant shadow-sm transition hover:border-gold hover:text-gold"
       aria-label="Toggle language"
     >
       <span className="mr-2">{labels[locale].icon}</span>

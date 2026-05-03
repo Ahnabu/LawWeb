@@ -30,14 +30,14 @@ const items = {
 
 export function DashboardSidebar({ role }: DashboardSidebarProps) {
   return (
-    <aside className="space-y-6 rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-xl">
+    <aside className="card-elevated space-y-6 p-6">
       <div className="space-y-1">
-        <p className="text-sm uppercase tracking-[0.28em] text-amber-700">Dashboard</p>
-        <h2 className="text-2xl font-semibold text-primary">{role === 'admin' ? 'Admin Panel' : role === 'lawyer' ? 'Lawyer Dashboard' : 'Client Hub'}</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Dashboard</p>
+        <h2 className="font-display text-2xl font-semibold text-on-surface">{role === 'admin' ? 'Admin Panel' : role === 'lawyer' ? 'Lawyer Dashboard' : 'Client Hub'}</h2>
       </div>
       <nav className="space-y-2">
         {items[role].map((item) => (
-          <Link key={item.label} href={item.href} className="block rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-primary">
+          <Link key={item.label} href={item.href} className="block rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-gold">
             {item.label}
           </Link>
         ))}

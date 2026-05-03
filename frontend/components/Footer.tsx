@@ -13,28 +13,28 @@ const practiceAreas = ['Immigration', 'Criminal', 'Civil', 'Corporate', 'Family'
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200/80 bg-white/95 px-6 py-12 text-slate-700 sm:px-10">
+    <footer className="surface-inlay border-t border-outline-variant px-6 py-12 sm:px-10">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-lg font-semibold text-primary">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20">⚖️</span>
+          <div className="flex items-center gap-3 text-lg font-semibold text-on-surface">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gold/10 text-gold ring-1 ring-gold/20">⚖️</span>
             Islam & Associates
           </div>
-          <p className="max-w-sm text-sm leading-6 text-slate-600">
+          <p className="max-w-sm text-sm leading-6 text-on-surface-variant">
             1st Floor, 30 Court House Street, Dhaka 1000, Bangladesh
           </p>
-          <p className="text-sm leading-6 text-slate-600">Phone: +88-01715365380 | Fax: +88-02-8052345</p>
+          <p className="text-sm leading-6 text-on-surface-variant">Phone: +88-01715365380 | Fax: +88-02-8052345</p>
           <div className="flex items-center gap-3">
             <LanguageToggle />
           </div>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-900">Quick Links</h3>
-          <ul className="mt-4 space-y-3 text-sm text-slate-600">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">Quick Links</h3>
+          <ul className="mt-4 space-y-3 text-sm">
             {quickLinks.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className="transition hover:text-primary">
+                <Link href={item.href} className="text-on-surface-variant transition hover:text-gold">
                   {item.label}
                 </Link>
               </li>
@@ -43,8 +43,8 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-900">Practice Areas</h3>
-          <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">Practice Areas</h3>
+          <div className="mt-4 grid gap-3 text-sm text-on-surface-variant sm:grid-cols-2">
             {practiceAreas.map((area) => (
               <span key={area}>{area}</span>
             ))}
@@ -52,7 +52,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="mt-10 border-t border-slate-200/80 pt-6 text-sm text-slate-500 sm:flex sm:items-center sm:justify-between">
+      <div className="mt-10 border-t border-outline-variant pt-6 text-sm text-on-surface-variant sm:flex sm:items-center sm:justify-between">
         <p>© 2025 Islam & Associates. All Rights Reserved.</p>
         <p>Designed for Dhaka law firm excellence.</p>
       </div>
