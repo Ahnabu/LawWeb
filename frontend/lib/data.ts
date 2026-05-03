@@ -1,11 +1,11 @@
 export const navLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'About Us', href: '/about' },
-  { label: 'Our Lawyers', href: '/lawyers' },
-  { label: 'Practice Areas', href: '/practice-areas' },
-  { label: 'Case Tracker', href: '/track-case' },
-  { label: 'Appointment', href: '/appointment' },
-  { label: 'Contact', href: '/#contact' },
+  { labelKey: 'nav.home', fallback: 'Home', href: '/' },
+  { labelKey: 'nav.about', fallback: 'About Us', href: '/about' },
+  { labelKey: 'nav.lawyers', fallback: 'Our Lawyers', href: '/lawyers' },
+  { labelKey: 'nav.practiceAreas', fallback: 'Practice Areas', href: '/practice-areas' },
+  { labelKey: 'nav.caseTracker', fallback: 'Case Tracker', href: '/track-case' },
+  { labelKey: 'nav.appointment', fallback: 'Appointment', href: '/appointment' },
+  { labelKey: 'nav.contact', fallback: 'Contact', href: '/#contact' },
 ]
 
 export const practiceAreas = [

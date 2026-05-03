@@ -1,32 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLanguage } from './LanguageProvider'
 
 const labels = {
-  en: { label: 'EN', full: 'English', icon: '🇬🇧' },
-  bn: { label: 'বাংলা', full: 'বাংলা', icon: '🇧🇩' },
+  en: { label: 'EN', icon: '🇬🇧' },
+  bn: { label: 'বাংলা', icon: '🇧🇩' },
 }
 
 export function LanguageToggle() {
-  const [locale, setLocale] = useState<'en' | 'bn'>('en')
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem('lawweb-lang')
-    if (stored === 'bn' || stored === 'en') setLocale(stored)
-  }, [])
-
-  const toggle = () => {
-    const next = locale === 'en' ? 'bn' : 'en'
-    setLocale(next)
-    window.localStorage.setItem('lawweb-lang', next)
-  }
+  const { locale, setLocale, t } = useLanguage()
+  const nextLocale = locale === 'en' ? 'bn' : 'en'
 
   return (
     <button
       type="button"
-      onClick={toggle}
-      className="rounded-md border border-outline-variant bg-surface px-3 py-2 text-sm font-medium text-on-surface-variant shadow-sm transition hover:border-gold hover:text-gold"
-      aria-label="Toggle language"
+      onClick={() => setLocale(nextLocale)}
+      className="rounded-md border border-outline-variant bg-surface px-3 py-2 text-sm font-medium text-on-surface-variant shadow-sm transition hover:border-secondary hover:text-secondary"
+      aria-label={t('common.language')}
     >
       <span className="mr-2">{labels[locale].icon}</span>
       {labels[locale].label}

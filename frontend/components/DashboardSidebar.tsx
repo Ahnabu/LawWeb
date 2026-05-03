@@ -32,12 +32,12 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
   return (
     <aside className="card-elevated space-y-6 p-6">
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Dashboard</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Dashboard</p>
         <h2 className="font-display text-2xl font-semibold text-on-surface">{role === 'admin' ? 'Admin Panel' : role === 'lawyer' ? 'Lawyer Dashboard' : 'Client Hub'}</h2>
       </div>
       <nav className="space-y-2">
         {items[role].map((item) => (
-          <Link key={item.label} href={item.href} className="block rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-gold">
+          <Link key={item.label} href={item.href} className="block rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary">
             {item.label}
           </Link>
         ))}

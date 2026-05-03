@@ -11,7 +11,7 @@ export default function AppointmentPage() {
         <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row">
           <div className="space-y-6 flex-1">
             <div className="card-elevated p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Book a Consultation</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Book a Consultation</p>
               <h1 className="mt-4 font-display text-5xl font-semibold text-on-surface">Book a Consultation</h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-on-surface-variant">
                 Choose from an appointment form or start a direct conversation on WhatsApp with our legal team.
@@ -19,11 +19,11 @@ export default function AppointmentPage() {
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="card-elevated p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Fill the Appointment Form</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Fill the Appointment Form</p>
                 <p className="mt-4 text-on-surface-variant">Provide your details and case summary to receive confirmation within 24 hours.</p>
               </div>
               <div className="card-elevated p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">WhatsApp Us Directly</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">WhatsApp Us Directly</p>
                 <p className="mt-4 text-on-surface-variant">Send a quick message to our legal support team with your preferred language.</p>
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function AppointmentPage() {
                     <legend className="text-sm font-semibold">Preferred Time Slot</legend>
                     <div className="flex flex-wrap gap-3">
                       {['Morning', 'Afternoon', 'Evening'].map((slot) => (
-                        <button key={slot} type="button" className="rounded-md border border-outline-variant bg-surface px-4 py-2 text-sm transition hover:border-gold hover:text-gold">
+                        <button key={slot} type="button" className="rounded-md border border-outline-variant bg-surface px-4 py-2 text-sm transition hover:border-secondary hover:text-secondary">
                           {slot}
                         </button>
                       ))}
@@ -97,7 +97,7 @@ export default function AppointmentPage() {
                     <option>In-Person Visit</option>
                   </select>
                 </label>
-                <button type="submit" className="w-full rounded-md bg-gold px-6 py-4 text-sm font-semibold text-navy transition hover:bg-gold/90">
+                <button type="submit" className="w-full rounded-md bg-secondary px-6 py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90">
                   Submit Appointment Request
                 </button>
               </form>

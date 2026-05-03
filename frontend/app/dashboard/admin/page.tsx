@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
           <div className="space-y-8">
             <div className="card-elevated flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Overview</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Overview</p>
                 <h1 className="mt-3 font-display text-3xl font-semibold text-on-surface">Admin Dashboard</h1>
               </div>
               <NotificationBell />
@@ -30,12 +30,12 @@ export default function AdminDashboardPage() {
             <div className="card-elevated p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Recent Cases</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Recent Cases</p>
                   <h2 className="mt-3 font-display text-2xl font-semibold text-on-surface">Recent Cases</h2>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {actions.map((action) => (
-                    <button key={action} type="button" className="rounded-md bg-gold px-4 py-2 text-sm font-semibold text-navy transition hover:bg-gold/90">
+                    <button key={action} type="button" className="rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-secondary/90">
                       + {action}
                     </button>
                   ))}
@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
                         <td className="py-4">{entry.client}</td>
                         <td className="py-4">{entry.lawyer}</td>
                         <td className="py-4">{entry.type}</td>
-                        <td className="py-4 font-semibold text-gold">{entry.status}</td>
+                        <td className="py-4 font-semibold text-secondary">{entry.status}</td>
                       </tr>
                     ))}
                   </tbody>

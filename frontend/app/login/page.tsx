@@ -7,7 +7,7 @@ export default function LoginPage() {
       <div className="mx-auto max-w-3xl card-elevated p-10 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Islam & Associates</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Islam & Associates</p>
             <h1 className="mt-4 font-display text-4xl font-semibold text-on-surface">Login to Your Account</h1>
           </div>
           <LanguageToggle />
@@ -15,7 +15,7 @@ export default function LoginPage() {
         <div className="mt-10 grid gap-6 rounded-xl border border-outline-variant bg-surface-container p-8">
           <div className="flex gap-3 rounded-lg bg-surface p-2 shadow-sm">
             {['Owner / Admin', 'Lawyer', 'Client'].map((role) => (
-              <button key={role} type="button" className="flex-1 rounded-md px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:bg-gold/10 hover:text-gold">
+              <button key={role} type="button" className="flex-1 rounded-md px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:bg-secondary/10 hover:text-secondary">
                 {role}
               </button>
             ))}
@@ -29,12 +29,12 @@ export default function LoginPage() {
               Password
               <input type="password" placeholder="••••••••" className="mt-2 w-full" />
             </label>
-            <button type="submit" className="w-full rounded-md bg-gold px-6 py-4 text-sm font-semibold text-navy transition hover:bg-gold/90">
+            <button type="submit" className="w-full rounded-md bg-secondary px-6 py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90">
               Login
             </button>
           </form>
           <div className="flex items-center justify-between text-sm text-on-surface-variant">
-            <Link href="#" className="text-gold hover:text-gold/80">Forgot Password?</Link>
+            <Link href="#" className="text-secondary hover:text-secondary/80">Forgot Password?</Link>
             <span>Invite-only access only</span>
           </div>
         </div>

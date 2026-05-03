@@ -15,7 +15,7 @@ export default function ClientDashboardPage() {
             <div className="card-elevated p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Client Dashboard</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Client Dashboard</p>
                   <h1 className="mt-3 font-display text-3xl font-semibold text-on-surface">Your Legal Overview</h1>
                 </div>
                 <p className="rounded-md bg-success/10 px-4 py-2 text-sm font-semibold text-success">Client View</p>
@@ -35,7 +35,7 @@ export default function ClientDashboardPage() {
                   <div key={entry.id} className="rounded-xl border border-outline-variant bg-surface-container p-5">
                     <div className="flex items-center justify-between gap-4">
                       <p className="font-semibold text-on-surface">{entry.id}</p>
-                      <span className="rounded-md bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">{entry.status}</span>
+                      <span className="rounded-md bg-secondary/15 px-3 py-1 text-xs font-semibold text-secondary">{entry.status}</span>
                     </div>
                     <p className="mt-2 text-sm text-on-surface-variant">{entry.type} case in progress.</p>
                   </div>

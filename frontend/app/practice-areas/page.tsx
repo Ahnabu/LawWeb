@@ -10,7 +10,7 @@ export default function PracticeAreasPage() {
       <Navbar />
       <section className="bg-surface px-6 py-16 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-6xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Practice Areas</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Practice Areas</p>
           <h1 className="mt-4 font-display text-5xl font-semibold text-on-surface">All Areas of Practice</h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-on-surface-variant sm:text-base">
             Explore our comprehensive legal services across immigration, criminal, civil and corporate law.

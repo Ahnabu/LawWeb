@@ -15,7 +15,7 @@ export default function LawyerDashboardPage() {
           <div className="space-y-8">
             <div className="card-elevated flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">My Overview</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">My Overview</p>
                 <h1 className="mt-3 font-display text-3xl font-semibold text-on-surface">My Dashboard</h1>
               </div>
               <NotificationBell />

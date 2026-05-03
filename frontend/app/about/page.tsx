@@ -7,9 +7,9 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen bg-surface text-on-surface">
       <Navbar />
-      <section className="bg-navy px-6 py-20 text-white sm:px-8 lg:px-10">
+      <section className="bg-primary px-6 py-20 text-white sm:px-8 lg:px-10">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">About Islam & Associates</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">About Islam & Associates</p>
           <h1 className="mt-4 font-display text-5xl font-bold leading-tight">A Legacy of Legal Excellence in Bangladesh</h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
             We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients&apos; successes.
@@ -24,8 +24,8 @@ export default function AboutPage() {
             <p className="text-base leading-7 text-on-surface-variant">
               Islam & Associates is an elite law firm serving Dhaka and global clients with deep expertise across corporate, civil, criminal, immigration, and family law. Our commitment is to deliver transparent, ethical, and rapid legal solutions.
             </p>
-            <div className="rounded-xl bg-gold/10 p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Our Promise</p>
+            <div className="rounded-xl bg-secondary/10 p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Our Promise</p>
               <p className="mt-4 text-lg font-semibold leading-7 text-on-surface">We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients' successes.</p>
             </div>
           </div>
@@ -48,7 +48,7 @@ export default function AboutPage() {
           <div className="mt-12 space-y-8">
             {timelineItems.map((item) => (
               <div key={item.year} className="card-elevated grid gap-4 p-8 md:grid-cols-[150px_1fr]">
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">{item.year}</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{item.year}</div>
                 <div>
                   <h3 className="font-display text-xl font-semibold text-on-surface">{item.title}</h3>
                   <p className="mt-3 text-on-surface-variant">{item.description}</p>

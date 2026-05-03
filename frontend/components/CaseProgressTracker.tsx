@@ -15,7 +15,7 @@ export function CaseProgressTracker({ currentStep = 3 }: CaseProgressTrackerProp
         ))}
       </div>
       <div className="relative h-2 overflow-hidden rounded-full bg-surface-container-high">
-        <div className="absolute left-0 top-0 h-full rounded-full bg-gold" style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }} />
+        <div className="absolute left-0 top-0 h-full rounded-full bg-secondary" style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }} />
       </div>
     </div>
   )
