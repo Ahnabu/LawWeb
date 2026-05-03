@@ -9,25 +9,29 @@ export const navLinks = [
 ]
 
 export const practiceAreas = [
-  { title: 'Immigration Law', description: 'Visa appeals, residency, work permits' },
-  { title: 'Criminal Law', description: 'Defense for serious charges and bail hearings' },
-  { title: 'Civil Litigation', description: 'Disputes, arbitration and civil remedies' },
-  { title: 'Corporate Law', description: 'Company formation, contracts and compliance' },
-  { title: 'Family Law', description: 'Divorce, custody and family settlements' },
-  { title: 'Real Estate', description: 'Property disputes, conveyance, leases' },
-  { title: 'Intellectual Property', description: 'Trademarks, patents and IP defense' },
-  { title: 'Banking & Finance', description: 'Loans, restructuring, compliance' },
+  { titleKey: 'common.practiceAreas.immigration.title', descriptionKey: 'common.practiceAreas.immigration.description' },
+  { titleKey: 'common.practiceAreas.criminal.title', descriptionKey: 'common.practiceAreas.criminal.description' },
+  { titleKey: 'common.practiceAreas.civil.title', descriptionKey: 'common.practiceAreas.civil.description' },
+  { titleKey: 'common.practiceAreas.corporate.title', descriptionKey: 'common.practiceAreas.corporate.description' },
+  { titleKey: 'common.practiceAreas.family.title', descriptionKey: 'common.practiceAreas.family.description' },
+  { titleKey: 'common.practiceAreas.realEstate.title', descriptionKey: 'common.practiceAreas.realEstate.description' },
+  { titleKey: 'common.practiceAreas.intellectualProperty.title', descriptionKey: 'common.practiceAreas.intellectualProperty.description' },
+  { titleKey: 'common.practiceAreas.bankingFinance.title', descriptionKey: 'common.practiceAreas.bankingFinance.description' },
 ]
 
 export const lawyers = [
   {
     id: 'mufassil-islam',
     name: 'Mufassil MM Islam',
-    role: 'Senior Partner',
+    roleKey: 'common.lawyers.mufassil.role',
     barId: 'BC-1245',
-    specialties: ['Corporate Law', 'Immigration', 'Civil Litigation'],
+    specialties: [
+      'common.practiceAreas.corporate.title',
+      'common.practiceAreas.immigration.title',
+      'common.practiceAreas.civil.title',
+    ],
     rating: 4.9,
-    bio: 'Expert in cross-border legal strategy with more than 27 years of experience.',
+    bioKey: 'common.lawyers.mufassil.bio',
     casesCount: 96,
     reviews: [
       { name: 'A. Rahman', quote: 'The team delivered fast, trustworthy results under pressure.', rating: 5 },
@@ -37,11 +41,15 @@ export const lawyers = [
   {
     id: 'nazrul-islam',
     name: 'Nazrul Islam',
-    role: 'Principal Counsel',
+    roleKey: 'common.lawyers.nazrul.role',
     barId: 'BC-1387',
-    specialties: ['Criminal Law', 'Family Law', 'Civil Litigation'],
+    specialties: [
+      'common.practiceAreas.criminal.title',
+      'common.practiceAreas.family.title',
+      'common.practiceAreas.civil.title',
+    ],
     rating: 4.8,
-    bio: 'Seasoned litigator known for strong courtroom advocacy and client empathy.',
+    bioKey: 'common.lawyers.nazrul.bio',
     casesCount: 83,
     reviews: [
       { name: 'R. Ahmed', quote: 'Handled my case with care and extraordinary detail.', rating: 5 },
@@ -50,11 +58,14 @@ export const lawyers = [
   {
     id: 'sadequr-rahman',
     name: 'Sadequr Rahman',
-    role: 'Associate Lawyer',
+    roleKey: 'common.lawyers.sadequr.role',
     barId: 'BC-1220',
-    specialties: ['Banking & Finance', 'Corporate Law'],
+    specialties: [
+      'common.practiceAreas.bankingFinance.title',
+      'common.practiceAreas.corporate.title',
+    ],
     rating: 4.7,
-    bio: 'Focused on commercial and finance matters for corporate clients.',
+    bioKey: 'common.lawyers.sadequr.bio',
     casesCount: 62,
     reviews: [
       { name: 'N. Akter', quote: 'Responsive and knowledgeable throughout the process.', rating: 5 },
@@ -64,25 +75,25 @@ export const lawyers = [
 
 export const successStories = [
   {
-    title: 'Immigration Appeal Won in 30 Days',
-    summary: 'A successful visa appeal for a multinational professional in Dhaka.',
+    titleKey: 'common.successStories.immigration.title',
+    summaryKey: 'common.successStories.immigration.summary',
     initials: 'A.A.',
-    quote: 'Islam & Associates guided me through a fast and stress-free process.',
-    badge: 'Immigration',
+    quoteKey: 'common.successStories.immigration.quote',
+    badgeKey: 'common.successStories.immigration.badge',
   },
   {
-    title: 'Corporate Restructuring Approved',
-    summary: 'Complex restructuring completed with regulatory approval.',
+    titleKey: 'common.successStories.corporate.title',
+    summaryKey: 'common.successStories.corporate.summary',
     initials: 'M.R.',
-    quote: 'Their precision and knowledge made the matter painless.',
-    badge: 'Corporate',
+    quoteKey: 'common.successStories.corporate.quote',
+    badgeKey: 'common.successStories.corporate.badge',
   },
   {
-    title: 'Civil Settlement Secured',
-    summary: 'Amicable resolution of a high-value civil dispute.',
+    titleKey: 'common.successStories.civil.title',
+    summaryKey: 'common.successStories.civil.summary',
     initials: 'S.H.',
-    quote: 'Trustworthy service with excellent communication.',
-    badge: 'Civil',
+    quoteKey: 'common.successStories.civil.quote',
+    badgeKey: 'common.successStories.civil.badge',
   },
 ]
 
@@ -95,14 +106,14 @@ export const timelineItems = [
 ]
 
 export const practiceAreaDetails = [
-  { title: 'Immigration Law', details: 'Assistance with visas, appeals, residency and citizenship matters.' },
-  { title: 'Criminal Law', details: 'Defense strategy for charged individuals and bail proceedings.' },
-  { title: 'Civil Litigation', details: 'Dispute resolution, claims and arbitration across sectors.' },
-  { title: 'Corporate Law', details: 'Corporate compliance, mergers, contracts and company law advice.' },
-  { title: 'Family Law', details: 'Custody, divorce and family dispute resolution services.' },
-  { title: 'Real Estate', details: 'Property conveyance, disputes and lease agreement support.' },
-  { title: 'Intellectual Property', details: 'IP registration, enforcement and dispute defense.' },
-  { title: 'Banking & Finance', details: 'Loan agreements, restructuring and financial regulation support.' },
+  { titleKey: 'common.practiceAreas.immigration.title', detailsKey: 'common.practiceAreas.immigration.details' },
+  { titleKey: 'common.practiceAreas.criminal.title', detailsKey: 'common.practiceAreas.criminal.details' },
+  { titleKey: 'common.practiceAreas.civil.title', detailsKey: 'common.practiceAreas.civil.details' },
+  { titleKey: 'common.practiceAreas.corporate.title', detailsKey: 'common.practiceAreas.corporate.details' },
+  { titleKey: 'common.practiceAreas.family.title', detailsKey: 'common.practiceAreas.family.details' },
+  { titleKey: 'common.practiceAreas.realEstate.title', detailsKey: 'common.practiceAreas.realEstate.details' },
+  { titleKey: 'common.practiceAreas.intellectualProperty.title', detailsKey: 'common.practiceAreas.intellectualProperty.details' },
+  { titleKey: 'common.practiceAreas.bankingFinance.title', detailsKey: 'common.practiceAreas.bankingFinance.details' },
 ]
 
 export const adminStats = [

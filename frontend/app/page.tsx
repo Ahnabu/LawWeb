@@ -74,7 +74,11 @@ export default function HomePage() {
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {practiceAreas.map((area) => (
-              <PracticeAreaCard key={area.title} title={area.title} description={area.description} />
+              <PracticeAreaCard
+                key={area.titleKey}
+                title={t(area.titleKey)}
+                description={t(area.descriptionKey)}
+              />
             ))}
           </div>
           <div className="mt-8 text-center">
@@ -114,7 +118,14 @@ export default function HomePage() {
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             {successStories.map((story) => (
-              <SuccessStoryCard key={story.title} {...story} />
+              <SuccessStoryCard
+                key={story.titleKey}
+                title={t(story.titleKey)}
+                summary={t(story.summaryKey)}
+                initials={story.initials}
+                quote={t(story.quoteKey)}
+                badge={t(story.badgeKey)}
+              />
             ))}
           </div>
         </div>

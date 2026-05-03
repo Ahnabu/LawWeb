@@ -12,7 +12,16 @@ const quickLinks = [
   { labelKey: 'nav.caseTracker', href: '/track-case' },
 ]
 
-const practiceAreas = ['Immigration', 'Criminal', 'Civil', 'Corporate', 'Family', 'Real Estate', 'IP', 'Banking']
+const practiceAreas = [
+  'common.practiceAreas.immigration.title',
+  'common.practiceAreas.criminal.title',
+  'common.practiceAreas.civil.title',
+  'common.practiceAreas.corporate.title',
+  'common.practiceAreas.family.title',
+  'common.practiceAreas.realEstate.title',
+  'common.practiceAreas.intellectualProperty.title',
+  'common.practiceAreas.bankingFinance.title',
+]
 
 export function Footer() {
   const { t } = useLanguage()
@@ -51,7 +60,7 @@ export function Footer() {
           <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">{t('common.footerPracticeAreas')}</h3>
           <div className="mt-4 grid gap-3 text-sm text-on-surface-variant sm:grid-cols-2">
             {practiceAreas.map((area) => (
-              <span key={area}>{area}</span>
+              <span key={area}>{t(area)}</span>
             ))}
           </div>
         </div>
