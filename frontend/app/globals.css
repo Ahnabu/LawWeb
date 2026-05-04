@@ -102,11 +102,22 @@ html {
 
 body {
   margin: 0;
+  padding-top: var(--site-header-height);
   min-height: 100vh;
   font-family: var(--font-body);
   background: var(--clr-surface);
   color: var(--clr-on-surface);
   transition: background-color 300ms ease, color 300ms ease;
+}
+
+:root {
+  --site-header-height: 3.5rem;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --site-header-height: 4.25rem;
+  }
 }
 
 /* Responsive container utility used by page layouts */

@@ -15,7 +15,7 @@ interface LoginResponse {
   user: AuthUser
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+import { API_BASE_URL } from './api'
 
 export async function signIn(email: string, password: string): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -34,4 +34,26 @@ export async function signIn(email: string, password: string): Promise<LoginResp
   }
 
   return data as LoginResponse
+}
+
+export async function fetchSession(): Promise<AuthUser | null> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  const data = await response.json().catch(() => null)
+  return data?.user ?? null
+}
+
+export async function signOut(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  })
 }

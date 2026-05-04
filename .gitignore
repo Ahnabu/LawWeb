@@ -9,7 +9,8 @@ backend/dist/
 # production
 /build/
 /dist/
-
+backend_cookies.txt
+**/backend_cookies.txt
 # local env files
 .env
 .env.local

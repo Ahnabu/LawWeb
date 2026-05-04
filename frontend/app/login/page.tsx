@@ -5,9 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LanguageToggle } from '../../components/LanguageToggle'
 import { signIn } from '../../lib/auth'
+import { useAuth } from '../../components/AuthProvider'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -20,6 +22,7 @@ export default function LoginPage() {
 
     try {
       const data = await signIn(email, password)
+      login(data.user)
 
       router.push(`/dashboard/${data.user.role}`)
     } catch (submitError) {

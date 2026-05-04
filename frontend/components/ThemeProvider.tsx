@@ -29,6 +29,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const initial = stored || (prefersDark ? 'dark' : 'light')
     setTheme(initial)
     document.documentElement.classList.toggle('dark', initial === 'dark')
+
+    if (stored) {
+      return
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (event: MediaQueryListEvent) => {
+      const nextTheme = event.matches ? 'dark' : 'light'
+      setTheme(nextTheme)
+      document.documentElement.classList.toggle('dark', nextTheme === 'dark')
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange)
+    }
   }, [])
 
   const toggleTheme = () => {

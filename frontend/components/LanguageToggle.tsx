@@ -15,7 +15,7 @@ export function LanguageToggle() {
     <button
       type="button"
       onClick={() => setLocale(nextLocale)}
-      className="rounded-md border border-outline-variant bg-surface px-3 py-2 text-sm font-medium text-on-surface-variant shadow-sm transition hover:border-secondary hover:text-secondary"
+      className="inline-flex items-center justify-center rounded-md border border-outline-variant bg-surface px-3 py-2 text-sm font-medium text-on-surface-variant shadow-sm transition hover:border-secondary hover:text-secondary"
       aria-label={t('common.language')}
     >
       <span className="mr-2">{labels[locale].icon}</span>

@@ -25,7 +25,7 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-hero-pattern py-16 sm:py-20 md:py-24 lg:py-28 text-white">
+      <section className="bg-hero-pattern pb-16 pt-8 sm:pb-20 sm:pt-10 md:pb-24 md:pt-12 lg:pb-28 lg:pt-14 text-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 text-center lg:px-8">
           <span className="inline-flex rounded-md border border-secondary/40 bg-secondary/10 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
             {t('common.established')}
