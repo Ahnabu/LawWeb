@@ -17,16 +17,16 @@ export function LawyerCard({ id, name, roleKey, barId, specialties, bioKey, rati
   const { t } = useLanguage()
 
   return (
-    <div className={`card-elevated p-6 transition hover:-translate-y-0.5 ${variant === 'horizontal' ? 'flex flex-col gap-6 md:flex-row' : ''}`}>
-      <div className="placeholder-photo flex h-32 w-32 items-center justify-center overflow-hidden rounded-full text-3xl font-semibold text-on-surface-variant">
+    <div className={`card-elevated p-4 sm:p-6 transition hover:-translate-y-0.5 ${variant === 'horizontal' ? 'flex flex-col gap-4 sm:gap-6 md:flex-row' : ''}`}>
+      <div className="placeholder-photo flex h-24 w-24 sm:h-32 sm:w-32 items-center justify-center overflow-hidden rounded-full text-2xl sm:text-3xl font-semibold text-on-surface-variant flex-shrink-0">
         {name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
       </div>
       <div className="flex-1">
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t(roleKey)}</p>
-          <h3 className="font-display text-2xl font-semibold text-on-surface">{name}</h3>
-          <p className="text-sm text-on-surface-variant">{t('common.barCouncilId')}: {barId}</p>
-          <p className="mt-3 text-sm leading-6 text-on-surface-variant">{t(bioKey)}</p>
+          <h3 className="font-display text-lg sm:text-2xl font-semibold text-on-surface">{name}</h3>
+          <p className="text-xs sm:text-sm text-on-surface-variant">{t('common.barCouncilId')}: {barId}</p>
+          <p className="mt-3 text-xs sm:text-sm leading-6 text-on-surface-variant">{t(bioKey)}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {specialties.map((tag) => (
               <span key={tag} className="rounded-md border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary">

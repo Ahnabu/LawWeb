@@ -95,6 +95,11 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Fluid typography: scales between 14px and 18px across viewport widths */
+html {
+  font-size: clamp(14px, 1.2vw + 12px, 18px);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -104,9 +109,66 @@ body {
   transition: background-color 300ms ease, color 300ms ease;
 }
 
+/* Responsive container utility used by page layouts */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(0.5rem, 2vw, 1.5rem);
+  padding-right: clamp(0.5rem, 2vw, 1.5rem);
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .container { max-width: 640px; }
+}
+@media (min-width: 768px) {
+  .container { max-width: 768px; }
+}
+@media (min-width: 1024px) {
+  .container { max-width: 1024px; }
+}
+@media (min-width: 1280px) {
+  .container { max-width: 1280px; }
+}
+
+/* Responsive spacing utilities */
+.px-responsive { padding-left: clamp(0.5rem, 2vw, 2.5rem); padding-right: clamp(0.5rem, 2vw, 2.5rem); }
+.py-responsive { padding-top: clamp(1rem, 3vw, 2.5rem); padding-bottom: clamp(1rem, 3vw, 2.5rem); }
+.gap-responsive { gap: clamp(1rem, 2vw, 2rem); }
+
+/* Responsive text utilities */
+.text-responsive { font-size: clamp(0.875rem, 1.2vw, 1rem); }
+.text-responsive-lg { font-size: clamp(1rem, 1.5vw, 1.25rem); }
+
 /* ─── Typography ─── */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+}
+
+/* Responsive heading sizes: scale fluidly from small to large screens */
+h1 {
+  font-size: clamp(2rem, 5vw, 3.75rem); /* scales from 32px to 60px */
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: clamp(1.75rem, 4vw, 3rem); /* scales from 28px to 48px */
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: clamp(1.5rem, 3vw, 2rem); /* scales from 24px to 32px */
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem); /* scales from 20px to 24px */
+  line-height: 1.4;
+  font-weight: 600;
 }
 
 button,
