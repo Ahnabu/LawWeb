@@ -1,5 +1,4 @@
 export const navLinks = [
-  { labelKey: 'nav.home', fallback: 'Home', href: '/' },
   { labelKey: 'nav.about', fallback: 'About Us', href: '/about' },
   { labelKey: 'nav.lawyers', fallback: 'Our Lawyers', href: '/lawyers' },
   { labelKey: 'nav.practiceAreas', fallback: 'Practice Areas', href: '/practice-areas' },

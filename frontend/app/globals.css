@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap");
 @import "tailwindcss";
 
 /* ─── Tailwind v4 Theme Tokens ─── */
@@ -22,23 +22,23 @@
   --color-outline-variant: var(--clr-outline-variant);
 
   --color-error: var(--clr-error);
-  --color-success: #10B981;
-  --color-whatsapp: #25D366;
+  --color-success: #10b981;
+  --color-whatsapp: #25d366;
 
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-bengali: 'Hind Siliguri', sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-bengali: "Hind Siliguri", sans-serif;
 }
 
 /* ─── Light Theme (default) ─── */
 :root {
   color-scheme: light;
 
-  --clr-primary: #0A1628;
+  --clr-primary: #0a1628;
   --clr-on-primary: #ffffff;
   --clr-primary-container: #101c2e;
 
-  --clr-secondary: #C9A84C;
+  --clr-secondary: #c9a84c;
   --clr-on-secondary: #ffffff;
   --clr-secondary-container: #fed977;
 
@@ -62,12 +62,12 @@
 .dark {
   color-scheme: dark;
 
-  --clr-primary: #0A1628;
+  --clr-primary: #0a1628;
   --clr-on-primary: #ffffff;
   --clr-primary-container: #101c2e;
 
-  --clr-secondary: #C9A84C;
-  --clr-on-secondary: #0A1628;
+  --clr-secondary: #c9a84c;
+  --clr-on-secondary: #0a1628;
   --clr-secondary-container: #3d2b0f;
 
   --clr-surface: #08111f;
@@ -97,7 +97,7 @@ html {
 
 /* Fluid typography: scales between 14px and 18px across viewport widths */
 html {
-  font-size: clamp(14px, 1.2vw + 12px, 18px);
+  font-size: clamp(13px, 1.1vw + 11px, 17px);
 }
 
 body {
@@ -107,7 +107,19 @@ body {
   font-family: var(--font-body);
   background: var(--clr-surface);
   color: var(--clr-on-surface);
-  transition: background-color 300ms ease, color 300ms ease;
+  transition:
+    background-color 300ms ease,
+    color 300ms ease;
+}
+
+body:has(.auth-page) {
+  padding-top: 0px;
+}
+
+@media (min-width: 640px) {
+  body:has(.auth-page) {
+    padding-top: 0px;
+  }
 }
 
 :root {
@@ -131,29 +143,54 @@ body {
 }
 
 @media (min-width: 640px) {
-  .container { max-width: 640px; }
+  .container {
+    max-width: 640px;
+  }
 }
 @media (min-width: 768px) {
-  .container { max-width: 768px; }
+  .container {
+    max-width: 768px;
+  }
 }
 @media (min-width: 1024px) {
-  .container { max-width: 1024px; }
+  .container {
+    max-width: 1024px;
+  }
 }
 @media (min-width: 1280px) {
-  .container { max-width: 1280px; }
+  .container {
+    max-width: 1280px;
+  }
 }
 
 /* Responsive spacing utilities */
-.px-responsive { padding-left: clamp(0.5rem, 2vw, 2.5rem); padding-right: clamp(0.5rem, 2vw, 2.5rem); }
-.py-responsive { padding-top: clamp(1rem, 3vw, 2.5rem); padding-bottom: clamp(1rem, 3vw, 2.5rem); }
-.gap-responsive { gap: clamp(1rem, 2vw, 2rem); }
+.px-responsive {
+  padding-left: clamp(0.5rem, 2vw, 2.5rem);
+  padding-right: clamp(0.5rem, 2vw, 2.5rem);
+}
+.py-responsive {
+  padding-top: clamp(1rem, 3vw, 2.5rem);
+  padding-bottom: clamp(1rem, 3vw, 2.5rem);
+}
+.gap-responsive {
+  gap: clamp(1rem, 2vw, 2rem);
+}
 
 /* Responsive text utilities */
-.text-responsive { font-size: clamp(0.875rem, 1.2vw, 1rem); }
-.text-responsive-lg { font-size: clamp(1rem, 1.5vw, 1.25rem); }
+.text-responsive {
+  font-size: clamp(0.875rem, 1.2vw, 1rem);
+}
+.text-responsive-lg {
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+}
 
 /* ─── Typography ─── */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
 }
 
@@ -197,7 +234,9 @@ select {
   background: var(--clr-surface);
   color: var(--clr-on-surface);
   padding: 0.625rem 0.875rem;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 input:focus,
@@ -231,7 +270,9 @@ select:focus {
   background: var(--clr-surface);
   border: 1px solid var(--clr-outline-variant);
   border-radius: 12px;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .card-elevated:hover {
@@ -252,8 +293,16 @@ select:focus {
 .bg-hero-pattern {
   background-image:
     linear-gradient(180deg, rgba(10, 22, 40, 0.92), rgba(10, 22, 40, 0.6)),
-    radial-gradient(circle at 20% 30%, rgba(201, 168, 76, 0.12), transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(187, 199, 223, 0.08), transparent 35%);
+    radial-gradient(
+      circle at 20% 30%,
+      rgba(201, 168, 76, 0.12),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      rgba(187, 199, 223, 0.08),
+      transparent 35%
+    );
   background-color: var(--clr-primary);
 }
 
@@ -264,7 +313,11 @@ select:focus {
 
 /* Placeholder photo */
 .placeholder-photo {
-  background: linear-gradient(135deg, rgba(10, 22, 40, 0.2), rgba(201, 168, 76, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(10, 22, 40, 0.2),
+    rgba(201, 168, 76, 0.15)
+  );
   border: 1px solid var(--clr-outline-variant);
 }
 
@@ -279,5 +332,8 @@ select:focus {
 .theme-transition *,
 .theme-transition *::before,
 .theme-transition *::after {
-  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease !important;
+  transition:
+    background-color 300ms ease,
+    color 300ms ease,
+    border-color 300ms ease !important;
 }

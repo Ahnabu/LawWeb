@@ -38,9 +38,7 @@ export function Footer() {
             1st Floor, 30 Court House Street, Dhaka 1000, Bangladesh
           </p>
           <p className="text-xs sm:text-sm leading-6 text-on-surface-variant">Phone: +88-01715365380 | Fax: +88-02-8052345</p>
-          <div className="flex items-center gap-3">
-            <LanguageToggle />
-          </div>
+         
         </div>
 
         <div>
