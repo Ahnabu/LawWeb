@@ -9,6 +9,9 @@ export interface IUser extends Document {
   barId?: string; // For lawyers
   phone?: string;
   isVerified: boolean;
+  emailVerificationCodeHash?: string;
+  emailVerificationExpiresAt?: Date;
+  emailVerificationSentAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
@@ -23,6 +26,9 @@ const UserSchema: Schema = new Schema(
     barId: { type: String, sparse: true },
     phone: { type: String },
     isVerified: { type: Boolean, default: false },
+    emailVerificationCodeHash: { type: String, select: false },
+    emailVerificationExpiresAt: { type: Date, select: false },
+    emailVerificationSentAt: { type: Date },
   },
   { timestamps: true }
 );

@@ -9,9 +9,9 @@ exports.registerSchema = zod_1.z.object({
         password: zod_1.z.string()
             .min(8, 'Password must be at least 8 characters')
             .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain uppercase, lowercase, number and special character'),
-        role: zod_1.z.enum(['admin', 'lawyer', 'client']).default('client'),
+        role: zod_1.z.enum(['lawyer', 'client']).default('client'),
         barId: zod_1.z.string().optional(),
-        phone: zod_1.z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone format').optional(),
+        phone: zod_1.z.string().regex(/^(\+?8801[3-9]\d{8}|01[3-9]\d{8})$/, 'Enter a valid Bangladeshi phone number, such as +8801XXXXXXXXX'),
     }),
 });
 exports.loginSchema = zod_1.z.object({

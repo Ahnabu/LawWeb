@@ -8,9 +8,9 @@ export const registerSchema = z.object({
       .min(8, 'Password must be at least 8 characters')
       .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
         'Password must contain uppercase, lowercase, number and special character'),
-    role: z.enum(['admin', 'lawyer', 'client']).default('client'),
+    role: z.enum(['lawyer', 'client']).default('client'),
     barId: z.string().optional(),
-    phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone format').optional(),
+    phone: z.string().regex(/^(\+?8801[3-9]\d{8}|01[3-9]\d{8})$/, 'Enter a valid Bangladeshi phone number, such as +8801XXXXXXXXX'),
   }),
 });
 

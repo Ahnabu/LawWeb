@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 
 // Routes
 import authRoutes from './routes/auth';
+import { resendVerificationCode } from './controllers/authController';
 
 dotenv.config();
 
@@ -28,8 +29,15 @@ app.use(helmet({
   },
 }));
 
+// CORS configuration for both development and production
+const allowedOrigins = (
+  process.env.NODE_ENV === 'production'
+    ? process.env.CLIENT_URL?.split(',') || ['http://localhost:3000']
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']
+) as string[];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true,
 }));
 
@@ -74,6 +82,12 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
+
+// Backwards-compatible/fallback endpoints in case frontend calls short paths
+app.post('/resend-verification-code', express.json(), resendVerificationCode);
+app.post('/api/resend-verification-code', express.json(), resendVerificationCode);
+app.post('/resend-code', express.json(), resendVerificationCode);
+app.post('/api/resend-code', express.json(), resendVerificationCode);
 
 // Health check
 app.get('/api/health', (req, res) => {

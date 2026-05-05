@@ -5,12 +5,11 @@ export declare const registerSchema: z.ZodObject<{
         email: z.ZodString;
         password: z.ZodString;
         role: z.ZodDefault<z.ZodEnum<{
-            admin: "admin";
             lawyer: "lawyer";
             client: "client";
         }>>;
         barId: z.ZodOptional<z.ZodString>;
-        phone: z.ZodOptional<z.ZodString>;
+        phone: z.ZodString;
     }, z.core.$strip>;
 }, z.core.$strip>;
 export declare const loginSchema: z.ZodObject<{

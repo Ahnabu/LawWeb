@@ -46,6 +46,9 @@ const UserSchema = new mongoose_1.Schema({
     barId: { type: String, sparse: true },
     phone: { type: String },
     isVerified: { type: Boolean, default: false },
+    emailVerificationCodeHash: { type: String, select: false },
+    emailVerificationExpiresAt: { type: Date, select: false },
+    emailVerificationSentAt: { type: Date },
 }, { timestamps: true });
 // Hash password before saving
 UserSchema.pre('save', async function () {

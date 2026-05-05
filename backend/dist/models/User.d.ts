@@ -7,6 +7,9 @@ export interface IUser extends Document {
     barId?: string;
     phone?: string;
     isVerified: boolean;
+    emailVerificationCodeHash?: string;
+    emailVerificationExpiresAt?: Date;
+    emailVerificationSentAt?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(password: string): Promise<boolean>;

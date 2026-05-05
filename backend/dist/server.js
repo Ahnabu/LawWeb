@@ -28,8 +28,12 @@ app.use((0, helmet_1.default)({
         },
     },
 }));
+// CORS configuration for both development and production
+const allowedOrigins = (process.env.NODE_ENV === 'production'
+    ? process.env.CLIENT_URL?.split(',') || ['http://localhost:3000']
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']);
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
 }));
 app.use((0, compression_1.default)());

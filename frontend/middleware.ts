@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+import { API_BASE_URL } from './lib/api'
 
 const dashboardPathByRole: Record<string, string> = {
   admin: '/dashboard/admin',
