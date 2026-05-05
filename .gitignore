@@ -16,6 +16,9 @@ backend_cookies.txt
 .env.local
 .env.*.local
 
+DEPLOYMENT_GUIDE.md
+REGISTRATION_GUIDE.md
+
 # logs
 npm-debug.log*
 yarn-debug.log*

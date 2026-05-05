@@ -49,7 +49,7 @@ export default function LawyerDetailPage() {
                 <p className="mt-2 text-sm text-slate-500">{t('common.barCouncilId')}: {lawyer.barId}</p>
               </div>
               <div className="space-y-3">
-                <Link href="/appointment" className="block rounded-full bg-amber-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-amber-600">
+                <Link href="/dashboard/client/appointment" className="block rounded-full bg-amber-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-amber-600">
                   {t('common.lawyerDetails.bookWithThisLawyer')}
                 </Link>
                 <a href="https://wa.me/8801715365380" className="block rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-amber-300">
@@ -116,7 +116,7 @@ export default function LawyerDetailPage() {
               <div className="rounded-[2rem] border border-amber-300 bg-amber-50 p-10 text-center shadow-xl">
                 <h2 className="text-2xl font-semibold text-primary">{t('common.lawyerDetails.bookAppointmentWith')} {lawyer.name}</h2>
                 <p className="mt-3 text-slate-600">{t('common.lawyerDetails.choosePreferredTime')}</p>
-                <Link href="/appointment" className="mt-6 inline-flex rounded-full bg-amber-500 px-8 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">
+                <Link href="/dashboard/client/appointment" className="mt-6 inline-flex rounded-full bg-amber-500 px-8 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">
                   {t('common.lawyerDetails.bookAppointment')}
                 </Link>
               </div>

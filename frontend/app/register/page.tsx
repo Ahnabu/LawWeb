@@ -1,14 +1,15 @@
 "use client"
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { LanguageToggle } from '../../components/LanguageToggle'
 import { signUp } from '../../lib/auth'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [role, setRole] = useState<'client' | 'lawyer'>('client')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -30,6 +31,18 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isPasswordFocused, setIsPasswordFocused] = useState(false)
+  const redirectPath = searchParams.get('redirect') || '/dashboard/client/appointment'
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const current = window.localStorage.getItem('postAuthRedirect')
+    if (!current && redirectPath) {
+      window.localStorage.setItem('postAuthRedirect', redirectPath)
+    }
+  }, [redirectPath])
 
   const clearFieldError = (field: keyof typeof fieldErrors) => {
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
@@ -115,8 +128,9 @@ export default function RegisterPage() {
       await signUp(name.trim(), normalizedEmail, password, role, phone.trim(), role === 'lawyer' ? barId.trim() : undefined)
       if (typeof window !== 'undefined') {
         window.localStorage.setItem('pendingVerificationEmail', normalizedEmail)
+        window.localStorage.setItem('postAuthRedirect', redirectPath)
       }
-      router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`)
+      router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}&redirect=${encodeURIComponent(redirectPath)}`)
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Unable to register right now'
       setError(message)

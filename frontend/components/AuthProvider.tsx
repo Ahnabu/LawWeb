@@ -11,6 +11,8 @@ interface AuthContextValue {
   login: (user: AuthUser) => void
   logout: () => Promise<void>
   refreshSession: () => Promise<AuthUser | null>
+  setPostAuthRedirect: (path: string) => void
+  consumePostAuthRedirect: () => string | null
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -19,6 +21,8 @@ const AuthContext = createContext<AuthContextValue>({
   login: () => {},
   logout: async () => {},
   refreshSession: async () => null,
+  setPostAuthRedirect: () => {},
+  consumePostAuthRedirect: () => null,
 })
 
 export function useAuth() {
@@ -28,6 +32,27 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
+
+  const setPostAuthRedirect = (path: string) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.localStorage.setItem('postAuthRedirect', path)
+  }
+
+  const consumePostAuthRedirect = () => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    const redirect = window.localStorage.getItem('postAuthRedirect')
+    if (redirect) {
+      window.localStorage.removeItem('postAuthRedirect')
+    }
+
+    return redirect
+  }
 
   const loadSession = async () => {
     const session = await fetchSession()
@@ -75,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus('unauthenticated')
       },
       refreshSession: loadSession,
+      setPostAuthRedirect,
+      consumePostAuthRedirect,
     }),
     [user, status],
   )

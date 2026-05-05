@@ -10,6 +10,8 @@ import dotenv from 'dotenv';
 
 // Routes
 import authRoutes from './routes/auth';
+import consultationRoutes from './routes/consultations';
+import lawyerRoutes from './routes/lawyers';
 import { resendVerificationCode } from './controllers/authController';
 
 dotenv.config();
@@ -82,6 +84,8 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/consultations', consultationRoutes);
+app.use('/api/lawyers', lawyerRoutes);
 
 // Backwards-compatible/fallback endpoints in case frontend calls short paths
 app.post('/resend-verification-code', express.json(), resendVerificationCode);

@@ -37,7 +37,7 @@ export default function HomePage() {
             {t('common.heroSubtitle')}
           </p>
           <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
-            <Link href="/appointment" className="inline-flex rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:bg-secondary/90 w-full sm:w-auto justify-center">
+            <Link href="/dashboard/client/appointment" className="inline-flex rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:bg-secondary/90 w-full sm:w-auto justify-center">
               {t('common.bookAppointment')}
             </Link>
             <Link href="https://wa.me/8801715365380" className="inline-flex items-center justify-center rounded-md border border-whatsapp/50 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:border-whatsapp hover:bg-white/15 w-full sm:w-auto">
@@ -156,7 +156,7 @@ export default function HomePage() {
             <h2 className="mt-2 sm:mt-3 font-display text-2xl sm:text-3xl font-semibold">{t('common.ctaTitle')}</h2>
           </div>
           <div className="flex w-full lg:w-auto flex-col gap-3 sm:flex-row">
-            <Link href="/appointment" className="rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90 text-center">
+            <Link href="/dashboard/client/appointment" className="rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90 text-center">
               {t('common.ctaBookAppointment')}
             </Link>
             <Link href="https://wa.me/8801715365380" className="rounded-md border border-white/30 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:bg-white/20 text-center">

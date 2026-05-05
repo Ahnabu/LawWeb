@@ -265,6 +265,7 @@ exports.verifyEmail = verifyEmail;
 const resendVerificationCode = async (req, res) => {
     try {
         const { email } = req.body;
+        console.info('[auth] resendVerificationCode called', { path: req.path, ip: req.ip, email });
         if (!email) {
             return res.status(400).json({ message: 'Email is required.' });
         }

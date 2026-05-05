@@ -1,8 +1,8 @@
 "use client"
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { LanguageToggle } from '../../components/LanguageToggle'
 import { signIn } from '../../lib/auth'
@@ -10,12 +10,26 @@ import { useAuth } from '../../components/AuthProvider'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const redirectPath = searchParams.get('redirect') || '/dashboard/client'
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const current = window.localStorage.getItem('postAuthRedirect')
+    if (!current && redirectPath) {
+      window.localStorage.setItem('postAuthRedirect', redirectPath)
+    }
+  }, [redirectPath])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -25,6 +39,12 @@ export default function LoginPage() {
     try {
       const data = await signIn(email, password)
       login(data.user)
+      const nextRedirect = typeof window !== 'undefined' ? window.localStorage.getItem('postAuthRedirect') : null
+      if (nextRedirect) {
+        window.localStorage.removeItem('postAuthRedirect')
+        router.push(nextRedirect)
+        return
+      }
 
       router.push(`/dashboard/${data.user.role}`)
     } catch (submitError) {
@@ -60,10 +80,10 @@ export default function LoginPage() {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/verify-email" className="rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-95 hover:shadow-xl">
+              <Link href={`/verify-email?redirect=${encodeURIComponent(redirectPath)}`} className="rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-95 hover:shadow-xl">
                 Verify Email
               </Link>
-              <Link href="/register" className="rounded-xl border border-outline px-4 py-3 text-center text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary">
+              <Link href={`/register?redirect=${encodeURIComponent(redirectPath)}`} className="rounded-xl border border-outline px-4 py-3 text-center text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary">
                 Create Account
               </Link>
             </div>
@@ -130,7 +150,7 @@ export default function LoginPage() {
               <div className="border-t border-outline-variant pt-4">
                 <p className="text-center leading-6">
                   Don't have an account?{' '}
-                  <Link href="/register" className="font-semibold text-secondary underline decoration-2 underline-offset-4 hover:text-primary">
+                  <Link href={`/register?redirect=${encodeURIComponent(redirectPath)}`} className="font-semibold text-secondary underline decoration-2 underline-offset-4 hover:text-primary">
                     Sign up here
                   </Link>
                 </p>

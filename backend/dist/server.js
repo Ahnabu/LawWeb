@@ -14,6 +14,9 @@ const hpp_1 = __importDefault(require("hpp"));
 const dotenv_1 = __importDefault(require("dotenv"));
 // Routes
 const auth_1 = __importDefault(require("./routes/auth"));
+const consultations_1 = __importDefault(require("./routes/consultations"));
+const lawyers_1 = __importDefault(require("./routes/lawyers"));
+const authController_1 = require("./controllers/authController");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -72,6 +75,13 @@ const connectDB = async () => {
 connectDB();
 // Routes
 app.use('/api/auth', auth_1.default);
+app.use('/api/consultations', consultations_1.default);
+app.use('/api/lawyers', lawyers_1.default);
+// Backwards-compatible/fallback endpoints in case frontend calls short paths
+app.post('/resend-verification-code', express_1.default.json(), authController_1.resendVerificationCode);
+app.post('/api/resend-verification-code', express_1.default.json(), authController_1.resendVerificationCode);
+app.post('/resend-code', express_1.default.json(), authController_1.resendVerificationCode);
+app.post('/api/resend-code', express_1.default.json(), authController_1.resendVerificationCode);
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });

@@ -12,6 +12,7 @@ export default function VerifyEmailPage() {
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
+  const [redirectPath, setRedirectPath] = useState('/dashboard/client/appointment')
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string
@@ -28,7 +29,16 @@ export default function VerifyEmailPage() {
 
     const params = new URLSearchParams(window.location.search)
     const emailParam = params.get('email')
+    const redirectParam = params.get('redirect')
     const storedEmail = window.localStorage.getItem('pendingVerificationEmail')
+    const storedRedirect = window.localStorage.getItem('postAuthRedirect')
+
+    if (redirectParam && redirectParam.startsWith('/')) {
+      setRedirectPath(redirectParam)
+      window.localStorage.setItem('postAuthRedirect', redirectParam)
+    } else if (storedRedirect) {
+      setRedirectPath(storedRedirect)
+    }
 
     if (emailParam && emailParam !== 'undefined') {
       setEmail(emailParam)
@@ -79,6 +89,13 @@ export default function VerifyEmailPage() {
         window.localStorage.removeItem('pendingVerificationEmail')
       }
       login(data.user)
+      const nextRedirect = typeof window !== 'undefined' ? window.localStorage.getItem('postAuthRedirect') : null
+      if (nextRedirect) {
+        window.localStorage.removeItem('postAuthRedirect')
+        router.push(nextRedirect)
+        return
+      }
+
       router.push(`/dashboard/${data.user.role}`)
     } catch (submitError) {
       const text = submitError instanceof Error ? submitError.message : 'Unable to verify right now'
@@ -220,7 +237,7 @@ export default function VerifyEmailPage() {
                 {isResending ? 'Resending...' : 'Resend Code'}
               </button>
               <Link
-                href="/login"
+                href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
                 className="rounded-xl border border-outline px-4 py-3 text-center text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary"
               >
                 Back to Login

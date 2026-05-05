@@ -51,18 +51,21 @@ This document addresses the critical connectivity issues that occurred during th
 ### For Backend Deployment (Example: Render, Railway, Heroku)
 
 1. **Configure Environment Variables on Your Hosting Platform**
-   ```
-   PORT=5000
-   NODE_ENV=production
-   CLIENT_URL=https://law-web-xxx.vercel.app
-   
-   MONGODB_URI=mongodb+srv://LawWeb:cwX9wQSkD2yXxzBQ@cluster0.cn1yph8.mongodb.net/LawWeb?appName=Cluster0
-   
-   JWT_SECRET=f487e91456a297e59325608d0e2e9871f302062f689725f4790184f00b952f4c
-   JWT_REFRESH_SECRET=a7c390de1249fa67bc8210376d8591c29410385920ea184756201938fe71029a
-   
-   COOKIE_DOMAIN=.vercel.app
-   ```
+   Use [backend/.env.example](backend/.env.example) as the template in your hosting dashboard. Do not paste real secrets into docs or commits.
+
+   Required variables:
+   - `PORT=5000`
+   - `NODE_ENV=production`
+   - `CLIENT_URL=https://your-frontend-domain.com`
+   - `MONGODB_URI=<your-mongodb-connection-string>`
+   - `RESEND_API_KEY=<your-resend-api-key>`
+   - `RESEND_FROM_EMAIL=<verified-sender@your-domain.com>`
+   - `RESEND_TEST_EMAIL=<your-verified-test-email>`
+   - `JWT_SECRET=<random-long-secret>`
+   - `JWT_REFRESH_SECRET=<random-long-secret>`
+   - `COOKIE_DOMAIN=<your-cookie-domain>`
+
+   For local development, keep the values in your private `.env` file only.
 
 2. **For Multiple Frontend Origins (if needed)**
    - Set `CLIENT_URL` to comma-separated values:

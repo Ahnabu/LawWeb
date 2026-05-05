@@ -41,7 +41,7 @@ export default function LawyersPage() {
               ))}
             </div>
           </div>
-          <Link href="/appointment" className="inline-flex items-center justify-center rounded-md bg-secondary px-4 sm:px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90 w-full sm:w-auto">
+          <Link href="/dashboard/client/appointment" className="inline-flex items-center justify-center rounded-md bg-secondary px-4 sm:px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90 w-full sm:w-auto">
             {t('common.lawyersPage.bookConsultation')}
           </Link>
         </div>

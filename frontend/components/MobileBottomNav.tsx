@@ -16,7 +16,7 @@ export function MobileBottomNav() {
         <Link href="/track-case" className="flex flex-col items-center gap-1 text-xs text-slate-600">
           <Search className="h-5 w-5" /> Track
         </Link>
-        <Link href="/appointment" className="flex flex-col items-center gap-1 text-xs text-slate-600">
+        <Link href="/dashboard/client/appointment" className="flex flex-col items-center gap-1 text-xs text-slate-600">
           <CalendarDays className="h-5 w-5" /> Book
         </Link>
         <a href="tel:+8801715365380" className="flex flex-col items-center gap-1 text-xs text-slate-600">

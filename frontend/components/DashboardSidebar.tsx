@@ -22,6 +22,7 @@ const items = {
   ],
   client: [
     { label: 'Home', href: '/dashboard/client' },
+    { label: 'Book Consultation', href: '/dashboard/client/book-consultation' },
     { label: 'My Cases', href: '/dashboard/client' },
     { label: 'My Appointments', href: '/dashboard/client' },
     { label: 'My Profile', href: '/dashboard/client' },

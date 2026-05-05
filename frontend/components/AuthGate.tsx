@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from './AuthProvider'
 import type { UserRole } from '../lib/auth'
 
@@ -18,6 +18,7 @@ const roleDashboardPath: Record<UserRole, string> = {
 
 export function AuthGate({ children, allowRoles }: AuthGateProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, status } = useAuth()
 
   useEffect(() => {
@@ -32,9 +33,10 @@ export function AuthGate({ children, allowRoles }: AuthGateProps) {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.replace('/login')
+      const redirect = encodeURIComponent(pathname || '/')
+      router.replace(`/login?redirect=${redirect}`)
     }
-  }, [router, status])
+  }, [pathname, router, status])
 
   if (status !== 'authenticated') {
     return (
