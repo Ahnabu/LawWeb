@@ -27,6 +27,6 @@ yarn-error.log*
 # IDE
 .vscode/
 .idea/
-
+.puko/
 # OS files
 .DS_Store
