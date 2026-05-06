@@ -47,7 +47,7 @@ export default function BookConsultationPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({})
 
   const [formData, setFormData] = useState({
     lawyerId: '',
