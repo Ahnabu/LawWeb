@@ -53,6 +53,7 @@
   --clr-outline-variant: #e2e6ef;
 
   --clr-error: #ba1a1a;
+  --clr-heading: var(--clr-primary);
 
   --background: #ffffff;
   --text: #1b1b1d;
@@ -81,6 +82,7 @@
   --clr-outline-variant: #1f2b40;
 
   --clr-error: #ffb4ab;
+  --clr-heading: var(--clr-on-surface);
 
   --background: #08111f;
   --text: #f5f5f5;
@@ -319,6 +321,62 @@ select:focus {
     rgba(201, 168, 76, 0.15)
   );
   border: 1px solid var(--clr-outline-variant);
+}
+
+/* Theme-aware helper RGB variables (used for translucent variants) */
+:root {
+  --clr-primary-rgb: 10 22 40;
+  --clr-secondary-rgb: 201 168 76;
+  --clr-surface-rgb: 255 255 255;
+  --clr-on-surface-rgb: 27 27 29;
+}
+
+.dark {
+  --clr-primary-rgb: 10 22 40;
+  --clr-secondary-rgb: 201 168 76;
+  --clr-surface-rgb: 8 17 31;
+  --clr-on-surface-rgb: 245 245 245;
+}
+
+/* Small set of utility classes mapped to CSS variables so components adapt to theme */
+.text-secondary { color: var(--clr-secondary); }
+.bg-secondary { background: var(--clr-secondary); }
+.border-secondary { border-color: var(--clr-secondary); }
+.text-primary { color: var(--clr-primary); }
+.bg-primary { background: var(--clr-primary); }
+.text-heading { color: var(--clr-heading); }
+
+/* translucent variants using RGB variables */
+.bg-secondary-10 { background: rgb(var(--clr-secondary-rgb) / 0.1); }
+.border-secondary-25 { border-color: rgb(var(--clr-secondary-rgb) / 0.25); }
+.text-on-surface-variant { color: var(--clr-on-surface-variant); }
+
+/* Accent gradient that uses theme tokens */
+.bg-accent-gradient {
+  background: linear-gradient(90deg, rgb(var(--clr-secondary-rgb)), rgba(var(--clr-secondary-rgb) / 0.7) 50%, rgb(var(--clr-primary-rgb) / 0.3));
+}
+
+/* Simple hover helpers (used where Tailwind hover: utilities would otherwise be static colors) */
+.hover-bg-secondary:hover { background: var(--clr-secondary); }
+.hover-text-primary:hover { color: var(--clr-primary); }
+.hover-border-secondary:hover { border-color: var(--clr-secondary); }
+
+/* Surface container utilities and semantic text colors */
+.bg-surface-container { background: var(--clr-surface-container); }
+.bg-surface-container-high { background: var(--clr-surface-container-high); }
+.text-on-secondary { color: var(--clr-on-secondary); }
+.text-success { color: var(--color-success); }
+
+/* Call-to-action variant: light accent on light theme, toned in dark theme */
+.cta-variant {
+  border: 1px solid var(--clr-secondary-container);
+  background: var(--clr-secondary-container);
+  color: var(--clr-on-secondary);
+}
+.dark .cta-variant {
+  background: var(--clr-surface-container-high);
+  color: var(--clr-on-surface);
+  border-color: var(--clr-outline-variant);
 }
 
 /* Bengali text utility */

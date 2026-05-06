@@ -26,7 +26,7 @@ export function LawyerCard({ id, name, roleKey, barId, specialties, bioKey, rati
         variant === 'horizontal' ? 'flex flex-col md:flex-row' : 'flex flex-col'
       }`}
     >
-      <div className="h-1 bg-linear-to-r from-secondary via-secondary/70 to-primary/30" />
+      <div className="h-1 bg-accent-gradient" />
 
       <div className={`flex h-full flex-1 flex-col gap-5 p-5 sm:p-6 ${variant === 'horizontal' ? 'md:flex-row md:items-start md:gap-6' : ''}`}>
         <div className={`flex items-start gap-4 ${variant === 'horizontal' ? 'md:w-40 md:flex-col md:items-center md:text-center' : ''}`}>
@@ -55,7 +55,7 @@ export function LawyerCard({ id, name, roleKey, barId, specialties, bioKey, rati
             {specialties.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-secondary/25 bg-secondary/10 px-3 py-1.5 text-[0.7rem] font-semibold text-secondary sm:text-xs"
+                className="rounded-full border border-secondary-25 bg-secondary-10 px-3 py-1.5 text-[0.7rem] font-semibold text-secondary sm:text-xs"
               >
                 {t(tag)}
               </span>
@@ -70,7 +70,7 @@ export function LawyerCard({ id, name, roleKey, barId, specialties, bioKey, rati
 
             <Link
               href={`/lawyers/${id}`}
-              className="inline-flex items-center justify-center rounded-full border border-secondary bg-surface px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-secondary hover:text-primary"
+              className="inline-flex items-center justify-center rounded-full border border-secondary bg-surface px-4 py-2 text-sm font-semibold text-secondary transition hover-bg-secondary hover-text-primary hover-border-secondary"
             >
               {t('common.viewProfile')}
             </Link>
