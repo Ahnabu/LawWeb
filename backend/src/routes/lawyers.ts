@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllLawyers,
+  getPublicLawyers,
   getLawyerProfile,
   getMyAvailability,
   updateMyAvailability,
@@ -11,6 +12,7 @@ import { authenticateToken, authorizeRoles } from '../middleware/auth';
 const router = express.Router();
 
 // Public routes
+router.get('/public', getPublicLawyers); // Limited data for home/lawyers pages
 router.get('/', getAllLawyers);
 router.get('/:lawyerId/availability', getLawyerAvailabilityPublic);
 router.get('/:lawyerId', getLawyerProfile);

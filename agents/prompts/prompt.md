@@ -1,0 +1,7 @@
+We want to start working on admin dashboard. But at frist update #projectoverview doc mark as done those are completed. 
+- sidebar toggle button is not showing in admin dashboard.
+- use h3 for all titles
+- Make appointment page fully functional with the backend. check in the backend for api already exits or not . if not make new apis. Then finish implement in frontend. all apointment should show in admin appointment page.
+- Same for cases page also. backend first and integrate with frontend. But keep the secuirity concern in mind. Data should not show in the network tab of browser. Here admin can add cases with their details.
+- then comes lawyer managemnet page. First of all there is a correction in web flow. Remove sign up option for lawyer. Because if we make that option public lawyer outside of our firm may sign up. So laywer will be added by the admin from lawyer management page and when add a lawyer a user account will also open with lawyer role i mean account will also be created. default Password will be 123456 + passowrd need to change: true.... when account will be logged in a pop up modal with change password form will come and password change is mandatory. Then all lawyer will shown in this page and also in Home page & Our Lawyer page(dummy data need to be removed. For secuirity make 2 api endpoint in backed. One will send limited data and will be used in home page showing)
+- Then usermangement page

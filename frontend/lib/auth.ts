@@ -8,6 +8,7 @@ export interface AuthUser {
   barId?: string
   phone?: string
   isVerified?: boolean
+  passwordNeedsChange?: boolean
 }
 
 interface LoginResponse {

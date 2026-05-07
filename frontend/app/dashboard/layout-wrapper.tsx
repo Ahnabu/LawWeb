@@ -2,6 +2,7 @@
 
 import { useAuth } from "../../components/AuthProvider";
 import { DashboardLayout } from "../../components/DashboardLayout";
+import { ChangePasswordModal } from "../../components/ChangePasswordModal";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -14,14 +15,13 @@ export default function DashboardLayoutWrapper({
   children,
   role,
 }: DashboardLayoutWrapperProps) {
-  const { user, status } = useAuth();
+  const { user, status, refreshSession } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     } else if (status === "authenticated" && user?.role !== role) {
-      // Redirect to correct dashboard for their role
       router.push(`/dashboard/${user?.role}`);
     }
   }, [status, user, role, router]);
@@ -36,5 +36,16 @@ export default function DashboardLayoutWrapper({
     );
   }
 
-  return <DashboardLayout role={role}>{children}</DashboardLayout>;
+  const handlePasswordChanged = async () => {
+    await refreshSession();
+  };
+
+  return (
+    <DashboardLayout role={role}>
+      {children}
+      {user.passwordNeedsChange && (
+        <ChangePasswordModal onSuccess={handlePasswordChanged} />
+      )}
+    </DashboardLayout>
+  );
 }

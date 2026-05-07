@@ -1,11 +1,13 @@
 # Islam & Associates - Legal Services Platform
 
 ## Project Description
+
 Islam & Associates is a legal services platform built with Next.js and Express.js. It allows clients to book appointments with lawyers, track cases, and access lawyer information. Multi-language support (Bengali & English) is built-in.
 
 ## Tech Stack
 
 ### Frontend
+
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4 with Material Design 3 tokens
@@ -15,6 +17,7 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - **Types**: Centralized in `/types` folder
 
 ### Backend
+
 - **Framework**: Express.js
 - **Language**: Node.js
 - **Database**: MongoDB
@@ -26,22 +29,26 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 ## Client Requirements
 
 ### 1. **Multi-Language Support** ✅
+
 - Bengali and English
 - Language toggle in navbar
 - All pages and content translatable
 
 ### 2. **Home Page**
+
 - Hero section
 - Success stories section
 - Lawyers showcase (cards with "See More" button)
 - Footer with links
 
 ### 3. **Lawyers Information Page**
+
 - List all lawyers
 - Display: Name, Specialization, Experience, Photo
 - "View Details" button for each lawyer
 
 ### 4. **Lawyer Details Page**
+
 - Full lawyer profile
 - Specializations
 - Experience and qualifications
@@ -49,12 +56,14 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - "Book Appointment" button
 
 ### 5. **Appointment Booking**
+
 - Appointment form (date, time, message)
 - WhatsApp integration link
 - Form submission to backend
 - Confirmation
 
 ### 6. **Dashboards** (3 roles - No Navbar/Footer)
+
 - **User/Client Dashboard**: View booked appointments, case status
 - **Lawyer Dashboard**: Manage appointments, view cases
 - **Owner/Admin Dashboard**: Manage lawyers, view all appointments
@@ -66,12 +75,14 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - Role-based menu items
 
 ### 7. **Case Management**
+
 - Case tracking (online & offline)
 - For offline cases: collect client email, add case info
 - Case status updates
 - Case details page
 
 ### 8. **About Us Page**
+
 - Company information
 - Mission/Vision
 - Team overview
@@ -81,12 +92,13 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 ## Completed Features
 
 ### ✅ Authentication
-- User registration with role selection (Client/Lawyer)
+- User registration (Client only — lawyers added by admin)
 - Email verification with OTP
-- Secure login with JWT
+- Secure login with JWT (httpOnly cookies)
 - Password strength validation
 - Phone number validation (Bangladeshi format)
-- Lawyer Bar ID verification
+- Mandatory password change on first lawyer login (`passwordNeedsChange` flag)
+- `POST /api/auth/change-password` endpoint
 
 ### ✅ Design System
 - Material Design 3 colors
@@ -99,9 +111,29 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - Navbar (responsive, language toggle)
 - Footer
 - Language provider (i18n context)
-- Login/Register pages
+- Login/Register pages (client only)
 - Email verification page
-- Dashboard Layout (sidebar, top bar, content)
+- Dashboard Layout (sidebar with toggle on all screen sizes, top bar, content)
+- ChangePasswordModal (mandatory on first lawyer login)
+- LawyerPublicCard (API-driven, no dummy data)
+
+### ✅ Admin Dashboard
+- Stats overview (total cases, active cases, lawyers, clients, today's appointments)
+- Appointments page: view all, filter by status, update consultation status inline
+- Cases page: view all, filter by status, add new case via modal, update case status
+- Lawyers page: add lawyer (creates account, default password 123456), verify/unverify, remove
+- Users page: paginated client list with contact details and verification status
+- Sidebar toggle visible on all screen sizes (collapsible desktop sidebar)
+
+### ✅ Lawyer Management (Admin-controlled)
+- Lawyers added only by admin (no public sign-up for lawyers)
+- Account created with `passwordNeedsChange: true` and default password `123456`
+- Pop-up modal forces password change on first dashboard login
+- Two API endpoints: `/api/lawyers/public` (name, barId, specialization only) and `/api/lawyers` (full data)
+
+### ✅ Public Pages (Real API Data)
+- Home page lawyer section fetches from `/api/lawyers/public`
+- Our Lawyers page fetches from `/api/lawyers/public` with search filter
 
 ---
 

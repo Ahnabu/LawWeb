@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import Case from '../models/Case';
 import Consultation from '../models/Consultation';
@@ -17,7 +18,7 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
     const [totalCases, activeCases, totalLawyers, totalClients, todayConsultations] = await Promise.all([
       Case.countDocuments(),
       Case.countDocuments({ status: 'active' }),
-      User.countDocuments({ role: 'lawyer', isVerified: true }),
+      User.countDocuments({ role: 'lawyer' }),
       User.countDocuments({ role: 'client', isVerified: true }),
       Consultation.countDocuments({
         date: { $gte: today, $lt: tomorrow },
@@ -74,6 +75,77 @@ export const getAllCasesAdmin = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { clientEmail, clientName, lawyerId, type, title, description, isOnline, nextCourtDate, notes } = req.body;
+
+    if (!clientEmail || !clientName || !lawyerId || !type || !title || !description) {
+      return res.status(400).json({ status: 400, message: 'Required fields: clientEmail, clientName, lawyerId, type, title, description' });
+    }
+
+    const lawyer = await User.findById(lawyerId);
+    if (!lawyer || lawyer.role !== 'lawyer') {
+      return res.status(400).json({ status: 400, message: 'Invalid lawyer ID' });
+    }
+
+    // Try to find client account by email
+    const clientUser = await User.findOne({ email: clientEmail.toLowerCase(), role: 'client' });
+
+    const newCase = new Case({
+      clientId: clientUser?._id,
+      clientEmail: clientEmail.toLowerCase(),
+      clientName,
+      lawyerId,
+      type,
+      title,
+      description,
+      isOnline: isOnline ?? true,
+      nextCourtDate: nextCourtDate ? new Date(nextCourtDate) : undefined,
+      notes,
+    });
+
+    await newCase.save();
+    await newCase.populate('lawyerId', 'name email barId');
+
+    res.status(201).json({
+      status: 201,
+      message: 'Case created successfully',
+      data: newCase,
+    });
+  } catch (error) {
+    console.error('Admin create case error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { caseId } = req.params;
+    const updates = req.body;
+
+    const updatedCase = await Case.findByIdAndUpdate(
+      caseId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    )
+      .populate('lawyerId', 'name email barId')
+      .populate('clientId', 'name email');
+
+    if (!updatedCase) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+
+    res.json({
+      status: 200,
+      message: 'Case updated successfully',
+      data: updatedCase,
+    });
+  } catch (error) {
+    console.error('Admin update case error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
 export const getAllConsultationsAdmin = async (req: AuthRequest, res: Response) => {
   try {
     const { status, page = '1', limit = '20' } = req.query;
@@ -105,10 +177,43 @@ export const getAllConsultationsAdmin = async (req: AuthRequest, res: Response) 
   }
 };
 
+export const updateConsultationStatusAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { consultationId } = req.params;
+    const { status, notes } = req.body;
+
+    const validStatuses = ['scheduled', 'completed', 'cancelled', 'rescheduled'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ status: 400, message: `Status must be one of: ${validStatuses.join(', ')}` });
+    }
+
+    const consultation = await Consultation.findByIdAndUpdate(
+      consultationId,
+      { $set: { status, ...(notes !== undefined && { notes }) } },
+      { new: true }
+    )
+      .populate('clientId', 'name email phone')
+      .populate('lawyerId', 'name email barId');
+
+    if (!consultation) {
+      return res.status(404).json({ status: 404, message: 'Consultation not found' });
+    }
+
+    res.json({
+      status: 200,
+      message: 'Consultation status updated successfully',
+      data: consultation,
+    });
+  } catch (error) {
+    console.error('Admin update consultation status error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
 export const getAllLawyersAdmin = async (req: AuthRequest, res: Response) => {
   try {
     const lawyers = await User.find({ role: 'lawyer' })
-      .select('name email phone barId isVerified createdAt')
+      .select('name email phone barId specialization isVerified passwordNeedsChange createdAt')
       .sort({ name: 1 });
 
     res.json({
@@ -118,6 +223,69 @@ export const getAllLawyersAdmin = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Admin get lawyers error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const addLawyerAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, email, phone, barId, specialization } = req.body;
+
+    if (!name || !email || !phone || !barId) {
+      return res.status(400).json({ status: 400, message: 'Required fields: name, email, phone, barId' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ status: 409, message: 'A user with this email already exists' });
+    }
+
+    // Hash password manually and use collection.insertOne to bypass the pre-save re-hash hook
+    const hashedPassword = await bcrypt.hash('123456', 12);
+    const now = new Date();
+
+    await User.collection.insertOne({
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: 'lawyer',
+      phone: phone.trim(),
+      barId: barId.trim(),
+      specialization: specialization?.trim() || undefined,
+      isVerified: true,
+      passwordNeedsChange: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const savedLawyer = await User.findOne({ email: normalizedEmail }).select('-password');
+
+    res.status(201).json({
+      status: 201,
+      message: 'Lawyer account created successfully. Default password is 123456.',
+      data: savedLawyer,
+    });
+  } catch (error) {
+    console.error('Admin add lawyer error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const deleteLawyerAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { lawyerId } = req.params;
+
+    const lawyer = await User.findById(lawyerId);
+    if (!lawyer || lawyer.role !== 'lawyer') {
+      return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+    }
+
+    await User.findByIdAndDelete(lawyerId);
+
+    res.json({ status: 200, message: 'Lawyer removed successfully' });
+  } catch (error) {
+    console.error('Admin delete lawyer error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };

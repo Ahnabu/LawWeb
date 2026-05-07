@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resendVerificationCode = exports.verifyEmail = exports.refreshToken = exports.getProfile = exports.logout = exports.login = exports.register = void 0;
+exports.resendVerificationCode = exports.changePassword = exports.verifyEmail = exports.refreshToken = exports.getProfile = exports.logout = exports.login = exports.register = void 0;
 const User_1 = __importDefault(require("../models/User"));
 const jwt_1 = require("../utils/jwt");
 const crypto_1 = __importDefault(require("crypto"));
@@ -113,6 +113,7 @@ const login = async (req, res) => {
             barId: user.barId,
             phone: user.phone,
             isVerified: user.isVerified,
+            passwordNeedsChange: user.passwordNeedsChange,
         };
         res.json({
             message: 'Login successful',
@@ -253,6 +254,7 @@ const verifyEmail = async (req, res) => {
                 barId: user.barId,
                 phone: user.phone,
                 isVerified: user.isVerified,
+                passwordNeedsChange: user.passwordNeedsChange,
             },
         });
     }
@@ -262,6 +264,37 @@ const verifyEmail = async (req, res) => {
     }
 };
 exports.verifyEmail = verifyEmail;
+const changePassword = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Current password and new password are required.' });
+        }
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: 'New password must be at least 8 characters.' });
+        }
+        const user = await User_1.default.findById(req.user._id).select('+password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const isValid = await user.comparePassword(currentPassword);
+        if (!isValid) {
+            return res.status(400).json({ message: 'Current password is incorrect.' });
+        }
+        user.password = newPassword;
+        user.passwordNeedsChange = false;
+        await user.save();
+        res.json({ message: 'Password changed successfully.' });
+    }
+    catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.changePassword = changePassword;
 const resendVerificationCode = async (req, res) => {
     try {
         const { email } = req.body;

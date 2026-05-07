@@ -70,9 +70,9 @@ export default function AdminDashboardPage() {
 
       {/* Placeholder for upcoming content */}
       <section>
-        <h2 className="font-display text-2xl font-bold text-on-surface">
+        <h3 className="font-display text-2xl font-bold text-on-surface">
           Platform Management
-        </h2>
+        </h3>
         <p className="mt-4 text-on-surface-variant">Content coming soon...</p>
       </section>
     </div>

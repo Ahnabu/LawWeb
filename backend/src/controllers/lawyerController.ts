@@ -9,7 +9,7 @@ interface AuthRequest extends Request {
 export const getAllLawyers = async (req: Request, res: Response) => {
   try {
     const lawyers = await User.find({ role: 'lawyer', isVerified: true })
-      .select('name email phone barId isVerified')
+      .select('name email phone barId specialization isVerified')
       .sort({ name: 1 });
 
     res.json({
@@ -18,6 +18,23 @@ export const getAllLawyers = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Get lawyers error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Public endpoint returning only minimal data (name, specialization, barId) for home/lawyers pages
+export const getPublicLawyers = async (req: Request, res: Response) => {
+  try {
+    const lawyers = await User.find({ role: 'lawyer', isVerified: true })
+      .select('name barId specialization')
+      .sort({ name: 1 });
+
+    res.json({
+      message: 'Lawyers retrieved successfully',
+      lawyers,
+    });
+  } catch (error) {
+    console.error('Get public lawyers error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

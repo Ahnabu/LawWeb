@@ -8,7 +8,9 @@ export interface IUser extends Document {
   role: 'admin' | 'lawyer' | 'client';
   barId?: string; // For lawyers
   phone?: string;
+  specialization?: string;
   isVerified: boolean;
+  passwordNeedsChange: boolean;
   emailVerificationCodeHash?: string;
   emailVerificationExpiresAt?: Date;
   emailVerificationSentAt?: Date;
@@ -25,7 +27,9 @@ const UserSchema: Schema = new Schema(
     role: { type: String, enum: ['admin', 'lawyer', 'client'], default: 'client' },
     barId: { type: String, sparse: true },
     phone: { type: String },
+    specialization: { type: String },
     isVerified: { type: Boolean, default: false },
+    passwordNeedsChange: { type: Boolean, default: false },
     emailVerificationCodeHash: { type: String, select: false },
     emailVerificationExpiresAt: { type: Date, select: false },
     emailVerificationSentAt: { type: Date },
