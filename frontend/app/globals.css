@@ -110,7 +110,6 @@ html {
 
 body {
   margin: 0;
-  padding-top: var(--site-header-height);
   min-height: 100vh;
   font-family: var(--font-body);
   background: var(--clr-surface);
@@ -118,6 +117,10 @@ body {
   transition:
     background-color 300ms ease,
     color 300ms ease;
+}
+
+body:has(header.glass-nav) {
+  padding-top: var(--site-header-height);
 }
 
 body:has(.auth-page) {

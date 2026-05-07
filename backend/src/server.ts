@@ -79,7 +79,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI!, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000, 
     });
     console.log("MongoDB Atlas connected successfully");
   } catch (error) {
