@@ -102,7 +102,8 @@ export default function ClientCasesPage() {
                 </div>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    STATUS_STYLES[caseItem.status] || "bg-surface text-on-surface"
+                    STATUS_STYLES[caseItem.status] ||
+                    "bg-surface text-on-surface"
                   }`}
                 >
                   {caseItem.status}
@@ -113,7 +114,8 @@ export default function ClientCasesPage() {
               </p>
               {caseItem.nextCourtDate && (
                 <p className="mt-2 text-xs text-on-surface-variant">
-                  Next court date: {new Date(caseItem.nextCourtDate).toLocaleDateString()}
+                  Next court date:{" "}
+                  {new Date(caseItem.nextCourtDate).toLocaleDateString()}
                 </p>
               )}
             </div>

@@ -82,7 +82,8 @@ export default function AdminLawyersPage() {
                 <div>
                   <p className="font-semibold text-on-surface">{lawyer.name}</p>
                   <p className="text-sm text-on-surface-variant">
-                    {lawyer.email} {lawyer.barId ? `| Bar ID: ${lawyer.barId}` : ""}
+                    {lawyer.email}{" "}
+                    {lawyer.barId ? `| Bar ID: ${lawyer.barId}` : ""}
                   </p>
                 </div>
                 <span
@@ -96,7 +97,9 @@ export default function AdminLawyersPage() {
                 </span>
               </div>
               {lawyer.phone && (
-                <p className="mt-2 text-xs text-on-surface-variant">{lawyer.phone}</p>
+                <p className="mt-2 text-xs text-on-surface-variant">
+                  {lawyer.phone}
+                </p>
               )}
             </div>
           ))}

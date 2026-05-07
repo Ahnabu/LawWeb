@@ -82,7 +82,8 @@ export default function AdminCasesPage() {
                 <div>
                   <p className="font-semibold text-on-surface">{item.title}</p>
                   <p className="text-sm text-on-surface-variant">
-                    Client: {item.clientId?.name || "-"} | Lawyer: {item.lawyerId?.name || "-"}
+                    Client: {item.clientId?.name || "-"} | Lawyer:{" "}
+                    {item.lawyerId?.name || "-"}
                   </p>
                 </div>
                 <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-on-surface">

@@ -29,7 +29,9 @@ const buildDefaultSchedule = (): LawyerAvailability["schedule"] => ({
 });
 
 export default function LawyerAvailabilityPage() {
-  const [availability, setAvailability] = useState<LawyerAvailability | null>(null);
+  const [availability, setAvailability] = useState<LawyerAvailability | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,9 @@ export default function LawyerAvailabilityPage() {
       setAvailability(updated);
       setSuccess("Availability updated successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update availability");
+      setError(
+        err instanceof Error ? err.message : "Unable to update availability",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -130,7 +134,9 @@ export default function LawyerAvailabilityPage() {
       <section className="rounded-lg border border-outline-variant bg-surface-container p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-on-surface">Accepting new clients</p>
+            <p className="text-sm font-semibold text-on-surface">
+              Accepting new clients
+            </p>
             <p className="text-xs text-on-surface-variant">
               Toggle visibility on the public booking form.
             </p>
@@ -172,7 +178,9 @@ export default function LawyerAvailabilityPage() {
                     type="checkbox"
                     checked={values.isAvailable}
                     onChange={(event) =>
-                      handleScheduleChange(key, { isAvailable: event.target.checked })
+                      handleScheduleChange(key, {
+                        isAvailable: event.target.checked,
+                      })
                     }
                   />
                   Available
@@ -186,7 +194,9 @@ export default function LawyerAvailabilityPage() {
                     className="ml-2 rounded-lg border border-outline bg-surface px-2 py-1 text-sm"
                     value={values.startTime}
                     onChange={(event) =>
-                      handleScheduleChange(key, { startTime: event.target.value })
+                      handleScheduleChange(key, {
+                        startTime: event.target.value,
+                      })
                     }
                     disabled={!values.isAvailable}
                   />

@@ -21,9 +21,12 @@ export default function AdminAppointmentsPage() {
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/consultations`, {
-          credentials: "include",
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/api/admin/consultations`,
+          {
+            credentials: "include",
+          },
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch consultations");
         }
@@ -85,7 +88,8 @@ export default function AdminAppointmentsPage() {
                     {new Date(item.date).toLocaleDateString()} at {item.time}
                   </p>
                   <p className="text-sm text-on-surface-variant">
-                    Client: {item.clientId?.name || "-"} | Lawyer: {item.lawyerId?.name || "-"}
+                    Client: {item.clientId?.name || "-"} | Lawyer:{" "}
+                    {item.lawyerId?.name || "-"}
                   </p>
                 </div>
                 <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-on-surface">

@@ -18,10 +18,14 @@ export default function ClientProfilePage() {
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <section className="rounded-lg border border-outline-variant bg-surface-container p-6">
-          <h3 className="text-sm font-semibold text-on-surface">Account Details</h3>
+          <h3 className="text-sm font-semibold text-on-surface">
+            Account Details
+          </h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs uppercase text-on-surface-variant">Full name</p>
+              <p className="text-xs uppercase text-on-surface-variant">
+                Full name
+              </p>
               <p className="mt-1 font-medium text-on-surface">
                 {user?.name || "Client"}
               </p>

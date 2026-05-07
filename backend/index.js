@@ -1,10 +1,10 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === "production";
 
 if (isProduction) {
-  require('./dist/server.js');
+  require("./dist/server.js");
 } else {
-  require('ts-node/register');
-  require('./src/server.ts');
+  require("ts-node/register");
+  require("./src/server.ts");
 }

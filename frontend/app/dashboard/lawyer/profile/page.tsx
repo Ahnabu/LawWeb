@@ -18,10 +18,14 @@ export default function LawyerProfilePage() {
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <section className="rounded-lg border border-outline-variant bg-surface-container p-6">
-          <h3 className="text-sm font-semibold text-on-surface">Professional Details</h3>
+          <h3 className="text-sm font-semibold text-on-surface">
+            Professional Details
+          </h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs uppercase text-on-surface-variant">Full name</p>
+              <p className="text-xs uppercase text-on-surface-variant">
+                Full name
+              </p>
               <p className="mt-1 font-medium text-on-surface">
                 {user?.name || "Lawyer"}
               </p>
@@ -39,7 +43,9 @@ export default function LawyerProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase text-on-surface-variant">Bar ID</p>
+              <p className="text-xs uppercase text-on-surface-variant">
+                Bar ID
+              </p>
               <p className="mt-1 font-medium text-on-surface">
                 {user?.barId || "-"}
               </p>
@@ -48,7 +54,9 @@ export default function LawyerProfilePage() {
         </section>
 
         <section className="rounded-lg border border-outline-variant bg-surface-container p-6">
-          <h3 className="text-sm font-semibold text-on-surface">Verification</h3>
+          <h3 className="text-sm font-semibold text-on-surface">
+            Verification
+          </h3>
           <p className="mt-3 text-sm text-on-surface-variant">
             Status: {user?.isVerified ? "Verified" : "Pending"}
           </p>

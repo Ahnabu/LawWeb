@@ -81,7 +81,9 @@ export default function AdminUsersPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold text-on-surface">{client.name}</p>
-                  <p className="text-sm text-on-surface-variant">{client.email}</p>
+                  <p className="text-sm text-on-surface-variant">
+                    {client.email}
+                  </p>
                 </div>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -94,7 +96,9 @@ export default function AdminUsersPage() {
                 </span>
               </div>
               {client.phone && (
-                <p className="mt-2 text-xs text-on-surface-variant">{client.phone}</p>
+                <p className="mt-2 text-xs text-on-surface-variant">
+                  {client.phone}
+                </p>
               )}
             </div>
           ))}
