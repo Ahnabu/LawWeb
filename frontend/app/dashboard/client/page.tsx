@@ -1,66 +1,195 @@
-import { Footer } from '../../../components/Footer'
-import { Navbar } from '../../../components/Navbar'
-import { DashboardSidebar } from '../../../components/DashboardSidebar'
-import { StatCard } from '../../../components/StatCard'
-import { clientAppointments, clientCases, clientStats } from '../../../lib/data'
-import { AuthGate } from '../../../components/AuthGate'
+"use client";
+
+import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../../lib/api";
+import { DashboardStats } from "../../../types/dashboard";
+
+type ConsultationStatus =
+  | "scheduled"
+  | "completed"
+  | "cancelled"
+  | "rescheduled";
+
+interface AppointmentSummary {
+  id: string;
+  date: string;
+  time: string;
+  status: ConsultationStatus;
+  lawyerName?: string;
+}
+
+interface CaseSummary {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+}
 
 export default function ClientDashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [appointments, setAppointments] = useState<AppointmentSummary[]>([]);
+  const [cases, setCases] = useState<CaseSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        const [consultationsResponse, casesResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/consultations/my-consultations`, {
+            credentials: "include",
+          }),
+          fetch(`${API_BASE_URL}/api/cases/my-cases`, {
+            credentials: "include",
+          }),
+        ]);
+
+        if (!consultationsResponse.ok)
+          throw new Error("Failed to fetch appointments");
+        if (!casesResponse.ok) throw new Error("Failed to fetch cases");
+
+        const consultationsData = await consultationsResponse.json();
+        const casesData = await casesResponse.json();
+
+        const consultations = consultationsData.consultations ?? [];
+        const normalizedAppointments = consultations.map((item: any) => ({
+          id: item._id ?? item.id,
+          date: item.date ?? "",
+          time: item.time ?? "",
+          status: item.status ?? "scheduled",
+          lawyerName: item.lawyerId?.name,
+        })) as AppointmentSummary[];
+
+        const normalizedCases = (casesData.data ?? []).map((item: any) => ({
+          id: item._id ?? item.id,
+          title: item.title ?? "Untitled Case",
+          description: item.description ?? "",
+          status: item.status ?? "active",
+        })) as CaseSummary[];
+
+        const pendingAppointments = normalizedAppointments.filter(
+          (item) =>
+            item.status === "scheduled" || item.status === "rescheduled",
+        ).length;
+        const completedAppointments = normalizedAppointments.filter(
+          (item) => item.status === "completed",
+        ).length;
+
+        const resolvedStatuses = new Set(["closed", "won", "lost"]);
+        const resolvedCases = normalizedCases.filter((item) =>
+          resolvedStatuses.has(item.status),
+        ).length;
+        const activeCases = normalizedCases.length - resolvedCases;
+
+        setStats({
+          totalAppointments: normalizedAppointments.length,
+          pendingAppointments,
+          completedAppointments,
+          activeCases,
+          resolvedCases,
+        });
+        setAppointments(normalizedAppointments);
+        setCases(normalizedCases);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading)
+    return (
+      <div className="text-center text-on-surface">Loading dashboard...</div>
+    );
+  if (error) return <div className="text-error">Error: {error}</div>;
+
   return (
-    <main className="min-h-screen bg-surface text-on-surface">
-      <Navbar />
-      <AuthGate allowRoles={['client']}>
-        <section className="px-6 pb-16 pt-6 sm:px-8 sm:pb-16 sm:pt-8 lg:px-10 lg:pb-16 lg:pt-10">
-          <div className="mx-auto grid gap-10 lg:grid-cols-[280px_1fr]">
-            <DashboardSidebar role="client" />
-            <div className="space-y-8">
-              <div className="card-elevated p-8">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Client Dashboard</p>
-                    <h1 className="mt-3 font-display text-3xl font-semibold text-on-surface">Your Legal Overview</h1>
-                  </div>
-                  <p className="rounded-md bg-success/10 px-4 py-2 text-sm font-semibold text-success">Client View</p>
-                </div>
-              </div>
+    <div className="space-y-8">
+      {/* Stats */}
+      {stats && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            label="Total Appointments"
+            value={stats.totalAppointments}
+          />
+          <StatsCard label="Pending" value={stats.pendingAppointments} />
+          <StatsCard label="Active Cases" value={stats.activeCases} />
+          <StatsCard label="Resolved Cases" value={stats.resolvedCases} />
+        </div>
+      )}
 
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                {clientStats.map((stat) => (
-                  <StatCard key={stat.label} {...stat} />
-                ))}
+      {/* Appointments */}
+      <section>
+        <h3 className="mb-3 font-display text-lg font-semibold text-on-surface sm:text-xl">
+          Upcoming Appointments
+        </h3>
+        {appointments.length === 0 ? (
+          <p className="text-on-surface-variant">No appointments booked yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {appointments.map((apt) => (
+              <div
+                key={apt.id}
+                className="rounded-lg border border-outline-variant bg-surface-container p-4"
+              >
+                <p className="font-semibold text-on-surface">
+                  {apt.date} at {apt.time}
+                </p>
+                <p className="text-sm text-on-surface-variant">
+                  Lawyer: {apt.lawyerName || "Assigned lawyer"}
+                </p>
+                <span className="mt-2 inline-block rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                  {apt.status}
+                </span>
               </div>
-
-              <div className="card-elevated p-8">
-                <h2 className="font-display text-2xl font-semibold text-on-surface">My Cases</h2>
-                <div className="mt-6 space-y-4">
-                  {clientCases.map((entry) => (
-                    <div key={entry.id} className="rounded-xl border border-outline-variant bg-surface-container p-5">
-                      <div className="flex items-center justify-between gap-4">
-                        <p className="font-semibold text-on-surface">{entry.id}</p>
-                        <span className="rounded-md bg-secondary/15 px-3 py-1 text-xs font-semibold text-secondary">{entry.status}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-on-surface-variant">{entry.type} case in progress.</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="card-elevated p-8">
-                <h2 className="font-display text-2xl font-semibold text-on-surface">My Appointments</h2>
-                <div className="mt-6 space-y-4">
-                  {clientAppointments.map((appointment) => (
-                    <div key={`${appointment.date}-${appointment.time}`} className="rounded-xl bg-surface-container p-5">
-                      <p className="text-sm text-on-surface-variant">{appointment.date} • {appointment.time}</p>
-                      <p className="mt-2 font-semibold text-on-surface">Lawyer: {appointment.lawyer}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </section>
-      </AuthGate>
-      <Footer />
-    </main>
-  )
+        )}
+      </section>
+
+      {/* Cases */}
+      <section>
+        <h3 className="mb-3 font-display text-lg font-semibold text-on-surface sm:text-xl">
+          My Cases
+        </h3>
+        {cases.length === 0 ? (
+          <p className="text-on-surface-variant">No cases yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {cases.map((caseItem) => (
+              <div
+                key={caseItem.id}
+                className="rounded-lg border border-outline-variant bg-surface-container p-4"
+              >
+                <p className="font-semibold text-on-surface">
+                  {caseItem.title}
+                </p>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  {caseItem.description}
+                </p>
+                <span className="mt-2 inline-block rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                  {caseItem.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+        {value}
+      </p>
+    </div>
+  );
 }

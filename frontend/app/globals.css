@@ -97,6 +97,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Bengali script conjunct characters break with letter-spacing — reset it globally */
+:lang(bn) {
+  letter-spacing: 0 !important;
+  word-spacing: normal;
+}
+
 /* Fluid typography: scales between 14px and 18px across viewport widths */
 html {
   font-size: clamp(13px, 1.1vw + 11px, 17px);
@@ -115,6 +121,10 @@ body {
 }
 
 body:has(.auth-page) {
+  padding-top: 0px;
+}
+
+body:has(.dashboard-root) {
   padding-top: 0px;
 }
 
@@ -339,33 +349,70 @@ select:focus {
 }
 
 /* Small set of utility classes mapped to CSS variables so components adapt to theme */
-.text-secondary { color: var(--clr-secondary); }
-.bg-secondary { background: var(--clr-secondary); }
-.border-secondary { border-color: var(--clr-secondary); }
-.text-primary { color: var(--clr-primary); }
-.bg-primary { background: var(--clr-primary); }
-.text-heading { color: var(--clr-heading); }
+.text-secondary {
+  color: var(--clr-secondary);
+}
+.bg-secondary {
+  background: var(--clr-secondary);
+}
+.border-secondary {
+  border-color: var(--clr-secondary);
+}
+.text-primary {
+  color: var(--clr-primary);
+}
+.bg-primary {
+  background: var(--clr-primary);
+}
+.text-heading {
+  color: var(--clr-heading);
+}
 
 /* translucent variants using RGB variables */
-.bg-secondary-10 { background: rgb(var(--clr-secondary-rgb) / 0.1); }
-.border-secondary-25 { border-color: rgb(var(--clr-secondary-rgb) / 0.25); }
-.text-on-surface-variant { color: var(--clr-on-surface-variant); }
+.bg-secondary-10 {
+  background: rgb(var(--clr-secondary-rgb) / 0.1);
+}
+.border-secondary-25 {
+  border-color: rgb(var(--clr-secondary-rgb) / 0.25);
+}
+.text-on-surface-variant {
+  color: var(--clr-on-surface-variant);
+}
 
 /* Accent gradient that uses theme tokens */
 .bg-accent-gradient {
-  background: linear-gradient(90deg, rgb(var(--clr-secondary-rgb)), rgba(var(--clr-secondary-rgb) / 0.7) 50%, rgb(var(--clr-primary-rgb) / 0.3));
+  background: linear-gradient(
+    90deg,
+    rgb(var(--clr-secondary-rgb)),
+    rgba(var(--clr-secondary-rgb) / 0.7) 50%,
+    rgb(var(--clr-primary-rgb) / 0.3)
+  );
 }
 
 /* Simple hover helpers (used where Tailwind hover: utilities would otherwise be static colors) */
-.hover-bg-secondary:hover { background: var(--clr-secondary); }
-.hover-text-primary:hover { color: var(--clr-primary); }
-.hover-border-secondary:hover { border-color: var(--clr-secondary); }
+.hover-bg-secondary:hover {
+  background: var(--clr-secondary);
+}
+.hover-text-primary:hover {
+  color: var(--clr-primary);
+}
+.hover-border-secondary:hover {
+  border-color: var(--clr-secondary);
+}
 
 /* Surface container utilities and semantic text colors */
-.bg-surface-container { background: var(--clr-surface-container); }
-.bg-surface-container-high { background: var(--clr-surface-container-high); }
-.text-on-secondary { color: var(--clr-on-secondary); }
-.text-success { color: var(--color-success); }
+.bg-surface-container {
+  background: var(--clr-surface-container);
+}
+.bg-surface-container-high {
+  background: var(--clr-surface-container-high);
+}
+.text-on-secondary {
+  color: var(--clr-on-secondary);
+}
+.text-success {
+  color: var(--color-success);
+}
 
 /* Call-to-action variant: light accent on light theme, toned in dark theme */
 .cta-variant {

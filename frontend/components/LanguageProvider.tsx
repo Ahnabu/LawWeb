@@ -37,6 +37,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Sync lang attribute so :lang(bn) CSS selector works for letter-spacing fixes
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
+
   const value = useMemo(
     () => ({
       locale,
