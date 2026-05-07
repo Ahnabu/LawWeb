@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import LawyerAvailability from '../models/LawyerAvailability';
+
+interface AuthRequest extends Request {
+  user?: any;
+}
 
 export const getAllLawyers = async (req: Request, res: Response) => {
   try {
@@ -44,5 +49,71 @@ export const getLawyerProfile = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Get lawyer profile error:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getMyAvailability = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+
+    let availability = await LawyerAvailability.findOne({ lawyerId: userId });
+
+    if (!availability) {
+      // Return default availability if none set yet
+      availability = new LawyerAvailability({ lawyerId: userId });
+    }
+
+    res.json({
+      status: 200,
+      message: 'Availability retrieved successfully',
+      data: availability,
+    });
+  } catch (error) {
+    console.error('Get availability error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const updateMyAvailability = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    const { schedule, isAcceptingNewClients } = req.body;
+
+    const availability = await LawyerAvailability.findOneAndUpdate(
+      { lawyerId: userId },
+      {
+        $set: {
+          ...(schedule !== undefined && { schedule }),
+          ...(isAcceptingNewClients !== undefined && { isAcceptingNewClients }),
+        },
+      },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    res.json({
+      status: 200,
+      message: 'Availability updated successfully',
+      data: availability,
+    });
+  } catch (error) {
+    console.error('Update availability error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const getLawyerAvailabilityPublic = async (req: Request, res: Response) => {
+  try {
+    const { lawyerId } = req.params;
+
+    const availability = await LawyerAvailability.findOne({ lawyerId }).lean();
+
+    res.json({
+      status: 200,
+      message: 'Availability retrieved successfully',
+      data: availability ?? null,
+    });
+  } catch (error) {
+    console.error('Get lawyer availability error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };

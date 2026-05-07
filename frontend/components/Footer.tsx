@@ -2,7 +2,14 @@
 
 import Link from 'next/link'
 import { useLanguage } from './LanguageProvider'
-import { LanguageToggle } from './LanguageToggle'
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">
+      {children}
+    </h3>
+  )
+}
 
 const quickLinks = [
   { labelKey: 'nav.home', href: '/' },
@@ -42,7 +49,7 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">{t('common.quickLinks')}</h3>
+          <SectionHeading>{t('common.quickLinks')}</SectionHeading>
           <ul className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
             {quickLinks.map((item) => (
               <li key={item.href}>
@@ -55,7 +62,7 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">{t('common.footerPracticeAreas')}</h3>
+          <SectionHeading>{t('common.footerPracticeAreas')}</SectionHeading>
           <div className="mt-3 sm:mt-4 grid gap-2 sm:gap-3 text-xs sm:text-sm text-on-surface-variant sm:grid-cols-2">
             {practiceAreas.map((area) => (
               <span key={area}>{t(area)}</span>

@@ -1,100 +1,91 @@
-import { Footer } from '../../../components/Footer'
-import { Navbar } from '../../../components/Navbar'
-import { DashboardSidebar } from '../../../components/DashboardSidebar'
-import { NotificationBell } from '../../../components/NotificationBell'
-import { StatCard } from '../../../components/StatCard'
-import { adminCases, adminStats, upcomingAppointments } from '../../../lib/data'
-import { AuthGate } from '../../../components/AuthGate'
+"use client";
 
-const actions = ['Add Case', 'Add Lawyer', 'Send Notification']
+import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../../lib/api";
+
+interface AdminStats {
+  totalCases: number;
+  activeCases: number;
+  totalLawyers: number;
+  totalClients: number;
+  todayConsultations: number;
+}
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("Failed to fetch stats");
+        const data = await response.json();
+        setStats(data.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={`stat-skeleton-${index}`}
+              className="h-24 animate-pulse rounded-lg border border-outline-variant bg-surface-container"
+            />
+          ))}
+        </div>
+        <div className="space-y-4">
+          <div className="h-6 w-48 animate-pulse rounded bg-surface-container" />
+          <div className="h-4 w-full animate-pulse rounded bg-surface-container" />
+          <div className="h-4 w-4/5 animate-pulse rounded bg-surface-container" />
+        </div>
+      </div>
+    );
+  }
+  if (error) return <div className="text-error">Error: {error}</div>;
+
   return (
-    <main className="min-h-screen bg-surface text-on-surface">
-      <Navbar />
-      <AuthGate allowRoles={['admin']}>
-        <section className="px-6 pb-16 pt-6 sm:px-8 sm:pb-16 sm:pt-8 lg:px-10 lg:pb-16 lg:pt-10">
-          <div className="mx-auto grid gap-10 lg:grid-cols-[280px_1fr]">
-            <DashboardSidebar role="admin" />
-            <div className="space-y-8">
-              <div className="card-elevated flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Overview</p>
-                  <h1 className="mt-3 font-display text-3xl font-semibold text-on-surface">Admin Dashboard</h1>
-                </div>
-                <NotificationBell />
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                {adminStats.map((stat) => (
-                  <StatCard key={stat.label} {...stat} />
-                ))}
-              </div>
-              <div className="card-elevated p-8">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Recent Cases</p>
-                    <h2 className="mt-3 font-display text-2xl font-semibold text-on-surface">Recent Cases</h2>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {actions.map((action) => (
-                      <button key={action} type="button" className="rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-secondary/90">
-                        + {action}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-6 overflow-x-auto">
-                  <table className="min-w-full text-left text-sm text-on-surface-variant">
-                    <thead className="border-b border-outline-variant text-on-surface">
-                      <tr>
-                        <th className="py-4">Case ID</th>
-                        <th className="py-4">Client</th>
-                        <th className="py-4">Lawyer</th>
-                        <th className="py-4">Type</th>
-                        <th className="py-4">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {adminCases.map((entry) => (
-                        <tr key={entry.id} className="border-b border-outline-variant hover:bg-surface-container">
-                          <td className="py-4 font-semibold text-on-surface">{entry.id}</td>
-                          <td className="py-4">{entry.client}</td>
-                          <td className="py-4">{entry.lawyer}</td>
-                          <td className="py-4">{entry.type}</td>
-                          <td className="py-4 font-semibold text-secondary">{entry.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-                <div className="card-elevated p-8">
-                  <h2 className="font-display text-2xl font-semibold text-on-surface">Upcoming Appointments</h2>
-                  <div className="mt-6 space-y-4">
-                    {upcomingAppointments.map((item) => (
-                      <div key={item.time} className="rounded-xl bg-surface-container p-4">
-                        <p className="text-sm text-on-surface-variant">{item.time}</p>
-                        <p className="mt-1 font-semibold text-on-surface">{item.client}</p>
-                        <p className="text-sm text-on-surface-variant">Lawyer: {item.lawyer}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="card-elevated p-8">
-                  <h2 className="font-display text-2xl font-semibold text-on-surface">Activity Feed</h2>
-                  <div className="mt-6 space-y-4 text-sm text-on-surface-variant">
-                    <p>New case added for corporate client.</p>
-                    <p>Mail notification dispatched to new client.</p>
-                    <p>Lawyer profile updated with new credentials.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </AuthGate>
-      <Footer />
-    </main>
-  )
+    <div className="space-y-8">
+      {/* Stats */}
+      {stats && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard label="Total Cases" value={stats.totalCases} />
+          <StatsCard label="Active Cases" value={stats.activeCases} />
+          <StatsCard label="Total Lawyers" value={stats.totalLawyers} />
+          <StatsCard label="Total Clients" value={stats.totalClients} />
+        </div>
+      )}
+
+      {/* Placeholder for upcoming content */}
+      <section>
+        <h2 className="font-display text-2xl font-bold text-on-surface">
+          Platform Management
+        </h2>
+        <p className="mt-4 text-on-surface-variant">Content coming soon...</p>
+      </section>
+    </div>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+        {value}
+      </p>
+    </div>
+  );
 }

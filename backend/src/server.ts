@@ -12,6 +12,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import consultationRoutes from './routes/consultations';
 import lawyerRoutes from './routes/lawyers';
+import caseRoutes from './routes/cases';
+import adminRoutes from './routes/admin';
 import { resendVerificationCode } from './controllers/authController';
 
 dotenv.config();
@@ -47,22 +49,24 @@ app.use(compression());
 app.use(cookieParser());
 app.use(hpp()); // Prevent HTTP Parameter Pollution
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use('/api/', limiter);
+// Rate limiting (production only)
+if (process.env.NODE_ENV === 'production') {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+  });
+  app.use('/api/', limiter);
 
-// Stricter rate limiting for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 auth requests per windowMs
-  message: 'Too many authentication attempts, please try again later.',
-});
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+  // Stricter rate limiting for auth routes
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 auth requests per windowMs
+    message: 'Too many authentication attempts, please try again later.',
+  });
+  app.use('/api/auth/login', authLimiter);
+  app.use('/api/auth/register', authLimiter);
+}
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -86,6 +90,8 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/lawyers', lawyerRoutes);
+app.use('/api/cases', caseRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Backwards-compatible/fallback endpoints in case frontend calls short paths
 app.post('/resend-verification-code', express.json(), resendVerificationCode);
