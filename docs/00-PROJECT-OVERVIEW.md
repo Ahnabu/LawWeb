@@ -135,6 +135,28 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - Home page lawyer section fetches from `/api/lawyers/public`
 - Our Lawyers page fetches from `/api/lawyers/public` with search filter
 
+### ✅ Lawyer Dashboard (Fully Functional)
+
+- **Appointments page**: Compact table with status filter tabs; "View Details" modal shows full consultation info and allows marking complete/cancel inline
+- **Cases page**: Compact table with status filter tabs; lawyers can add their own cases via modal form (with court, jurisdiction, opposing party, priority); star icon to feature/unfeature cases; "View Details" links to dedicated case detail page
+- **Case Detail page**: Full case info, update status and notes, feature toggle
+- **Availability page**: Fixed routing bug (`/me/availability` was being caught by `/:lawyerId/availability`); schedule and client acceptance toggle fully working
+- **Profile page**: Full edit mode with bilingual fields (EN/BN), practice areas, languages, education, certifications, hourly rate, contact info; backed by `LawyerProfile` model separate from `User`
+- All titles use `h3` throughout the Lawyer dashboard
+
+### ✅ Extended Case Schema
+
+- Added `priority` (high/medium/low), `courtName`, `jurisdiction`, `opposingParty`, `opposingCounsel`, `filingDate`, `isFeatured`
+- Added `settled` and `appealed` to status enum; `labor`, `tax`, `constitutional`, `environmental` to type enum
+- Lawyers can now create their own cases (previously admin-only)
+- `PATCH /api/cases/:id/toggle-featured` endpoint added
+
+### ✅ LawyerProfile Model
+
+- Separate MongoDB document linked to `User` via `userId`
+- Bilingual `designation` and `bio` (en/bn), education, certifications, practice areas, languages, hourly rate, WhatsApp, contact info
+- Auto-created on first access with name/barId seeded from User
+
 ---
 
 ## Project Structure
@@ -285,9 +307,9 @@ types/
 | Lawyer Details | 🔲 To Do | Full profile, book appointment button |
 | Appointment Form | 🔲 To Do | Date, time, message, WhatsApp link |
 | User Dashboard | ✅ Template | Appointments, cases, profile |
-| Lawyer Dashboard | ✅ Template | Appointments, cases assigned |
-| Owner Dashboard | ✅ Template | All appointments, lawyers management |
-| Case Tracking | 🔲 To Do | Online & offline cases, status |
+| Lawyer Dashboard | ✅ Fully Functional | Appointments (table+modal), Cases (table+add+feature+detail), Availability, Profile (full edit) |
+| Owner Dashboard | ✅ Fully Functional | Stats, appointments, cases, lawyers, users |
+| Case Tracking | ✅ Done (Lawyer) | Lawyer can add/view/update cases; admin manages all |
 | Offline Case Form | 🔲 To Do | Collect email, add case info |
 
 ---

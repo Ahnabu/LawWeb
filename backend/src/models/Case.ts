@@ -8,7 +8,11 @@ export type CaseType =
   | 'family'
   | 'real-estate'
   | 'intellectual-property'
-  | 'banking-finance';
+  | 'banking-finance'
+  | 'labor'
+  | 'tax'
+  | 'constitutional'
+  | 'environmental';
 
 export type CaseStatus =
   | 'active'
@@ -17,7 +21,11 @@ export type CaseStatus =
   | 'under-review'
   | 'closed'
   | 'won'
-  | 'lost';
+  | 'lost'
+  | 'settled'
+  | 'appealed';
+
+export type CasePriority = 'high' | 'medium' | 'low';
 
 export interface ICase extends Document {
   caseNumber: string;
@@ -29,7 +37,14 @@ export interface ICase extends Document {
   title: string;
   description: string;
   status: CaseStatus;
+  priority: CasePriority;
   isOnline: boolean;
+  isFeatured: boolean;
+  courtName?: string;
+  jurisdiction?: string;
+  opposingParty?: string;
+  opposingCounsel?: string;
+  filingDate?: Date;
   nextCourtDate?: Date;
   notes?: string;
   createdAt: Date;
@@ -66,44 +81,33 @@ const CaseSchema: Schema = new Schema(
     type: {
       type: String,
       enum: [
-        'immigration',
-        'criminal',
-        'civil',
-        'corporate',
-        'family',
-        'real-estate',
-        'intellectual-property',
-        'banking-finance',
+        'immigration', 'criminal', 'civil', 'corporate', 'family',
+        'real-estate', 'intellectual-property', 'banking-finance',
+        'labor', 'tax', 'constitutional', 'environmental',
       ],
       required: true,
     },
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
     status: {
       type: String,
-      enum: ['active', 'filed', 'hearing-scheduled', 'under-review', 'closed', 'won', 'lost'],
+      enum: ['active', 'filed', 'hearing-scheduled', 'under-review', 'closed', 'won', 'lost', 'settled', 'appealed'],
       default: 'active',
     },
-    isOnline: {
-      type: Boolean,
-      default: true,
-    },
-    nextCourtDate: {
-      type: Date,
-      default: null,
-    },
-    notes: {
+    priority: {
       type: String,
-      trim: true,
+      enum: ['high', 'medium', 'low'],
+      default: 'medium',
     },
+    isOnline: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false },
+    courtName: { type: String, trim: true },
+    jurisdiction: { type: String, trim: true },
+    opposingParty: { type: String, trim: true },
+    opposingCounsel: { type: String, trim: true },
+    filingDate: { type: Date, default: null },
+    nextCourtDate: { type: Date, default: null },
+    notes: { type: String, trim: true },
   },
   { timestamps: true }
 );

@@ -94,7 +94,7 @@ const login = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60 * 1000, // 15 minutes
+            maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
             domain: process.env.COOKIE_DOMAIN,
         });
         res.cookie('refreshToken', refreshToken, {
@@ -180,7 +180,7 @@ const refreshToken = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60 * 1000, // 15 minutes
+            maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
             domain: process.env.COOKIE_DOMAIN,
         });
         res.json({ message: 'Token refreshed successfully' });

@@ -1,3 +1,4 @@
+import "./config/env"; // Must be first — loads .env before any other module reads process.env
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -6,7 +7,6 @@ import compression from "compression";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import hpp from "hpp";
-import dotenv from "dotenv";
 
 // Routes
 import authRoutes from "./routes/auth";
@@ -15,8 +15,6 @@ import lawyerRoutes from "./routes/lawyers";
 import caseRoutes from "./routes/cases";
 import adminRoutes from "./routes/admin";
 import { resendVerificationCode } from "./controllers/authController";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

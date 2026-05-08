@@ -15,7 +15,7 @@ export const generateAccessToken = (user: IUser): string => {
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET!, {
-    expiresIn: '15m', // Short-lived access token
+    expiresIn: '3d',
     issuer: 'lawweb-backend',
     audience: 'lawweb-client',
   });

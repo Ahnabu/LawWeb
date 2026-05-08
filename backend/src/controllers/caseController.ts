@@ -11,17 +11,28 @@ export const createCase = async (req: AuthRequest, res: Response) => {
     const userId = req.user?._id;
     const userRole = req.user?.role;
 
-    if (!userId || userRole !== 'admin') {
-      return res.status(403).json({ status: 403, message: 'Only admins can create cases' });
+    if (!userId || (userRole !== 'admin' && userRole !== 'lawyer')) {
+      return res.status(403).json({ status: 403, message: 'Only admins or lawyers can create cases' });
     }
 
-    const { lawyerId, clientId, clientEmail, clientName, type, title, description, nextCourtDate, isOnline } = req.body;
+    const {
+      lawyerId, clientId, clientEmail, clientName, type, title, description,
+      nextCourtDate, filingDate, isOnline, priority, courtName, jurisdiction,
+      opposingParty, opposingCounsel,
+    } = req.body;
 
-    if (!lawyerId || !clientEmail || !clientName || !type || !title || !description) {
+    if (!clientEmail || !clientName || !type || !title || !description) {
       return res.status(400).json({ status: 400, message: 'Missing required fields' });
     }
 
-    const lawyer = await User.findById(lawyerId);
+    // Lawyers create cases assigned to themselves; admins can specify any lawyerId
+    const assignedLawyerId = userRole === 'lawyer' ? userId : lawyerId;
+
+    if (!assignedLawyerId) {
+      return res.status(400).json({ status: 400, message: 'lawyerId is required' });
+    }
+
+    const lawyer = await User.findById(assignedLawyerId);
     if (!lawyer || lawyer.role !== 'lawyer') {
       return res.status(404).json({ status: 404, message: 'Lawyer not found' });
     }
@@ -30,11 +41,17 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       clientId: clientId || null,
       clientEmail,
       clientName,
-      lawyerId,
+      lawyerId: assignedLawyerId,
       type,
       title,
       description,
+      priority: priority || 'medium',
       isOnline: isOnline ?? true,
+      courtName,
+      jurisdiction,
+      opposingParty,
+      opposingCounsel,
+      filingDate: filingDate ? new Date(filingDate) : undefined,
       nextCourtDate: nextCourtDate ? new Date(nextCourtDate) : undefined,
     });
 
@@ -184,6 +201,39 @@ export const deleteCase = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Delete case error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    const userRole = req.user?.role;
+    const { caseId } = req.params;
+
+    const caseDoc = await Case.findById(caseId);
+    if (!caseDoc) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+
+    const canToggle =
+      userRole === 'admin' ||
+      caseDoc.lawyerId.toString() === userId?.toString();
+
+    if (!canToggle) {
+      return res.status(403).json({ status: 403, message: 'Access denied' });
+    }
+
+    caseDoc.isFeatured = !caseDoc.isFeatured;
+    await caseDoc.save();
+
+    res.json({
+      status: 200,
+      message: `Case ${caseDoc.isFeatured ? 'featured' : 'unfeatured'} successfully`,
+      data: { isFeatured: caseDoc.isFeatured },
+    });
+  } catch (error) {
+    console.error('Toggle featured case error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };

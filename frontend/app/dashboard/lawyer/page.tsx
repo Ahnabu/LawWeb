@@ -100,13 +100,6 @@ export default function LawyerDashboardPage() {
         </div>
       )}
 
-      {/* Placeholder for upcoming content */}
-      <section>
-        <h2 className="font-display text-2xl font-bold text-on-surface">
-          Manage Your Cases
-        </h2>
-        <p className="mt-4 text-on-surface-variant">Content coming soon...</p>
-      </section>
     </div>
   );
 }

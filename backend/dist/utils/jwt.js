@@ -12,7 +12,7 @@ const generateAccessToken = (user) => {
         role: user.role,
     };
     return jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: '15m', // Short-lived access token
+        expiresIn: '3d',
         issuer: 'lawweb-backend',
         audience: 'lawweb-client',
     });

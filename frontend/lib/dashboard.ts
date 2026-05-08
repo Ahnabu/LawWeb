@@ -217,6 +217,69 @@ export async function toggleLawyerVerification(lawyerId: string): Promise<{ isVe
   return data.data as { isVerified: boolean }
 }
 
+// ─── Lawyer Profile ───────────────────────────────────────────────────────────
+
+export interface BilingualField {
+  en: string
+  bn: string
+}
+
+export interface Education {
+  degree: string
+  institution: string
+  year: number
+}
+
+export interface Certification {
+  name: string
+  issuingBody: string
+  year: number
+}
+
+export interface LawyerProfileData {
+  _id?: string
+  userId?: string
+  firstName: string
+  lastName: string
+  profileImageUrl?: string
+  designation: BilingualField
+  bio: BilingualField
+  contactEmail?: string
+  contactPhone?: string
+  whatsappNumber?: string
+  barNumber?: string
+  yearAdmitted?: number
+  practiceAreas: string[]
+  languages: string[]
+  education: Education[]
+  certifications: Certification[]
+  hourlyRate?: number
+  isActive: boolean
+  joinedAt?: string
+}
+
+export async function getMyLawyerProfile(): Promise<LawyerProfileData> {
+  const res = await fetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
+    credentials: 'include',
+    cache: 'no-store',
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch profile')
+  return data.data as LawyerProfileData
+}
+
+export async function updateMyLawyerProfile(payload: Partial<LawyerProfileData>): Promise<LawyerProfileData> {
+  const res = await fetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.message || 'Failed to update profile')
+  return data.data as LawyerProfileData
+}
+
 // ─── Label maps ───────────────────────────────────────────────────────────────
 
 export const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
