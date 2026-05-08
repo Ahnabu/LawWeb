@@ -141,7 +141,7 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - **Cases page**: Compact table with status filter tabs; lawyers can add their own cases via modal form (with court, jurisdiction, opposing party, priority); star icon to feature/unfeature cases; "View Details" links to dedicated case detail page
 - **Case Detail page**: Full case info, update status and notes, feature toggle
 - **Availability page**: Fixed routing bug (`/me/availability` was being caught by `/:lawyerId/availability`); schedule and client acceptance toggle fully working
-- **Profile page**: Full edit mode with bilingual fields (EN/BN), practice areas, languages, education, certifications, hourly rate, contact info; backed by `LawyerProfile` model separate from `User`
+- **Profile page**: Full edit mode with bilingual fields (EN/BN), practice areas, languages, education, certifications, hourly rate, contact info; profile image upload via Cloudinary; backed by `LawyerProfile` model separate from `User`
 - All titles use `h3` throughout the Lawyer dashboard
 
 ### ✅ Extended Case Schema
@@ -156,6 +156,26 @@ Islam & Associates is a legal services platform built with Next.js and Express.j
 - Separate MongoDB document linked to `User` via `userId`
 - Bilingual `designation` and `bio` (en/bn), education, certifications, practice areas, languages, hourly rate, WhatsApp, contact info
 - Auto-created on first access with name/barId seeded from User
+- Atomic `findOneAndUpdate` + `$setOnInsert` + `upsert: true` — race-condition safe
+
+### ✅ Cloudinary Image Upload
+
+- `backend/src/config/multer.config.ts` — CloudinaryStorage with 500×500 face-fill crop, 5MB limit, image-only filter
+- `POST /api/lawyers/me/profile/image` — uploads to `lawweb/profiles/` folder, deletes old image before saving new one
+- Response returns only `{ profileImageUrl }` — no sensitive profile data exposed
+
+### ✅ UX / Developer Experience Improvements
+
+- **Sonner toasts**: Global `<SonnerToaster />` in root layout; all four lawyer dashboard pages show loading/success/error toasts replacing inline alert divs
+- **Theme toggle**: Sun/Moon button added to dashboard topbar (beside Home icon); reads from existing `ThemeProvider`, persists in localStorage
+- **Bar-wave loader**: CSS `@keyframes bar-wave` with three staggered `scaleY` bars replaces "Loading..." text on dashboard auth check; uses `will-change: transform` for compositor-layer promotion
+- **dotenv load-order fix**: `backend/src/config/env.ts` imported as the very first line of `server.ts` so `process.env` is populated before any other module (including Cloudinary config) runs
+
+### ✅ Backend Configuration
+
+- JWT access token expiry increased from 15 minutes → **3 days** (cookie `maxAge` updated to match)
+- `nodemon.json` uses `ts-node --transpile-only` with `delay: 500` for fast auto-restarts on `.ts` file changes
+- Route ordering fixed in `backend/src/routes/lawyers.ts`: all `/me/*` routes registered before `/:lawyerId` to prevent "me" being cast as MongoDB ObjectId
 
 ---
 
@@ -199,9 +219,11 @@ LawWeb/
 │   │   ├── Footer.tsx
 │   │   ├── AuthProvider.tsx
 │   │   ├── LanguageProvider.tsx
-│   │   ├── DashboardLayout.tsx     # New: Dashboard layout component
+│   │   ├── ThemeProvider.tsx        # Light/dark toggle (persists in localStorage)
+│   │   ├── DashboardLayout.tsx     # Sidebar + topbar + theme toggle + home link
+│   │   ├── SonnerToaster.tsx       # Theme-aware Sonner toast wrapper
 │   │   └── ...
-│   ├── types/                      # NEW: Centralized types
+│   ├── types/                      # Centralized types
 │   │   ├── index.ts                # Common types (User, Auth, API)
 │   │   ├── lawyer.ts               # Lawyer-related types
 │   │   ├── appointment.ts          # Appointment types
@@ -210,14 +232,22 @@ LawWeb/
 │   ├── lib/                        # Utilities & API calls
 │   │   ├── auth.ts
 │   │   ├── api.ts
-│   │   ├── data.ts
+│   │   ├── dashboard.ts            # Lawyer profile, availability, consultation APIs
 │   │   └── translations.ts
-│   ├── globals.css                 # Design tokens & base styles
+│   ├── globals.css                 # Design tokens, base styles, bar-wave keyframe
 │   └── ...
 ├── backend/                        # Express.js API
-│   ├── routes/
-│   ├── models/
-│   ├── middleware/
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── env.ts              # First import in server.ts — loads dotenv before any module
+│   │   │   └── multer.config.ts    # Cloudinary storage + multer instance
+│   │   ├── routes/
+│   │   ├── models/
+│   │   │   ├── LawyerProfile.ts    # Separate profile document (bilingual, education, etc.)
+│   │   │   └── Case.ts             # Extended with priority, court, isFeatured
+│   │   ├── controllers/
+│   │   │   └── lawyerProfileController.ts
+│   │   └── middleware/
 │   └── ...
 ├── docs/                           # Project documentation
 ├── agents/                         # AI agent guidelines
@@ -336,48 +366,64 @@ Surface (Dark): #08111f
 
 ---
 
-## API Endpoints Needed
+## API Endpoints
 
 ### Authentication
 ```
 POST   /api/auth/register
 POST   /api/auth/login
 POST   /api/auth/verify-email
+POST   /api/auth/change-password
+POST   /api/auth/refresh
+POST   /api/auth/logout
 ```
 
-### Lawyers
+### Lawyers (Public)
 ```
-GET    /api/lawyers           (all)
-GET    /api/lawyers/:id       (details)
+GET    /api/lawyers/public           (name, barId, specialization only)
+GET    /api/lawyers                  (full data — authenticated)
+GET    /api/lawyers/:lawyerId        (single lawyer profile)
+GET    /api/lawyers/:lawyerId/availability   (public availability)
 ```
 
-### Appointments
+### Lawyers (Authenticated — lawyer role)
+
 ```
-POST   /api/appointments      (book)
-GET    /api/appointments      (list)
-GET    /api/appointments/:id  (details)
-PATCH  /api/appointments/:id  (update status)
+GET    /api/lawyers/me/profile       (get or auto-create LawyerProfile)
+PUT    /api/lawyers/me/profile       (update profile fields)
+POST   /api/lawyers/me/profile/image (upload profile photo via Cloudinary)
+GET    /api/lawyers/me/availability  (get own schedule)
+PUT    /api/lawyers/me/availability  (update own schedule)
 ```
 
 ### Cases
+
 ```
-POST   /api/cases             (create)
-GET    /api/cases             (list)
-GET    /api/cases/:id         (details)
-PATCH  /api/cases/:id         (update)
+POST   /api/cases                    (create — admin or lawyer)
+GET    /api/cases                    (list all — admin)
+GET    /api/cases/my-cases           (lawyer's own cases)
+GET    /api/cases/:caseId            (details)
+PATCH  /api/cases/:caseId            (update status/notes)
+PATCH  /api/cases/:caseId/toggle-featured   (toggle isFeatured)
 ```
 
-### Dashboard Stats
+### Consultations (Appointments)
+
 ```
-GET    /api/dashboard/client/stats     (user stats)
-GET    /api/dashboard/lawyer/stats     (lawyer stats)
-GET    /api/dashboard/admin/stats      (admin stats)
+POST   /api/consultations            (book)
+GET    /api/consultations            (list — admin)
+GET    /api/consultations/my         (lawyer's assigned consultations)
+PATCH  /api/consultations/:id/status (update status)
 ```
 
-### Users
+### Admin
 ```
-GET    /api/users/me          (profile)
-PATCH  /api/users/me          (update)
+GET    /api/admin/stats              (global stats)
+GET    /api/admin/lawyers            (all lawyers)
+POST   /api/admin/lawyers            (add lawyer — creates account)
+PATCH  /api/admin/lawyers/:id/verify (verify/unverify)
+DELETE /api/admin/lawyers/:id        (remove)
+GET    /api/admin/users              (paginated client list)
 ```
 
 ---

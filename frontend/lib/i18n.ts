@@ -570,11 +570,11 @@ const translationBundle = {
 
 export function translate(locale: Locale, key: string): string {
   const pieces = key.split('.')
-  let current: any = translationBundle[locale] ?? translationBundle[defaultLocale]
+  let current: unknown = translationBundle[locale] ?? translationBundle[defaultLocale]
 
   for (const piece of pieces) {
     if (current && typeof current === 'object' && piece in current) {
-      current = current[piece]
+      current = (current as Record<string, unknown>)[piece]
     } else {
       return key
     }

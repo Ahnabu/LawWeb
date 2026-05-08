@@ -176,9 +176,23 @@ res.json({ success: true, appointment: { ... } })
 
 ## Current Status
 
-**Completed**: Auth system, design system, navbar, footer, register page
-**In Progress**: Home page, public pages
-**Next**: Dashboards, case management
+**Completed**:
+
+- Auth system (register, login, email OTP, forced password change on first lawyer login)
+- Design system (Material Design 3 tokens, light/dark theme, responsive)
+- Public pages: Home (hero, stats, lawyer cards), Lawyers list (real API)
+- Admin dashboard (appointments, cases, lawyers management, users, stats)
+- Lawyer dashboard (appointments, cases + detail page, availability, profile + image upload)
+- LawyerProfile model (bilingual, education, certifications, Cloudinary upload)
+- Extended Case schema (priority, court, isFeatured, new statuses/types)
+- Sonner toast notifications across all lawyer dashboard pages
+- Theme toggle (Sun/Moon) in dashboard topbar
+- Bar-wave loader animation on dashboard auth check
+- JWT 3-day access token; nodemon auto-restart; dotenv load-order fix
+
+**In Progress**: Client dashboard real data integration
+
+**Next**: Lawyer details page (public), About Us page, Appointment booking form, email notifications
 
 ---
 

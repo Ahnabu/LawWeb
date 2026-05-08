@@ -25,6 +25,33 @@ interface CaseSummary {
   status: string;
 }
 
+interface ConsultationApiItem {
+  _id?: string;
+  id?: string;
+  date?: string;
+  time?: string;
+  status?: ConsultationStatus;
+  lawyerId?: {
+    name?: string;
+  } | null;
+}
+
+interface ConsultationsApiResponse {
+  consultations?: ConsultationApiItem[];
+}
+
+interface CaseApiItem {
+  _id?: string;
+  id?: string;
+  title?: string;
+  description?: string;
+  status?: string;
+}
+
+interface CasesApiResponse {
+  data?: CaseApiItem[];
+}
+
 export default function ClientDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [appointments, setAppointments] = useState<AppointmentSummary[]>([]);
@@ -49,11 +76,12 @@ export default function ClientDashboardPage() {
           throw new Error("Failed to fetch appointments");
         if (!casesResponse.ok) throw new Error("Failed to fetch cases");
 
-        const consultationsData = await consultationsResponse.json();
-        const casesData = await casesResponse.json();
+        const consultationsData =
+          (await consultationsResponse.json()) as ConsultationsApiResponse;
+        const casesData = (await casesResponse.json()) as CasesApiResponse;
 
         const consultations = consultationsData.consultations ?? [];
-        const normalizedAppointments = consultations.map((item: any) => ({
+        const normalizedAppointments = consultations.map((item) => ({
           id: item._id ?? item.id,
           date: item.date ?? "",
           time: item.time ?? "",
@@ -61,7 +89,7 @@ export default function ClientDashboardPage() {
           lawyerName: item.lawyerId?.name,
         })) as AppointmentSummary[];
 
-        const normalizedCases = (casesData.data ?? []).map((item: any) => ({
+        const normalizedCases = (casesData.data ?? []).map((item) => ({
           id: item._id ?? item.id,
           title: item.title ?? "Untitled Case",
           description: item.description ?? "",
@@ -103,9 +131,16 @@ export default function ClientDashboardPage() {
 
   if (isLoading)
     return (
-      <div className="text-center text-on-surface">Loading dashboard...</div>
+      <div className="flex flex-col items-center justify-center gap-4 py-24">
+        <div className="flex h-10 items-end gap-1.5">
+          <div className="bar-wave h-10 w-1.5 rounded-full bg-primary" />
+          <div className="bar-wave bar-wave-delay-1 h-10 w-1.5 rounded-full bg-primary" />
+          <div className="bar-wave bar-wave-delay-2 h-10 w-1.5 rounded-full bg-primary" />
+        </div>
+        <p className="text-sm text-on-surface-variant">Loading dashboard...</p>
+      </div>
     );
-  if (error) return <div className="text-error">Error: {error}</div>;
+  if (error) return <div className="rounded-lg border border-error/30 bg-error/10 p-4 text-sm text-error">Error: {error}</div>;
 
   return (
     <div className="space-y-8">

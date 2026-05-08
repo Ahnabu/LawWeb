@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Plus, X, Pencil, Camera, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   LawyerProfileData,
   Education,
@@ -44,8 +45,6 @@ export default function LawyerProfilePage() {
   const [profile, setProfile] = useState<LawyerProfileData>(emptyProfile);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -58,7 +57,7 @@ export default function LawyerProfilePage() {
   useEffect(() => {
     getMyLawyerProfile()
       .then((data) => setProfile(data))
-      .catch((err) => setError(err.message))
+      .catch((err) => toast.error(err.message || "Failed to load profile"))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -69,7 +68,7 @@ export default function LawyerProfilePage() {
     // Show local preview immediately
     setImagePreview(URL.createObjectURL(file));
     setIsUploadingImage(true);
-    setError(null);
+    const toastId = toast.loading("Uploading image...");
 
     try {
       const formData = new FormData();
@@ -84,10 +83,10 @@ export default function LawyerProfilePage() {
       if (!res.ok) throw new Error(data.message || "Upload failed");
 
       setProfile((p) => ({ ...p, profileImageUrl: data.data.profileImageUrl }));
-      setImagePreview(null); // use the real URL now
-      setSuccess("Profile image updated.");
+      setImagePreview(null);
+      toast.success("Profile image updated.", { id: toastId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Image upload failed");
+      toast.error(err instanceof Error ? err.message : "Image upload failed", { id: toastId });
       setImagePreview(null);
     } finally {
       setIsUploadingImage(false);
@@ -98,15 +97,14 @@ export default function LawyerProfilePage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setError(null);
-    setSuccess(null);
+    const toastId = toast.loading("Saving profile...");
     try {
       const updated = await updateMyLawyerProfile(profile);
       setProfile(updated);
-      setSuccess("Profile updated successfully.");
+      toast.success("Profile updated successfully.", { id: toastId });
       setEditMode(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : "Update failed", { id: toastId });
     } finally {
       setIsSaving(false);
     }
@@ -198,17 +196,6 @@ export default function LawyerProfilePage() {
           </div>
         )}
       </header>
-
-      {error && (
-        <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
-          {success}
-        </div>
-      )}
 
       {/* Profile image */}
       <section className="flex items-center gap-5 rounded-lg border border-outline-variant bg-surface-container p-5">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   DaySchedule,
   LawyerAvailability,
@@ -34,8 +35,6 @@ export default function LawyerAvailabilityPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -43,7 +42,7 @@ export default function LawyerAvailabilityPage() {
         const data = await getMyAvailability();
         setAvailability(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        toast.error(err instanceof Error ? err.message : "Failed to load availability");
       } finally {
         setIsLoading(false);
       }
@@ -85,8 +84,7 @@ export default function LawyerAvailabilityPage() {
     }
 
     setIsSaving(true);
-    setSuccess(null);
-    setError(null);
+    const toastId = toast.loading("Saving availability...");
 
     try {
       const updated = await updateMyAvailability({
@@ -94,10 +92,11 @@ export default function LawyerAvailabilityPage() {
         isAcceptingNewClients: availability.isAcceptingNewClients,
       });
       setAvailability(updated);
-      setSuccess("Availability updated successfully.");
+      toast.success("Availability updated successfully.", { id: toastId });
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof Error ? err.message : "Unable to update availability",
+        { id: toastId },
       );
     } finally {
       setIsSaving(false);
@@ -218,17 +217,6 @@ export default function LawyerAvailabilityPage() {
           );
         })}
       </section>
-
-      {error && (
-        <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
-          {success}
-        </div>
-      )}
 
       <div className="flex justify-end">
         <button

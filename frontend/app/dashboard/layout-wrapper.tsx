@@ -29,8 +29,15 @@ export default function DashboardLayoutWrapper({
   if (status === "loading" || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-surface">
-        <div className="text-center">
-          <p className="text-lg text-on-surface">Loading...</p>
+        <div className="flex flex-col items-center gap-5">
+          <div className="flex h-10 items-end gap-1.5">
+            <div className="bar-wave h-10 w-1.5 rounded-full bg-primary" />
+            <div className="bar-wave bar-wave-delay-1 h-10 w-1.5 rounded-full bg-primary" />
+            <div className="bar-wave bar-wave-delay-2 h-10 w-1.5 rounded-full bg-primary" />
+          </div>
+          <p className="text-sm text-on-surface-variant tracking-wide">
+            Loading dashboard...
+          </p>
         </div>
       </div>
     );

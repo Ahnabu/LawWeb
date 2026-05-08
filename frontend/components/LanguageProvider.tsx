@@ -32,7 +32,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
       const browserLocale = navigator.language.startsWith('bn') ? 'bn' : 'en'
       setLocale(browserLocale)
-    } catch (error) {
+    } catch {
       setLocale(defaultLocale)
     }
   }, [])

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Eye, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Consultation,
   ConsultationStatus,
@@ -24,7 +25,6 @@ export default function LawyerAppointmentsPage() {
   const [filtered, setFiltered] = useState<Consultation[]>([]);
   const [activeTab, setActiveTab] = useState<ConsultationStatus | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Consultation | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -34,7 +34,7 @@ export default function LawyerAppointmentsPage() {
         setAppointments(data);
         setFiltered(data);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => toast.error(err.message || "Failed to load appointments"))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -52,14 +52,16 @@ export default function LawyerAppointmentsPage() {
     notes?: string,
   ) => {
     setUpdatingId(id);
+    const toastId = toast.loading("Updating status...");
     try {
       await updateConsultationStatus(id, status, notes);
       setAppointments((prev) =>
         prev.map((a) => (a._id === id ? { ...a, status } : a)),
       );
       if (selected?._id === id) setSelected((prev) => prev && { ...prev, status });
-    } catch {
-      // ignore
+      toast.success(`Appointment marked as ${status}.`, { id: toastId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status", { id: toastId });
     } finally {
       setUpdatingId(null);
     }
@@ -78,8 +80,6 @@ export default function LawyerAppointmentsPage() {
       </div>
     );
   }
-
-  if (error) return <div className="text-error">Error: {error}</div>;
 
   return (
     <div className="space-y-5">

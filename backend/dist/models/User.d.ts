@@ -9,6 +9,7 @@ export interface IUser extends Document {
     specialization?: string;
     isVerified: boolean;
     passwordNeedsChange: boolean;
+    profileImageUrl?: string;
     emailVerificationCodeHash?: string;
     emailVerificationExpiresAt?: Date;
     emailVerificationSentAt?: Date;

@@ -3,6 +3,7 @@ import './globals.css'
 import { LanguageProvider } from '../components/LanguageProvider'
 import { ThemeProvider } from '../components/ThemeProvider'
 import { AuthProvider } from '../components/AuthProvider'
+import { SonnerToaster } from '../components/SonnerToaster'
 
 export const metadata: Metadata = {
   title: 'Islam & Associates | Dhaka Law Firm',
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <LanguageProvider>{children}</LanguageProvider>
           </AuthProvider>
+          <SonnerToaster />
         </ThemeProvider>
       </body>
     </html>

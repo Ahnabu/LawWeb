@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { signIn } from "../../lib/auth";
 import { useAuth } from "../../components/AuthProvider";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -191,7 +191,7 @@ export default function LoginPage() {
               </div>
               <div className="border-t border-outline-variant pt-4">
                 <p className="text-center leading-6">
-                  Don't have an account?{" "}
+                  Don&apos;t have an account?{" "}
                   <Link
                     href={`/register?redirect=${encodeURIComponent(redirectPath)}`}
                     className="font-semibold text-secondary underline decoration-2 underline-offset-4 hover:text-primary"
@@ -205,5 +205,13 @@ export default function LoginPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-surface" />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

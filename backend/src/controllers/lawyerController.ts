@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
 import LawyerAvailability from '../models/LawyerAvailability';
+import LawyerProfile from '../models/LawyerProfile';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -47,9 +48,12 @@ export const getLawyerProfile = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Lawyer ID is required' });
     }
 
-    const lawyer = await User.findById(lawyerId)
-      .select('name email phone barId isVerified role createdAt')
-      .lean();
+    const [lawyer, profile] = await Promise.all([
+      User.findById(lawyerId)
+        .select('name email phone barId specialization isVerified role createdAt')
+        .lean(),
+      LawyerProfile.findOne({ userId: lawyerId }).lean(),
+    ]);
 
     if (!lawyer) {
       return res.status(404).json({ message: 'Lawyer not found' });
@@ -62,6 +66,7 @@ export const getLawyerProfile = async (req: Request, res: Response) => {
     res.json({
       message: 'Lawyer profile retrieved successfully',
       lawyer,
+      profile: profile || null,
     });
   } catch (error) {
     console.error('Get lawyer profile error:', error);

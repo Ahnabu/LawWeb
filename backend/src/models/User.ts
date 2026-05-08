@@ -11,6 +11,7 @@ export interface IUser extends Document {
   specialization?: string;
   isVerified: boolean;
   passwordNeedsChange: boolean;
+  profileImageUrl?: string;
   emailVerificationCodeHash?: string;
   emailVerificationExpiresAt?: Date;
   emailVerificationSentAt?: Date;
@@ -30,6 +31,7 @@ const UserSchema: Schema = new Schema(
     specialization: { type: String },
     isVerified: { type: Boolean, default: false },
     passwordNeedsChange: { type: Boolean, default: false },
+    profileImageUrl: { type: String, trim: true },
     emailVerificationCodeHash: { type: String, select: false },
     emailVerificationExpiresAt: { type: Date, select: false },
     emailVerificationSentAt: { type: Date },

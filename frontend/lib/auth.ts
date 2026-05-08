@@ -7,6 +7,7 @@ export interface AuthUser {
   role: UserRole
   barId?: string
   phone?: string
+  profileImageUrl?: string
   isVerified?: boolean
   passwordNeedsChange?: boolean
 }

@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LanguageToggle } from "../../components/LanguageToggle";
 import { useAuth } from "../../components/AuthProvider";
 import { resendVerificationCode, verifyEmail } from "../../lib/auth";
 

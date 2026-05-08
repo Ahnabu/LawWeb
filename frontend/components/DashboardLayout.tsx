@@ -15,7 +15,10 @@ import {
   Settings,
   Home,
   Scale,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "./ThemeProvider";
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { SidebarItem } from "../types/dashboard";
@@ -115,6 +118,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const sidebarItems = getSidebarItems(role);
 
   useEffect(() => {
@@ -246,13 +250,28 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
               </h3>
             </div>
 
-            <Link
-              href="/"
-              className="rounded-lg border border-outline-variant p-2 text-on-surface-variant hover:text-primary transition"
-              title="Go to Home"
-            >
-              <Home className="h-5 w-5" />
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="rounded-lg border border-outline-variant p-2 text-on-surface-variant hover:text-primary transition"
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                title={theme === "dark" ? "Light mode" : "Dark mode"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </button>
+              <Link
+                href="/"
+                className="rounded-lg border border-outline-variant p-2 text-on-surface-variant hover:text-primary transition"
+                title="Go to Home"
+              >
+                <Home className="h-5 w-5" />
+              </Link>
+            </div>
           </div>
         </div>
 

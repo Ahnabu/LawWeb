@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("./config/env"); // Must be first — loads .env before any other module reads process.env
 const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const cors_1 = __importDefault(require("cors"));
@@ -11,15 +12,14 @@ const compression_1 = __importDefault(require("compression"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const hpp_1 = __importDefault(require("hpp"));
-const dotenv_1 = __importDefault(require("dotenv"));
 // Routes
 const auth_1 = __importDefault(require("./routes/auth"));
 const consultations_1 = __importDefault(require("./routes/consultations"));
 const lawyers_1 = __importDefault(require("./routes/lawyers"));
 const cases_1 = __importDefault(require("./routes/cases"));
 const admin_1 = __importDefault(require("./routes/admin"));
+const users_1 = __importDefault(require("./routes/users"));
 const authController_1 = require("./controllers/authController");
-dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 // Security middleware
@@ -83,6 +83,7 @@ app.use("/api/consultations", consultations_1.default);
 app.use("/api/lawyers", lawyers_1.default);
 app.use("/api/cases", cases_1.default);
 app.use("/api/admin", admin_1.default);
+app.use("/api/users", users_1.default);
 // Backwards-compatible/fallback endpoints in case frontend calls short paths
 app.post("/resend-verification-code", express_1.default.json(), authController_1.resendVerificationCode);
 app.post("/api/resend-verification-code", express_1.default.json(), authController_1.resendVerificationCode);

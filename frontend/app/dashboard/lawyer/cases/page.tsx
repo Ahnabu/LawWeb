@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Star, StarOff, Plus, Eye, X } from "lucide-react";
+import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
 
 type CaseStatus =
@@ -88,7 +89,6 @@ export default function LawyerCasesPage() {
   const [filtered, setFiltered] = useState<CaseItem[]>([]);
   const [activeTab, setActiveTab] = useState<CaseStatus | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,7 +104,7 @@ export default function LawyerCasesPage() {
       if (!res.ok) throw new Error(data.message || "Failed to fetch cases");
       setCases(data.data ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      toast.error(err instanceof Error ? err.message : "Failed to load cases");
     } finally {
       setIsLoading(false);
     }
@@ -144,6 +144,7 @@ export default function LawyerCasesPage() {
       if (!res.ok) throw new Error(data.message || "Failed to create case");
       setShowAddModal(false);
       setForm(emptyForm);
+      toast.success("Case created successfully.");
       await fetchCases();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "An error occurred");
@@ -161,13 +162,13 @@ export default function LawyerCasesPage() {
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
+      const next: boolean = data.data.isFeatured;
       setCases((prev) =>
-        prev.map((c) =>
-          c._id === caseId ? { ...c, isFeatured: data.data.isFeatured } : c,
-        ),
+        prev.map((c) => (c._id === caseId ? { ...c, isFeatured: next } : c)),
       );
-    } catch {
-      // ignore
+      toast.success(next ? "Case featured." : "Case unfeatured.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update featured status");
     } finally {
       setTogglingId(null);
     }
@@ -186,8 +187,6 @@ export default function LawyerCasesPage() {
       </div>
     );
   }
-
-  if (error) return <div className="text-error">Error: {error}</div>;
 
   return (
     <div className="space-y-5">
@@ -245,7 +244,7 @@ export default function LawyerCasesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-outline-variant bg-surface-container-high text-left text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                <th className="px-3 py-2.5 w-5" aria-label="Featured" />
+                <th className="px-3 py-2.5 w-5 sr-only">Featured</th>
                 <th className="px-3 py-2.5">Case #</th>
                 <th className="px-3 py-2.5">Title</th>
                 <th className="px-3 py-2.5">Client</th>
