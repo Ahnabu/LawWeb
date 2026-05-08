@@ -41,7 +41,9 @@ export default function ClientProfilePage() {
       toast.success("Profile updated successfully.", { id: toastId });
       setIsEditing(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed", { id: toastId });
+      toast.error(err instanceof Error ? err.message : "Update failed", {
+        id: toastId,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -75,7 +77,9 @@ export default function ClientProfilePage() {
       await refreshSession();
       toast.success("Photo updated successfully.", { id: toastId });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed", { id: toastId });
+      toast.error(err instanceof Error ? err.message : "Upload failed", {
+        id: toastId,
+      });
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -129,7 +133,9 @@ export default function ClientProfilePage() {
           />
           <div className="text-center">
             <p className="font-semibold text-on-surface">{user?.name}</p>
-            <p className="text-xs text-on-surface-variant capitalize">{user?.role}</p>
+            <p className="text-xs text-on-surface-variant capitalize">
+              {user?.role}
+            </p>
           </div>
           <p className="text-center text-xs text-on-surface-variant">
             JPG, PNG, WebP — max 5 MB
@@ -165,7 +171,9 @@ export default function ClientProfilePage() {
                 <input
                   type="text"
                   value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
                   className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
                   placeholder="Your full name"
                 />
@@ -177,13 +185,18 @@ export default function ClientProfilePage() {
                 <input
                   type="tel"
                   value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, phone: e.target.value }))
+                  }
                   className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
                   placeholder="+880..."
                 />
               </div>
               <div>
-                <label htmlFor="profile-email" className="mb-1 block text-xs font-medium text-on-surface-variant">
+                <label
+                  htmlFor="profile-email"
+                  className="mb-1 block text-xs font-medium text-on-surface-variant"
+                >
                   Email
                 </label>
                 <input
@@ -193,7 +206,9 @@ export default function ClientProfilePage() {
                   disabled
                   className="w-full rounded-lg border border-outline bg-surface-container px-3 py-2 text-sm text-on-surface-variant opacity-60 cursor-not-allowed"
                 />
-                <p className="mt-1 text-xs text-on-surface-variant">Email cannot be changed.</p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Email cannot be changed.
+                </p>
               </div>
               <div className="flex gap-2 pt-2">
                 <button
@@ -250,7 +265,9 @@ export default function ClientProfilePage() {
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">
+        {label}
+      </p>
       <p className="mt-1 font-medium text-on-surface capitalize">{value}</p>
     </div>
   );

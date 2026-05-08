@@ -140,7 +140,12 @@ export default function ClientDashboardPage() {
         <p className="text-sm text-on-surface-variant">Loading dashboard...</p>
       </div>
     );
-  if (error) return <div className="rounded-lg border border-error/30 bg-error/10 p-4 text-sm text-error">Error: {error}</div>;
+  if (error)
+    return (
+      <div className="rounded-lg border border-error/30 bg-error/10 p-4 text-sm text-error">
+        Error: {error}
+      </div>
+    );
 
   return (
     <div className="space-y-8">

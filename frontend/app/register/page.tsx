@@ -254,9 +254,12 @@ function RegisterPageContent() {
               </div>
 
               <div className="mb-3 rounded-xl border border-outline-variant/60 bg-surface-container/60 px-3 py-2">
-                <p className="text-xs font-semibold text-on-surface">Client Account</p>
+                <p className="text-xs font-semibold text-on-surface">
+                  Client Account
+                </p>
                 <p className="text-[0.65rem] text-on-surface-variant mt-0.5">
-                  Lawyer accounts are managed by the firm. Contact us to join as a lawyer.
+                  Lawyer accounts are managed by the firm. Contact us to join as
+                  a lawyer.
                 </p>
               </div>
 
@@ -443,7 +446,6 @@ function RegisterPageContent() {
                       </p>
                     )}
                   </label>
-
                 </div>
 
                 <button

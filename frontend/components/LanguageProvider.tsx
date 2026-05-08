@@ -1,58 +1,76 @@
-'use client'
+"use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { availableLocales, defaultLocale, Locale, translate } from '../lib/i18n'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  availableLocales,
+  defaultLocale,
+  Locale,
+  translate,
+} from "../lib/i18n";
 
 interface LanguageContextValue {
-  locale: Locale
-  setLocale: (locale: Locale) => void
-  t: (key: string) => string
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextValue>({
   locale: defaultLocale,
   setLocale: () => {},
   t: (key: string) => key,
-})
+});
 
 export function useLanguage() {
-  return useContext(LanguageContext)
+  return useContext(LanguageContext);
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>(defaultLocale)
+  const [locale, setLocale] = useState<Locale>(defaultLocale);
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem('lawweb-lang') as Locale | null
+      const stored = window.localStorage.getItem(
+        "lawweb-lang",
+      ) as Locale | null;
       if (stored && availableLocales.includes(stored)) {
-        setLocale(stored)
-        return
+        setLocale(stored);
+        return;
       }
 
-      const browserLocale = navigator.language.startsWith('bn') ? 'bn' : 'en'
-      setLocale(browserLocale)
+      const browserLocale = navigator.language.startsWith("bn") ? "bn" : "en";
+      setLocale(browserLocale);
     } catch {
-      setLocale(defaultLocale)
+      setLocale(defaultLocale);
     }
-  }, [])
+  }, []);
 
   // Sync lang attribute so :lang(bn) CSS selector works for letter-spacing fixes
   useEffect(() => {
-    document.documentElement.lang = locale
-  }, [locale])
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   const value = useMemo(
     () => ({
       locale,
       setLocale: (next: Locale) => {
-        setLocale(next)
-        window.localStorage.setItem('lawweb-lang', next)
+        setLocale(next);
+        window.localStorage.setItem("lawweb-lang", next);
       },
       t: (key: string) => translate(locale, key),
     }),
     [locale],
-  )
+  );
 
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+    </LanguageContext.Provider>
+  );
 }
