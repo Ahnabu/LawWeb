@@ -19,5 +19,6 @@ router.post('/resend-code', authController_1.resendVerificationCode);
 // Protected routes
 router.post('/logout', auth_1.authenticateToken, authController_1.logout);
 router.get('/profile', auth_1.authenticateToken, authController_1.getProfile);
+router.post('/change-password', auth_1.authenticateToken, authController_1.changePassword);
 exports.default = router;
 //# sourceMappingURL=auth.js.map

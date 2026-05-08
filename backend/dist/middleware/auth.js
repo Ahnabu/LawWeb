@@ -39,7 +39,7 @@ const authenticateToken = async (req, res, next) => {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
-                maxAge: 15 * 60 * 1000, // 15 minutes
+                maxAge: 60 * 60 * 1000, // 1 hour
                 domain: process.env.COOKIE_DOMAIN,
             });
             req.user = user;

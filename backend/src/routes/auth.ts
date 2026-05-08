@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, logout, getProfile, refreshToken, verifyEmail, resendVerificationCode } from '../controllers/authController';
+import { register, login, logout, getProfile, refreshToken, verifyEmail, resendVerificationCode, changePassword } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 import { registerSchema, loginSchema, validateRequest } from '../middleware/validation';
 
@@ -17,5 +17,6 @@ router.post('/resend-code', resendVerificationCode);
 // Protected routes
 router.post('/logout', authenticateToken, logout);
 router.get('/profile', authenticateToken, getProfile);
+router.post('/change-password', authenticateToken, changePassword);
 
 export default router;

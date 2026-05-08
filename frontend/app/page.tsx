@@ -1,17 +1,34 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { Footer } from '../components/Footer'
 import { Navbar } from '../components/Navbar'
 import { WhatsAppCta } from '../components/WhatsAppCta'
-import { LawyerCard } from '../components/LawyerCard'
+import { LawyerPublicCard } from '../components/LawyerPublicCard'
 import { SuccessStoryCard } from '../components/SuccessStoryCard'
 import { PracticeAreaCard } from '../components/PracticeAreaCard'
 import { useLanguage } from '../components/LanguageProvider'
-import { practiceAreas, lawyers, successStories } from '../lib/data'
+import { practiceAreas, successStories } from '../lib/data'
+import { API_BASE_URL } from '../lib/api'
+
+interface PublicLawyer {
+  _id: string
+  name: string
+  barId?: string
+  specialization?: string
+}
 
 export default function HomePage() {
   const { t } = useLanguage()
+  const [lawyers, setLawyers] = useState<PublicLawyer[]>([])
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/lawyers/public`)
+      .then((r) => r.json())
+      .then((d) => setLawyers((d.lawyers ?? []).slice(0, 3)))
+      .catch(() => {})
+  }, [])
 
   const stats = [
     { labelKey: 'common.statLabel1', valueKey: 'common.stat1' },
@@ -94,9 +111,13 @@ export default function HomePage() {
             <h2 className="mt-3 sm:mt-4 font-display font-semibold text-on-surface">{t('common.teamHeading')}</h2>
           </div>
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-            {lawyers.map((lawyer) => (
-              <LawyerCard key={lawyer.id} {...lawyer} />
-            ))}
+            {lawyers.length === 0
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-48 animate-pulse rounded-2xl border border-outline-variant bg-surface-container" />
+                ))
+              : lawyers.map((lawyer) => (
+                  <LawyerPublicCard key={lawyer._id} {...lawyer} />
+                ))}
           </div>
           <div className="mt-10 text-center">
             <Link href="/lawyers" className="inline-flex rounded-md border border-secondary bg-surface px-6 py-3 text-sm font-semibold text-secondary transition hover:bg-secondary/10">

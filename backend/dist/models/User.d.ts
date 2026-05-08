@@ -6,7 +6,9 @@ export interface IUser extends Document {
     role: 'admin' | 'lawyer' | 'client';
     barId?: string;
     phone?: string;
+    specialization?: string;
     isVerified: boolean;
+    passwordNeedsChange: boolean;
     emailVerificationCodeHash?: string;
     emailVerificationExpiresAt?: Date;
     emailVerificationSentAt?: Date;

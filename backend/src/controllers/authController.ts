@@ -113,7 +113,7 @@ export const login = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
       domain: process.env.COOKIE_DOMAIN,
     });
 
@@ -134,6 +134,7 @@ export const login = async (req: Request, res: Response) => {
       barId: user.barId,
       phone: user.phone,
       isVerified: user.isVerified,
+      passwordNeedsChange: user.passwordNeedsChange,
     };
 
     res.json({
@@ -206,7 +207,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
       domain: process.env.COOKIE_DOMAIN,
     });
 
@@ -292,10 +293,48 @@ export const verifyEmail = async (req: Request, res: Response) => {
         barId: user.barId,
         phone: user.phone,
         isVerified: user.isVerified,
+        passwordNeedsChange: user.passwordNeedsChange,
       },
     });
   } catch (error) {
     console.error('Email verification error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const changePassword = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters.' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isValid = await user.comparePassword(currentPassword);
+    if (!isValid) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    user.password = newPassword;
+    user.passwordNeedsChange = false;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully.' });
+  } catch (error) {
+    console.error('Change password error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

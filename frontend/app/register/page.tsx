@@ -9,7 +9,7 @@ import { signUp } from "../../lib/auth";
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [role, setRole] = useState<"client" | "lawyer">("client");
+  const [role] = useState<"client" | "lawyer">("client");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -253,29 +253,12 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              <div className="mb-1 flex gap-1 rounded-xl bg-surface-dim p-1">
-                {(["client", "lawyer"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => {
-                      setRole(r);
-                      setError(null);
-                      setBarId("");
-                    }}
-                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                      role === r
-                        ? "bg-primary text-on-primary shadow-md shadow-primary/20"
-                        : "text-on-surface-variant hover:bg-surface-bright"
-                    }`}
-                  >
-                    {r.charAt(0).toUpperCase() + r.slice(1)}
-                  </button>
-                ))}
+              <div className="mb-3 rounded-xl border border-outline-variant/60 bg-surface-container/60 px-3 py-2">
+                <p className="text-xs font-semibold text-on-surface">Client Account</p>
+                <p className="text-[0.65rem] text-on-surface-variant mt-0.5">
+                  Lawyer accounts are managed by the firm. Contact us to join as a lawyer.
+                </p>
               </div>
-              <p className="mb-3 text-[0.65rem] text-on-surface-variant">
-                Lawyer registration requires a valid Bar ID.
-              </p>
 
               {error && (
                 <div className="mb-4 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
@@ -461,27 +444,6 @@ export default function RegisterPage() {
                     )}
                   </label>
 
-                  {role === "lawyer" && (
-                    <label className="block text-[0.7rem] font-medium text-on-surface-variant sm:col-span-2">
-                      Bar ID <span className="text-error">*</span>
-                      <input
-                        type="text"
-                        value={barId}
-                        onChange={(e) => {
-                          setBarId(e.target.value);
-                          clearFieldError("barId");
-                        }}
-                        className={`mt-1.5 block w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface placeholder-on-surface-variant outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${fieldErrors.barId ? "border-error" : "border-outline"}`}
-                        placeholder="Your bar registration number"
-                        disabled={isSubmitting}
-                      />
-                      {fieldErrors.barId && (
-                        <p className="mt-1 text-xs text-error">
-                          {fieldErrors.barId}
-                        </p>
-                      )}
-                    </label>
-                  )}
                 </div>
 
                 <button
