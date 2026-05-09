@@ -38,7 +38,7 @@ app.use(
 const allowedOrigins = (
   process.env.NODE_ENV === "production"
     ? process.env.CLIENT_URL?.split(",") || ["http://localhost:3000"]
-    : ["http://localhost:3000", "http://127.0.0.1:3000"]
+    : ["http://localhost:3000", "http://127.0.0.1:3000","https://law-web-five.vercel.app"]
 ) as string[];
 
 app.use(

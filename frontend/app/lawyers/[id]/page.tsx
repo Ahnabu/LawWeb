@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Scale, MapPin, Phone, Mail, Calendar, BookOpen } from "lucide-react";
@@ -136,9 +137,11 @@ export default function LawyerDetailPage() {
               {/* Photo + name */}
               <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 text-center shadow-sm">
                 {profile?.profileImageUrl ? (
-                  <img
+                  <Image
                     src={profile.profileImageUrl}
                     alt={lawyer.name}
+                    width={144}
+                    height={144}
                     className="mx-auto h-36 w-36 rounded-full object-cover ring-4 ring-secondary/20"
                   />
                 ) : (

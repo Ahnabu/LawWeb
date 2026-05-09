@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Camera, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../../../components/AuthProvider";
@@ -102,9 +103,11 @@ export default function ClientProfilePage() {
         <section className="flex flex-col items-center gap-4 rounded-lg border border-outline-variant bg-surface-container p-6">
           <div className="relative">
             {profileImageUrl ? (
-              <img
+              <Image
                 src={profileImageUrl}
                 alt="Profile"
+                width={112}
+                height={112}
                 className="h-28 w-28 rounded-full object-cover ring-2 ring-outline-variant"
               />
             ) : (
