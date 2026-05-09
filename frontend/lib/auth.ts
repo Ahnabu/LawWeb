@@ -46,7 +46,10 @@ export async function signIn(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || "Login failed");
+    const error: any = new Error(data.message || "Login failed");
+    error.verificationRequired = data.verificationRequired;
+    error.email = data.email;
+    throw error;
   }
 
   return data as LoginResponse;

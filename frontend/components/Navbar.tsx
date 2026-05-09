@@ -198,7 +198,7 @@ export function Navbar() {
                   <Link
                     href={dashboardHref}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 dark:bg-secondary dark:text-on-secondary dark:hover:bg-secondary/90"
+                    className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
                   >
                     Dashboard
                   </Link>

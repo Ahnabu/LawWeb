@@ -95,7 +95,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ message: 'Please verify your email address before logging in.' });
+      await buildVerificationPayload(user);
+      return res.status(403).json({ 
+        message: 'Please verify your email address before logging in.',
+        verificationRequired: true,
+        email: user.email
+      });
     }
 
     // Check password

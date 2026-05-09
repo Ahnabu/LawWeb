@@ -172,7 +172,7 @@ export default function LawyerAppointmentsPage() {
                       onClick={() => setSelected(apt)}
                       className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-primary hover:bg-primary/10 transition-colors"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-3.5 w-3.5 text-primary" />
                       View
                     </button>
                   </td>

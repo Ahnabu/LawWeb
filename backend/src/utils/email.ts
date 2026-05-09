@@ -65,5 +65,6 @@ export async function sendVerificationCodeEmail({ email, name, code }: SendVerif
     const sentTo = process.env.NODE_ENV !== 'production' && testEmail ? testEmail : email;
     const note = testEmail && testEmail !== email ? ` (test mode, sent to ${testEmail} instead of ${email})` : '';
     console.info(`[email-dev] Verification code sent successfully to ${sentTo}${note}`);
+    console.info(`[email-dev] The code is: ${code}`);
   }
 }

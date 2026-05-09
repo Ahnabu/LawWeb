@@ -49,7 +49,11 @@ function LoginPageContent() {
       }
 
       router.push(`/dashboard/${data.user.role}`);
-    } catch (submitError) {
+    } catch (submitError: any) {
+      if (submitError.verificationRequired && submitError.email) {
+        router.push(`/verify-email?email=${encodeURIComponent(submitError.email)}&redirect=${encodeURIComponent(redirectPath)}`);
+        return;
+      }
       const message =
         submitError instanceof Error
           ? submitError.message
@@ -86,31 +90,7 @@ function LoginPageContent() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 rounded-2xl border border-outline-variant/70 bg-surface-container/90 p-5 sm:p-6">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-secondary">
-                  Need help?
-                </p>
-                <p className="mt-2 text-sm text-on-surface-variant">
-                  If you registered but have not verified your account yet, go
-                  to the verification page and enter your code.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={`/verify-email?redirect=${encodeURIComponent(redirectPath)}`}
-                  className="rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-95 hover:shadow-xl"
-                >
-                  Verify Email
-                </Link>
-                <Link
-                  href={`/register?redirect=${encodeURIComponent(redirectPath)}`}
-                  className="rounded-xl border border-outline px-4 py-3 text-center text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary"
-                >
-                  Create Account
-                </Link>
-              </div>
-            </div>
+
           </section>
         </div>
 
