@@ -80,12 +80,15 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI!, {
-      serverSelectionTimeoutMS: 5000, 
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
     });
     console.log("MongoDB Atlas connected successfully");
   } catch (error) {
     console.error("MongoDB connection error:", error);
-    process.exit(1);
+    console.log("Retrying MongoDB connection in 5 seconds...");
+    setTimeout(connectDB, 5000);
   }
 };
 
@@ -117,13 +120,14 @@ app.get("/api/health", (req, res) => {
 // Error handling middleware
 app.use(
   (
-    err: any,
+    err: Error,
     req: express.Request,
     res: express.Response,
     next: express.NextFunction,
   ) => {
     console.error(err.stack);
     res.status(500).json({ message: "Something went wrong!" });
+    next();
   },
 );
 

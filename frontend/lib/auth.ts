@@ -1,5 +1,10 @@
 export type UserRole = "admin" | "lawyer" | "client";
 
+interface AuthError extends Error {
+  verificationRequired?: boolean;
+  email?: string;
+}
+
 export interface AuthUser {
   _id: string;
   name: string;
@@ -46,7 +51,7 @@ export async function signIn(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error: any = new Error(data.message || "Login failed");
+    const error: AuthError = new Error(data.message || "Login failed");
     error.verificationRequired = data.verificationRequired;
     error.email = data.email;
     throw error;

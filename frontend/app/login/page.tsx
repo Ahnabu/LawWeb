@@ -49,9 +49,10 @@ function LoginPageContent() {
       }
 
       router.push(`/dashboard/${data.user.role}`);
-    } catch (submitError: any) {
-      if (submitError.verificationRequired && submitError.email) {
-        router.push(`/verify-email?email=${encodeURIComponent(submitError.email)}&redirect=${encodeURIComponent(redirectPath)}`);
+    } catch (submitError: unknown) {
+      const err = submitError as { verificationRequired?: boolean; email?: string; message?: string };
+      if (err.verificationRequired && err.email) {
+        router.push(`/verify-email?email=${encodeURIComponent(err.email)}&redirect=${encodeURIComponent(redirectPath)}`);
         return;
       }
       const message =
