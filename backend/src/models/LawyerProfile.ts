@@ -4,12 +4,14 @@ export interface IEducation {
   degree: string;
   institution: string;
   year: number;
+  description?: IBilingualField;
 }
 
 export interface ICertification {
   name: string;
   issuingBody: string;
   year: number;
+  description?: IBilingualField;
 }
 
 export interface IBilingualField {
@@ -50,6 +52,7 @@ const EducationSchema = new Schema(
     degree: { type: String, required: true },
     institution: { type: String, required: true },
     year: { type: Number, required: true },
+    description: { type: BilingualSchema, default: () => ({ en: '', bn: '' }) },
   },
   { _id: false }
 );
@@ -59,6 +62,7 @@ const CertificationSchema = new Schema(
     name: { type: String, required: true },
     issuingBody: { type: String, required: true },
     year: { type: Number, required: true },
+    description: { type: BilingualSchema, default: () => ({ en: '', bn: '' }) },
   },
   { _id: false }
 );

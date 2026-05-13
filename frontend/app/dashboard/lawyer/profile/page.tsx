@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Plus, X, Pencil, Camera, Loader2 } from "lucide-react";
+import { Plus, X, Pencil, Camera, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   LawyerProfileData,
   Education,
   Certification,
+  BilingualField,
   getMyLawyerProfile,
   updateMyLawyerProfile,
 } from "../../../../lib/dashboard";
@@ -48,11 +49,31 @@ export default function LawyerProfilePage() {
   const [editMode, setEditMode] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    basic: true,
+    professional: true,
+    bio: true,
+    practice: false,
+    education: false,
+    certifications: false,
+    languages: false,
+    contact: false,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Temp state for array item adds
-  const [newEdu, setNewEdu] = useState<Education>({ degree: "", institution: "", year: new Date().getFullYear() });
-  const [newCert, setNewCert] = useState<Certification>({ name: "", issuingBody: "", year: new Date().getFullYear() });
+  const [newEdu, setNewEdu] = useState<Education>({ 
+    degree: "", 
+    institution: "", 
+    year: new Date().getFullYear(),
+    description: { en: "", bn: "" } as { en: string; bn: string }
+  });
+  const [newCert, setNewCert] = useState<Certification>({ 
+    name: "", 
+    issuingBody: "", 
+    year: new Date().getFullYear(),
+    description: { en: "", bn: "" } as { en: string; bn: string }
+  });
 
   useEffect(() => {
     getMyLawyerProfile()
@@ -61,11 +82,14 @@ export default function LawyerProfilePage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show local preview immediately
     setImagePreview(URL.createObjectURL(file));
     setIsUploadingImage(true);
     const toastId = toast.loading("Uploading image...");
@@ -90,7 +114,6 @@ export default function LawyerProfilePage() {
       setImagePreview(null);
     } finally {
       setIsUploadingImage(false);
-      // Reset file input so the same file can be re-selected if needed
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -131,7 +154,7 @@ export default function LawyerProfilePage() {
   const addEducation = () => {
     if (!newEdu.degree || !newEdu.institution) return;
     setProfile((p) => ({ ...p, education: [...p.education, newEdu] }));
-    setNewEdu({ degree: "", institution: "", year: new Date().getFullYear() });
+    setNewEdu({ degree: "", institution: "", year: new Date().getFullYear(), description: { en: "", bn: "" } as { en: string; bn: string } });
   };
 
   const removeEducation = (i: number) =>
@@ -140,7 +163,7 @@ export default function LawyerProfilePage() {
   const addCertification = () => {
     if (!newCert.name || !newCert.issuingBody) return;
     setProfile((p) => ({ ...p, certifications: [...p.certifications, newCert] }));
-    setNewCert({ name: "", issuingBody: "", year: new Date().getFullYear() });
+    setNewCert({ name: "", issuingBody: "", year: new Date().getFullYear(), description: { en: "", bn: "" } as { en: string; bn: string } });
   };
 
   const removeCertification = (i: number) =>
@@ -245,11 +268,12 @@ export default function LawyerProfilePage() {
         </div>
       </section>
 
-      {/* Identity */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">
-          Identity & Contact
-        </h3>
+      {/* SECTION 1: Basic Information */}
+      <CollapsibleSection
+        title="Basic Information"
+        expanded={expandedSections.basic}
+        onToggle={() => toggleSection("basic")}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="First Name"
@@ -263,33 +287,15 @@ export default function LawyerProfilePage() {
             edit={editMode}
             onChange={(v) => setProfile((p) => ({ ...p, lastName: v }))}
           />
-          <Field
-            label="Contact Email"
-            type="email"
-            value={profile.contactEmail || ""}
-            edit={editMode}
-            onChange={(v) => setProfile((p) => ({ ...p, contactEmail: v }))}
-          />
-          <Field
-            label="Contact Phone"
-            value={profile.contactPhone || ""}
-            edit={editMode}
-            onChange={(v) => setProfile((p) => ({ ...p, contactPhone: v }))}
-          />
-          <Field
-            label="WhatsApp Number"
-            value={profile.whatsappNumber || ""}
-            edit={editMode}
-            onChange={(v) => setProfile((p) => ({ ...p, whatsappNumber: v }))}
-          />
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Professional credentials */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">
-          Professional Credentials
-        </h3>
+      {/* SECTION 2: Professional Credentials */}
+      <CollapsibleSection
+        title="Professional Credentials"
+        expanded={expandedSections.professional}
+        onToggle={() => toggleSection("professional")}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Designation (English)"
@@ -359,11 +365,14 @@ export default function LawyerProfilePage() {
             )}
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Bio */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">Bio</h3>
+      {/* SECTION 3: Biography */}
+      <CollapsibleSection
+        title="Biography"
+        expanded={expandedSections.bio}
+        onToggle={() => toggleSection("bio")}
+      >
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-on-surface-variant">
@@ -412,13 +421,14 @@ export default function LawyerProfilePage() {
             )}
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Practice areas */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">
-          Practice Areas
-        </h3>
+      {/* SECTION 4: Practice Areas */}
+      <CollapsibleSection
+        title="Practice Areas"
+        expanded={expandedSections.practice}
+        onToggle={() => toggleSection("practice")}
+      >
         <div className="flex flex-wrap gap-2">
           {PRACTICE_AREA_OPTIONS.map((area) => {
             const active = profile.practiceAreas.includes(area);
@@ -439,11 +449,186 @@ export default function LawyerProfilePage() {
             );
           })}
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Languages */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">Languages</h3>
+      {/* SECTION 5: Education */}
+      <CollapsibleSection
+        title="Education"
+        expanded={expandedSections.education}
+        onToggle={() => toggleSection("education")}
+      >
+        <div className="space-y-2">
+          {profile.education.map((edu, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm"
+            >
+              <div>
+                <p className="font-medium text-on-surface">{edu.degree}</p>
+                <p className="text-xs text-on-surface-variant">
+                  {edu.institution} · {edu.year}
+                </p>
+                {edu.description?.en && (
+                  <p className="mt-1 text-xs text-on-surface">{edu.description.en}</p>
+                )}
+              </div>
+              {editMode && (
+                <button
+                  type="button"
+                  aria-label="Remove education"
+                  onClick={() => removeEducation(i)}
+                  className="ml-2 rounded-full p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          {profile.education.length === 0 && (
+            <p className="text-sm text-on-surface-variant">No education added yet.</p>
+          )}
+        </div>
+        {editMode && (
+          <div className="mt-3 space-y-3 border-t border-outline-variant pt-3">
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto]">
+              <input
+                value={newEdu.degree}
+                onChange={(e) => setNewEdu((n) => ({ ...n, degree: e.target.value }))}
+                placeholder="Degree"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <input
+                value={newEdu.institution}
+                onChange={(e) => setNewEdu((n) => ({ ...n, institution: e.target.value }))}
+                placeholder="Institution"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <input
+                type="number"
+                title="Year"
+                value={newEdu.year}
+                onChange={(e) => setNewEdu((n) => ({ ...n, year: Number(e.target.value) }))}
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={addEducation}
+                className="inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                value={newEdu.description?.en || ""}
+                onChange={(e) => setNewEdu((n) => ({ ...n, description: { en: e.target.value, bn: n.description?.bn || "" } }))}
+                placeholder="Description (English) - optional"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <input
+                value={newEdu.description?.bn || ""}
+                onChange={(e) => setNewEdu((n) => ({ ...n, description: { en: n.description?.en || "", bn: e.target.value } }))}
+                placeholder="বর্ণনা (বাংলা) - ঐচ্ছিক"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* SECTION 6: Certifications */}
+      <CollapsibleSection
+        title="Certifications"
+        expanded={expandedSections.certifications}
+        onToggle={() => toggleSection("certifications")}
+      >
+        <div className="space-y-2">
+          {profile.certifications.map((cert, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm"
+            >
+              <div>
+                <p className="font-medium text-on-surface">{cert.name}</p>
+                <p className="text-xs text-on-surface-variant">
+                  {cert.issuingBody} · {cert.year}
+                </p>
+                {cert.description?.en && (
+                  <p className="mt-1 text-xs text-on-surface">{cert.description.en}</p>
+                )}
+              </div>
+              {editMode && (
+                <button
+                  type="button"
+                  aria-label="Remove certification"
+                  onClick={() => removeCertification(i)}
+                  className="ml-2 rounded-full p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          {profile.certifications.length === 0 && (
+            <p className="text-sm text-on-surface-variant">No certifications added yet.</p>
+          )}
+        </div>
+        {editMode && (
+          <div className="mt-3 space-y-3 border-t border-outline-variant pt-3">
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto]">
+              <input
+                value={newCert.name}
+                onChange={(e) => setNewCert((n) => ({ ...n, name: e.target.value }))}
+                placeholder="Certificate name"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <input
+                value={newCert.issuingBody}
+                onChange={(e) => setNewCert((n) => ({ ...n, issuingBody: e.target.value }))}
+                placeholder="Issuing body"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <input
+                type="number"
+                title="Year"
+                value={newCert.year}
+                onChange={(e) => setNewCert((n) => ({ ...n, year: Number(e.target.value) }))}
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={addCertification}
+                className="inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                value={newCert.description?.en || ""}
+                onChange={(e) => setNewCert((n) => ({ ...n, description: { en: e.target.value, bn: n.description?.bn || "" } }))}
+                placeholder="Description (English) - optional"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+              <input
+                value={newCert.description?.bn || ""}
+                onChange={(e) => setNewCert((n) => ({ ...n, description: { en: n.description?.en || "", bn: e.target.value } }))}
+                placeholder="বর্ণনা (বাংলা) - ঐচ্ছিক"
+                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* SECTION 7: Languages */}
+      <CollapsibleSection
+        title="Languages"
+        expanded={expandedSections.languages}
+        onToggle={() => toggleSection("languages")}
+      >
         <div className="flex flex-wrap gap-2">
           {LANGUAGE_OPTIONS.map((lang) => {
             const active = profile.languages.includes(lang);
@@ -464,138 +649,73 @@ export default function LawyerProfilePage() {
             );
           })}
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Education */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">Education</h3>
-        <div className="space-y-2">
-          {profile.education.map((edu, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm"
-            >
-              <div>
-                <p className="font-medium text-on-surface">{edu.degree}</p>
-                <p className="text-xs text-on-surface-variant">
-                  {edu.institution} · {edu.year}
-                </p>
-              </div>
-              {editMode && (
-                <button
-                  type="button"
-                  aria-label="Remove education"
-                  onClick={() => removeEducation(i)}
-                  className="ml-2 rounded-full p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-          {profile.education.length === 0 && (
-            <p className="text-sm text-on-surface-variant">No education added yet.</p>
-          )}
+      {/* SECTION 8: Contact Information */}
+      <CollapsibleSection
+        title="Contact Information"
+        expanded={expandedSections.contact}
+        onToggle={() => toggleSection("contact")}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Contact Email"
+            type="email"
+            value={profile.contactEmail || ""}
+            edit={editMode}
+            onChange={(v) => setProfile((p) => ({ ...p, contactEmail: v }))}
+          />
+          <Field
+            label="Contact Phone"
+            value={profile.contactPhone || ""}
+            edit={editMode}
+            onChange={(v) => setProfile((p) => ({ ...p, contactPhone: v }))}
+          />
+          <Field
+            label="WhatsApp Number"
+            value={profile.whatsappNumber || ""}
+            edit={editMode}
+            onChange={(v) => setProfile((p) => ({ ...p, whatsappNumber: v }))}
+          />
         </div>
-        {editMode && (
-          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto]">
-            <input
-              value={newEdu.degree}
-              onChange={(e) => setNewEdu((n) => ({ ...n, degree: e.target.value }))}
-              placeholder="Degree"
-              className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <input
-              value={newEdu.institution}
-              onChange={(e) => setNewEdu((n) => ({ ...n, institution: e.target.value }))}
-              placeholder="Institution"
-              className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <input
-              type="number"
-              title="Year"
-              value={newEdu.year}
-              onChange={(e) => setNewEdu((n) => ({ ...n, year: Number(e.target.value) }))}
-              className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={addEducation}
-              className="inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Add
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Certifications */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-        <h3 className="mb-4 text-sm font-semibold text-on-surface">
-          Certifications
-        </h3>
-        <div className="space-y-2">
-          {profile.certifications.map((cert, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm"
-            >
-              <div>
-                <p className="font-medium text-on-surface">{cert.name}</p>
-                <p className="text-xs text-on-surface-variant">
-                  {cert.issuingBody} · {cert.year}
-                </p>
-              </div>
-              {editMode && (
-                <button
-                  type="button"
-                  aria-label="Remove certification"
-                  onClick={() => removeCertification(i)}
-                  className="ml-2 rounded-full p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-          {profile.certifications.length === 0 && (
-            <p className="text-sm text-on-surface-variant">No certifications added yet.</p>
-          )}
-        </div>
-        {editMode && (
-          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto]">
-            <input
-              value={newCert.name}
-              onChange={(e) => setNewCert((n) => ({ ...n, name: e.target.value }))}
-              placeholder="Certificate name"
-              className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <input
-              value={newCert.issuingBody}
-              onChange={(e) => setNewCert((n) => ({ ...n, issuingBody: e.target.value }))}
-              placeholder="Issuing body"
-              className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <input
-              type="number"
-              title="Year"
-              value={newCert.year}
-              onChange={(e) => setNewCert((n) => ({ ...n, year: Number(e.target.value) }))}
-              className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={addCertification}
-              className="inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Add
-            </button>
-          </div>
-        )}
-      </section>
+      </CollapsibleSection>
     </div>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string
+  expanded: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-lg border border-outline-variant bg-surface-container">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-5 hover:bg-surface-container-high transition-colors"
+      >
+        <h3 className="text-sm font-semibold text-on-surface">
+          {title}
+        </h3>
+        <ChevronDown
+          className={`h-5 w-5 text-on-surface-variant transition-transform ${
+            expanded ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {expanded && (
+        <div className="border-t border-outline-variant px-5 py-4">
+          {children}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -606,11 +726,11 @@ function Field({
   edit,
   onChange,
 }: {
-  label: string;
-  value: string;
-  type?: string;
-  edit: boolean;
-  onChange: (v: string) => void;
+  label: string
+  value: string
+  type?: string
+  edit: boolean
+  onChange: (v: string) => void
 }) {
   return (
     <div>

@@ -228,12 +228,14 @@ export interface Education {
   degree: string
   institution: string
   year: number
+  description?: BilingualField
 }
 
 export interface Certification {
   name: string
   issuingBody: string
   year: number
+  description?: BilingualField
 }
 
 export interface LawyerProfileData {

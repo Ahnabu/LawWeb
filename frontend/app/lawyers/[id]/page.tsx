@@ -1,5 +1,11 @@
 "use client";
 
+/*
+  Lawyer profile page now supports bilingual display in English and Bengali.
+  It shows profile designation, biography, education, certifications, and other
+  lawyer details according to the current language toggle.
+*/
+
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -8,6 +14,7 @@ import { Scale, MapPin, Phone, Mail, Calendar, BookOpen } from "lucide-react";
 import { Footer } from "../../../components/Footer";
 import { Navbar } from "../../../components/Navbar";
 import { WhatsAppCta } from "../../../components/WhatsAppCta";
+import { useLanguage } from "../../../components/LanguageProvider";
 import { API_BASE_URL } from "../../../lib/api";
 
 interface LawyerUser {
@@ -33,14 +40,15 @@ interface LawyerProfileData {
   whatsappNumber?: string;
   practiceAreas: string[];
   languages: string[];
-  education: { degree: string; institution: string; year: number }[];
-  certifications: { name: string; issuingBody: string; year: number }[];
+  education: { degree: string; institution: string; year: number; description?: { en: string; bn: string } }[];
+  certifications: { name: string; issuingBody: string; year: number; description?: { en: string; bn: string } }[];
   hourlyRate?: number;
   yearAdmitted?: number;
 }
 
 export default function LawyerDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { locale } = useLanguage();
   const [lawyer, setLawyer] = useState<LawyerUser | null>(null);
   const [profile, setProfile] = useState<LawyerProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,13 +73,17 @@ export default function LawyerDetailPage() {
 
   const whatsappNumber = profile?.whatsappNumber || "8801715365380";
 
+  // Get bilingual content based on current locale
+  const designation = profile?.designation?.[locale] || profile?.designation?.en || "Attorney at Law";
+  const bio = profile?.bio?.[locale] || profile?.bio?.en || "";
+
   if (isLoading) {
     return (
       <main className="min-h-screen bg-surface text-on-surface">
         <Navbar />
         <section className="px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+            <div className="grid gap-8 lg:grid-cols-2">
               <div className="h-96 animate-pulse rounded-2xl bg-surface-container" />
               <div className="space-y-4">
                 <div className="h-8 w-2/3 animate-pulse rounded bg-surface-container" />
@@ -109,8 +121,6 @@ export default function LawyerDetailPage() {
     );
   }
 
-  const designation = profile?.designation?.en || "Attorney at Law";
-  const bio = profile?.bio?.en || "";
   const practiceAreas = profile?.practiceAreas?.length
     ? profile.practiceAreas
     : lawyer.specialization
@@ -248,7 +258,9 @@ export default function LawyerDetailPage() {
               {/* Bio */}
               {bio && (
                 <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">Biography</h2>
+                  <h2 className="font-display text-lg font-semibold text-on-surface">
+                    Biography
+                  </h2>
                   <p className="mt-3 leading-7 text-on-surface-variant">{bio}</p>
                 </div>
               )}
@@ -260,13 +272,18 @@ export default function LawyerDetailPage() {
                     <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
                       <div className="mb-4 flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-secondary" />
-                        <h3 className="font-display text-base font-semibold text-on-surface">Education</h3>
+                        <h3 className="font-display text-base font-semibold text-on-surface">
+                          Education
+                        </h3>
                       </div>
                       <ul className="space-y-3">
                         {profile.education.map((edu, i) => (
                           <li key={i} className="text-sm">
                             <p className="font-medium text-on-surface">{edu.degree}</p>
                             <p className="text-on-surface-variant">{edu.institution}, {edu.year}</p>
+                            {edu.description?.[locale] && (
+                              <p className="mt-1 text-xs text-on-surface-variant">{edu.description[locale]}</p>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -277,13 +294,18 @@ export default function LawyerDetailPage() {
                     <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
                       <div className="mb-4 flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-secondary" />
-                        <h3 className="font-display text-base font-semibold text-on-surface">Certifications</h3>
+                        <h3 className="font-display text-base font-semibold text-on-surface">
+                          Certifications
+                        </h3>
                       </div>
                       <ul className="space-y-3">
                         {profile.certifications.map((cert, i) => (
                           <li key={i} className="text-sm">
                             <p className="font-medium text-on-surface">{cert.name}</p>
                             <p className="text-on-surface-variant">{cert.issuingBody}, {cert.year}</p>
+                            {cert.description?.[locale] && (
+                              <p className="mt-1 text-xs text-on-surface-variant">{cert.description[locale]}</p>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -297,7 +319,9 @@ export default function LawyerDetailPage() {
                 <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
                   <div className="mb-3 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-secondary" />
-                    <h3 className="font-display text-base font-semibold text-on-surface">Languages</h3>
+                    <h3 className="font-display text-base font-semibold text-on-surface">
+                      Languages
+                    </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {profile.languages.map((lang) => (
@@ -347,3 +371,6 @@ export default function LawyerDetailPage() {
     </main>
   );
 }
+
+
+
