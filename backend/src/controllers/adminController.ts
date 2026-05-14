@@ -316,6 +316,42 @@ export const getAllClientsAdmin = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getLawyerDetailsAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { lawyerId } = req.params;
+
+    const lawyer = await User.findById(lawyerId).select(
+      'name email phone barId role specialization isVerified passwordNeedsChange profileImageUrl createdAt updatedAt'
+    );
+
+    if (!lawyer || lawyer.role !== 'lawyer') {
+      return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+    }
+
+    // Fetch related stats
+    const Case = (await import('../models/Case')).default;
+    const Consultation = (await import('../models/Consultation')).default;
+
+    const [totalCases, activeCases, totalConsultations] = await Promise.all([
+      Case.countDocuments({ lawyerId }),
+      Case.countDocuments({ lawyerId, status: 'active' }),
+      Consultation.countDocuments({ lawyerId }),
+    ]);
+
+    res.json({
+      status: 200,
+      message: 'Lawyer details retrieved successfully',
+      data: {
+        ...lawyer.toObject(),
+        stats: { totalCases, activeCases, totalConsultations },
+      },
+    });
+  } catch (error) {
+    console.error('Admin get lawyer details error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
 export const toggleLawyerVerification = async (req: AuthRequest, res: Response) => {
   try {
     const { lawyerId } = req.params;

@@ -2,7 +2,7 @@ export const navLinks = [
   { labelKey: 'nav.about', fallback: 'About Us', href: '/about' },
   { labelKey: 'nav.lawyers', fallback: 'Our Lawyers', href: '/lawyers' },
   { labelKey: 'nav.practiceAreas', fallback: 'Practice Areas', href: '/practice-areas' },
-  { labelKey: 'nav.caseTracker', fallback: 'Case Tracker', href: '/track-case' },
+  { labelKey: 'nav.blogs', fallback: 'Blog', href: '/blogs' },
   { labelKey: 'nav.appointment', fallback: 'Appointment', href: '/dashboard/client/appointment' },
   { labelKey: 'nav.contact', fallback: 'Contact', href: '/#contact' },
 ]

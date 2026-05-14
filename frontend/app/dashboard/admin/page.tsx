@@ -55,6 +55,7 @@ export default function AdminDashboardPage() {
     );
   }
   if (error) return <div className="text-error">Error: {error}</div>;
+  if (!stats) return null;
 
   return (
     <div className="space-y-8">
@@ -68,12 +69,38 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Placeholder for upcoming content */}
-      <section>
-        <h3 className="font-display text-2xl font-bold text-on-surface">
-          Platform Management
-        </h3>
-        <p className="mt-4 text-on-surface-variant">Content coming soon...</p>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+          <h3 className="font-display text-lg font-semibold text-on-surface">
+            Today&apos;s snapshot
+          </h3>
+          <p className="mt-3 text-sm text-on-surface-variant">
+            Review the current platform activity and identify immediate follow-up items.
+          </p>
+          <div className="mt-6 space-y-3">
+            <SummaryRow
+              label="Consultations today"
+              value={stats.todayConsultations}
+            />
+            <SummaryRow label="Active cases" value={stats.activeCases} />
+            <SummaryRow label="Verified lawyers" value={stats.totalLawyers} />
+            <SummaryRow label="Registered clients" value={stats.totalClients} />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+          <h3 className="font-display text-lg font-semibold text-on-surface">
+            Recommended actions
+          </h3>
+          <p className="mt-3 text-sm text-on-surface-variant">
+            Focus on case backlog, monitor consultation volume, and verify any new lawyer accounts.
+          </p>
+          <ul className="mt-6 space-y-3 text-sm text-on-surface-variant">
+            <li className="rounded-xl bg-surface p-4">Review new client registrations and verify any flagged accounts.</li>
+            <li className="rounded-xl bg-surface p-4">Check active cases for upcoming court dates and next steps.</li>
+            <li className="rounded-xl bg-surface p-4">Use the dashboard sidebar to manage lawyers, users, and cases.</li>
+          </ul>
+        </div>
       </section>
     </div>
   );
@@ -86,6 +113,15 @@ function StatsCard({ label, value }: { label: string; value: number }) {
       <p className="mt-2 font-display text-3xl font-bold text-on-surface">
         {value}
       </p>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-surface p-4">
+      <span className="text-sm text-on-surface-variant">{label}</span>
+      <span className="font-semibold text-on-surface">{value}</span>
     </div>
   );
 }

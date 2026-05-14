@@ -57,6 +57,22 @@ export default function AdminUsersPage() {
         </p>
       </header>
 
+      {/* Stats */}
+      {!isLoading && !error && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard label="Total Users" value={total} />
+          <StatsCard label="Verified" value={clients.filter((c) => c.isVerified).length} />
+          <StatsCard
+            label="Unverified"
+            value={clients.filter((c) => !c.isVerified).length}
+          />
+          <StatsCard
+            label="Current Page"
+            value={clients.length}
+          />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -169,6 +185,17 @@ export default function AdminUsersPage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+        {value}
+      </p>
     </div>
   );
 }

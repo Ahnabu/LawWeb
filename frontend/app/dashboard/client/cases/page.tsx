@@ -98,6 +98,13 @@ export default function ClientCasesPage() {
     );
   }
 
+  const stats = {
+    total: cases.length,
+    active: cases.filter((c) => c.status === "active").length,
+    won: cases.filter((c) => c.status === "won").length,
+    closed: cases.filter((c) => c.status === "closed").length,
+  };
+
   return (
     <div className="space-y-5">
       <header className="space-y-1">
@@ -108,6 +115,14 @@ export default function ClientCasesPage() {
           Track the progress of your active legal matters.
         </p>
       </header>
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard label="Total Cases" value={stats.total} />
+        <StatsCard label="Active Cases" value={stats.active} />
+        <StatsCard label="Won Cases" value={stats.won} />
+        <StatsCard label="Closed Cases" value={stats.closed} />
+      </div>
 
       {/* Status filter tabs */}
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
@@ -271,6 +286,17 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-4">
       <span className="shrink-0 font-medium text-on-surface-variant">{label}</span>
       <span className="text-right capitalize text-on-surface">{value}</span>
+    </div>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+        {value}
+      </p>
     </div>
   );
 }

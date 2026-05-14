@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { API_BASE_URL } from './lib/api'
 
 const dashboardPathByRole: Record<string, string> = {
   admin: '/dashboard/admin',
@@ -7,20 +6,23 @@ const dashboardPathByRole: Record<string, string> = {
   client: '/dashboard/client',
 }
 
-async function readSession(cookieHeader: string) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-    method: 'GET',
-    headers: {
-      cookie: cookieHeader,
-    },
-    cache: 'no-store',
-  })
+// Use the env var directly — importing lib/api.ts can fail on the Edge runtime
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000'
 
-  if (!response.ok) {
+async function readSession(cookieHeader: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+      method: 'GET',
+      headers: { cookie: cookieHeader },
+      cache: 'no-store',
+    })
+    if (!response.ok) return null
+    return response.json().catch(() => null)
+  } catch {
+    // Backend unreachable — treat as unauthenticated, don't crash
     return null
   }
-
-  return response.json().catch(() => null)
 }
 
 export async function middleware(request: NextRequest) {

@@ -17,6 +17,7 @@ import {
   Scale,
   Sun,
   Moon,
+  Newspaper,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useState } from "react";
@@ -47,6 +48,11 @@ const getSidebarItems = (
         href: "/dashboard/client/cases",
         label: "My Cases",
         icon: <Briefcase className="h-5 w-5" />,
+      },
+      {
+        href: "/dashboard/client/track-case",
+        label: "Track Case",
+        icon: <FileText className="h-5 w-5" />,
       },
       {
         href: "/dashboard/client/profile",
@@ -106,6 +112,11 @@ const getSidebarItems = (
         href: "/dashboard/admin/users",
         label: "Users",
         icon: <Users className="h-5 w-5" />,
+      },
+      {
+        href: "/dashboard/admin/blogs",
+        label: "Blogs",
+        icon: <Newspaper className="h-5 w-5" />,
       },
     ],
   };

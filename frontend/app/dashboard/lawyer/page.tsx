@@ -84,6 +84,7 @@ export default function LawyerDashboardPage() {
       <div className="text-center text-on-surface">Loading dashboard...</div>
     );
   if (error) return <div className="text-error">Error: {error}</div>;
+  if (!stats) return null;
 
   return (
     <div className="space-y-8">
@@ -100,6 +101,48 @@ export default function LawyerDashboardPage() {
         </div>
       )}
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+          <h3 className="font-display text-lg font-semibold text-on-surface">
+            Appointment overview
+          </h3>
+          <p className="mt-3 text-sm text-on-surface-variant">
+            Keep an eye on your consultation load and see what requires follow-up.
+          </p>
+          <div className="mt-6 space-y-3">
+            <SummaryRow
+              label="Pending appointments"
+              value={stats.pendingAppointments}
+            />
+            <SummaryRow
+              label="Completed appointments"
+              value={stats.completedAppointments}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+          <h3 className="font-display text-lg font-semibold text-on-surface">
+            Case workload
+          </h3>
+          <p className="mt-3 text-sm text-on-surface-variant">
+            Review the balance between active case work and resolved matters.
+          </p>
+          <div className="mt-6 space-y-3">
+            <SummaryRow label="Active cases" value={stats.activeCases} />
+            <SummaryRow label="Resolved cases" value={stats.resolvedCases} />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+        <h3 className="font-display text-lg font-semibold text-on-surface">
+          Next steps
+        </h3>
+        <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+          Use the sidebar links to jump directly into your appointments and case listings. Prioritize pending consultations and update case records as soon as hearings are scheduled.
+        </p>
+      </section>
     </div>
   );
 }
@@ -111,6 +154,15 @@ function StatsCard({ label, value }: { label: string; value: number }) {
       <p className="mt-2 font-display text-3xl font-bold text-on-surface">
         {value}
       </p>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-surface p-4">
+      <span className="text-sm text-on-surface-variant">{label}</span>
+      <span className="font-semibold text-on-surface">{value}</span>
     </div>
   );
 }

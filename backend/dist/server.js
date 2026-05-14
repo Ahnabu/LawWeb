@@ -19,6 +19,7 @@ const lawyers_1 = __importDefault(require("./routes/lawyers"));
 const cases_1 = __importDefault(require("./routes/cases"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const users_1 = __importDefault(require("./routes/users"));
+const blogs_1 = __importDefault(require("./routes/blogs"));
 const authController_1 = require("./controllers/authController");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -34,9 +35,13 @@ app.use((0, helmet_1.default)({
     },
 }));
 // CORS configuration for both development and production
-const allowedOrigins = (process.env.NODE_ENV === "production"
-    ? process.env.CLIENT_URL?.split(",") || ["http://localhost:3000"]
-    : ["http://localhost:3000", "http://127.0.0.1:3000"]);
+const clientUrls = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",") : [];
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://law-web-five.vercel.app",
+    ...clientUrls
+];
 app.use((0, cors_1.default)({
     origin: allowedOrigins,
     credentials: true,
@@ -67,13 +72,16 @@ app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
 const connectDB = async () => {
     try {
         await mongoose_1.default.connect(process.env.MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 30000,
+            connectTimeoutMS: 30000,
+            socketTimeoutMS: 45000,
         });
         console.log("MongoDB Atlas connected successfully");
     }
     catch (error) {
         console.error("MongoDB connection error:", error);
-        process.exit(1);
+        console.log("Retrying MongoDB connection in 5 seconds...");
+        setTimeout(connectDB, 5000);
     }
 };
 connectDB();
@@ -84,6 +92,7 @@ app.use("/api/lawyers", lawyers_1.default);
 app.use("/api/cases", cases_1.default);
 app.use("/api/admin", admin_1.default);
 app.use("/api/users", users_1.default);
+app.use("/api/blogs", blogs_1.default);
 // Backwards-compatible/fallback endpoints in case frontend calls short paths
 app.post("/resend-verification-code", express_1.default.json(), authController_1.resendVerificationCode);
 app.post("/api/resend-verification-code", express_1.default.json(), authController_1.resendVerificationCode);
@@ -97,6 +106,7 @@ app.get("/api/health", (req, res) => {
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: "Something went wrong!" });
+    next();
 });
 // 404 handler
 app.use("*", (req, res) => {

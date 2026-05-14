@@ -101,6 +101,25 @@ export default function AdminAppointmentsPage() {
         </div>
       </header>
 
+      {/* Stats */}
+      {!isLoading && !error && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard label="Total Appointments" value={consultations.length} />
+          <StatsCard
+            label="Scheduled"
+            value={consultations.filter((c) => c.status === "scheduled").length}
+          />
+          <StatsCard
+            label="Completed"
+            value={consultations.filter((c) => c.status === "completed").length}
+          />
+          <StatsCard
+            label="Cancelled"
+            value={consultations.filter((c) => c.status === "cancelled").length}
+          />
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         {STATUS_OPTIONS.map((s) => (
@@ -269,6 +288,17 @@ export default function AdminAppointmentsPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+        {value}
+      </p>
     </div>
   );
 }

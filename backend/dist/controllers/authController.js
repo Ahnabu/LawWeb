@@ -79,7 +79,12 @@ const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
         if (!user.isVerified) {
-            return res.status(403).json({ message: 'Please verify your email address before logging in.' });
+            await buildVerificationPayload(user);
+            return res.status(403).json({
+                message: 'Please verify your email address before logging in.',
+                verificationRequired: true,
+                email: user.email
+            });
         }
         // Check password
         const isPasswordValid = await user.comparePassword(password);
@@ -93,14 +98,14 @@ const login = async (req, res) => {
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
             domain: process.env.COOKIE_DOMAIN,
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
             domain: process.env.COOKIE_DOMAIN,
         });
@@ -132,13 +137,13 @@ const logout = async (req, res) => {
         res.clearCookie('accessToken', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             domain: process.env.COOKIE_DOMAIN,
         });
         res.clearCookie('refreshToken', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             domain: process.env.COOKIE_DOMAIN,
         });
         res.json({ message: 'Logout successful' });
@@ -179,7 +184,7 @@ const refreshToken = async (req, res) => {
         res.cookie('accessToken', newAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
             domain: process.env.COOKIE_DOMAIN,
         });
@@ -233,14 +238,14 @@ const verifyEmail = async (req, res) => {
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 15 * 60 * 1000,
             domain: process.env.COOKIE_DOMAIN,
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000,
             domain: process.env.COOKIE_DOMAIN,
         });

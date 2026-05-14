@@ -81,6 +81,13 @@ export default function LawyerAppointmentsPage() {
     );
   }
 
+  const stats = {
+    total: appointments.length,
+    scheduled: appointments.filter((a) => a.status === "scheduled").length,
+    completed: appointments.filter((a) => a.status === "completed").length,
+    cancelled: appointments.filter((a) => a.status === "cancelled").length,
+  };
+
   return (
     <div className="space-y-5">
       <header className="space-y-1">
@@ -91,6 +98,14 @@ export default function LawyerAppointmentsPage() {
           Manage your scheduled consultations.
         </p>
       </header>
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard label="Total Appointments" value={stats.total} />
+        <StatsCard label="Scheduled" value={stats.scheduled} />
+        <StatsCard label="Completed" value={stats.completed} />
+        <StatsCard label="Cancelled" value={stats.cancelled} />
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
@@ -273,6 +288,17 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-4">
       <span className="text-on-surface-variant font-medium shrink-0">{label}</span>
       <span className="text-on-surface text-right">{value}</span>
+    </div>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+        {value}
+      </p>
     </div>
   );
 }

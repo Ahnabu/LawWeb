@@ -11,7 +11,15 @@ import {
   deleteLawyerAdmin,
   getAllClientsAdmin,
   toggleLawyerVerification,
+  getLawyerDetailsAdmin,
 } from '../controllers/adminController';
+import {
+  listBlogs as getBlogs,
+  getBlogById,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+} from '../controllers/blogController';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 
 const router = express.Router();
@@ -33,10 +41,23 @@ router.patch('/consultations/:consultationId/status', updateConsultationStatusAd
 // Lawyers
 router.get('/lawyers', getAllLawyersAdmin);
 router.post('/lawyers', addLawyerAdmin);
+router.get('/lawyers/:lawyerId', getLawyerDetailsAdmin);
 router.delete('/lawyers/:lawyerId', deleteLawyerAdmin);
 router.patch('/lawyers/:lawyerId/toggle-verification', toggleLawyerVerification);
 
 // Clients/Users
 router.get('/clients', getAllClientsAdmin);
+
+// ── Blogs ─────────────────────────────────────────────────────────────────────
+router.get("/blogs", getBlogs);
+router.post("/blogs", createBlog);
+router.get("/blogs/:blogId", getBlogById);
+router.patch("/blogs/:blogId", updateBlog);
+router.delete("/blogs/:blogId", deleteBlog);
+// Publish shortcut — sets status to 'published'
+router.patch("/blogs/:blogId/publish", (req, res, next) => {
+  req.body = { ...req.body, status: 'published' };
+  next();
+}, updateBlog);
 
 export default router;

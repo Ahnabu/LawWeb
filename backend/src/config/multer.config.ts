@@ -17,18 +17,36 @@ const profileStorage = new CloudinaryStorage({
   } as object,
 });
 
+const blogCoverStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'lawweb/blog-covers',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 1200, crop: 'limit', quality: 'auto' }],
+  } as object,
+});
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const BLOG_MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
+
+const imageFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (!file.mimetype.startsWith('image/')) {
+    cb(new Error('Only image files are allowed'));
+    return;
+  }
+  cb(null, true);
+};
 
 export const uploadProfileImage = multer({
   storage: profileStorage,
   limits: { fileSize: MAX_FILE_SIZE },
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      cb(new Error('Only image files are allowed'));
-      return;
-    }
-    cb(null, true);
-  },
+  fileFilter: imageFilter,
+});
+
+export const uploadBlogCover = multer({
+  storage: blogCoverStorage,
+  limits: { fileSize: BLOG_MAX_FILE_SIZE },
+  fileFilter: imageFilter,
 });
 
 export { cloudinary };
