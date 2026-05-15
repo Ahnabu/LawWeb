@@ -28,6 +28,7 @@ yarn-error.log*
 .vscode/
 .idea/
 .puku/
+REGISTRATION_GUIDE.md
 agents/
 docs/
 # OS files
