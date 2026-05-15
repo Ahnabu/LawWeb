@@ -28,5 +28,7 @@ yarn-error.log*
 .vscode/
 .idea/
 .puku/
+agents/
+docs/
 # OS files
 .DS_Store
