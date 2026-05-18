@@ -19,14 +19,10 @@ const hashVerificationCode = (code: string) => crypto.createHash('sha256').updat
 const getCookieOptions = (extra: { maxAge?: number } = {}) => {
   const options: any = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    secure: true, // Always secure (works on localhost & HTTPS)
+    sameSite: 'none', // Always none for cross-origin frontend-backend
     ...extra,
   };
-
-  if (process.env.NODE_ENV !== 'production' && process.env.COOKIE_DOMAIN) {
-    options.domain = process.env.COOKIE_DOMAIN;
-  }
 
   return options;
 };
