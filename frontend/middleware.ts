@@ -6,49 +6,28 @@ const dashboardPathByRole: Record<string, string> = {
   client: '/dashboard/client',
 }
 
-// Use the env var directly — importing lib/api.ts can fail on the Edge runtime
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000'
-
-async function readSession(cookieHeader: string) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-      method: 'GET',
-      headers: { cookie: cookieHeader },
-      cache: 'no-store',
-    })
-    if (!response.ok) return null
-    return response.json().catch(() => null)
-  } catch {
-    // Backend unreachable — treat as unauthenticated, don't crash
-    return null
-  }
-}
-
 export async function middleware(request: NextRequest) {
-  const cookieHeader = request.headers.get('cookie') ?? ''
   const pathname = request.nextUrl.pathname
 
-  const session = cookieHeader ? await readSession(cookieHeader) : null
-  const user = session?.user ?? null
+  const userRole = request.cookies.get('userRole')?.value
 
   const isDashboardRoute = pathname.startsWith('/dashboard')
   const isProfileRoute = pathname.startsWith('/profile')
   const isLoginRoute = pathname.startsWith('/login')
 
-  if (!user && (isDashboardRoute || isProfileRoute)) {
+  if (!userRole && (isDashboardRoute || isProfileRoute)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isLoginRoute) {
-    return NextResponse.redirect(new URL(dashboardPathByRole[user.role] ?? '/', request.url))
+  if (userRole && isLoginRoute) {
+    return NextResponse.redirect(new URL(dashboardPathByRole[userRole] ?? '/', request.url))
   }
 
-  if (user && isDashboardRoute) {
+  if (userRole && isDashboardRoute) {
     const requiredRole = pathname.split('/')[2]
 
-    if (requiredRole && requiredRole !== user.role) {
-      return NextResponse.redirect(new URL(dashboardPathByRole[user.role] ?? '/', request.url))
+    if (requiredRole && requiredRole !== userRole) {
+      return NextResponse.redirect(new URL(dashboardPathByRole[userRole] ?? '/', request.url))
     }
   }
 

@@ -57,6 +57,10 @@ export async function signIn(
     throw error;
   }
 
+  if (typeof document !== "undefined") {
+    document.cookie = `userRole=${data.user.role}; path=/; max-age=259200; samesite=lax`;
+  }
+
   return data as LoginResponse;
 }
 
@@ -127,6 +131,10 @@ export async function verifyEmail(
     throw new Error(data.message || "Verification failed");
   }
 
+  if (typeof document !== "undefined") {
+    document.cookie = `userRole=${data.user.role}; path=/; max-age=259200; samesite=lax`;
+  }
+
   return data as VerificationResponse;
 }
 
@@ -159,4 +167,8 @@ export async function signOut(): Promise<void> {
     method: "POST",
     credentials: "include",
   });
+
+  if (typeof document !== "undefined") {
+    document.cookie = "userRole=; path=/; max-age=0; samesite=lax";
+  }
 }

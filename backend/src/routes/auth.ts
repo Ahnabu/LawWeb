@@ -6,6 +6,12 @@ import { registerSchema, loginSchema, validateRequest } from '../middleware/vali
 const router = express.Router();
 
 // Public routes
+router.get('/login', (req, res) => {
+  res.status(405).json({ 
+    message: 'Method Not Allowed: This endpoint requires a POST request with email and password.',
+    status: 'Ready for POST requests'
+  });
+});
 router.post('/register', validateRequest(registerSchema), register);
 router.post('/login', validateRequest(loginSchema), login);
 router.post('/refresh', refreshToken);
