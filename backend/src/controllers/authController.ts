@@ -16,6 +16,17 @@ const generateVerificationCode = () => crypto.randomInt(100000, 1000000).toStrin
 
 const hashVerificationCode = (code: string) => crypto.createHash('sha256').update(code).digest('hex');
 
+const getCookieOptions = (extra: { maxAge?: number } = {}) => {
+  const options: any = {
+    httpOnly: true,
+    secure: true, // Always secure (works on localhost & HTTPS)
+    sameSite: 'none', // Always none for cross-origin frontend-backend
+    ...extra,
+  };
+
+  return options;
+};
+
 const buildVerificationPayload = async (user: IUser) => {
   const code = generateVerificationCode();
   const codeHash = hashVerificationCode(code);
@@ -114,21 +125,13 @@ export const login = async (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(user);
 
     // Set secure cookies
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    res.cookie('accessToken', accessToken, getCookieOptions({
       maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    }));
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    res.cookie('refreshToken', refreshToken, getCookieOptions({
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    }));
 
     // Return user data
     const userResponse = {
@@ -155,19 +158,9 @@ export const login = async (req: Request, res: Response) => {
 export const logout = async (req: AuthRequest, res: Response) => {
   try {
     // Clear cookies
-    res.clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    res.clearCookie('accessToken', getCookieOptions());
 
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    res.clearCookie('refreshToken', getCookieOptions());
 
     res.json({ message: 'Logout successful' });
   } catch (error) {
@@ -208,13 +201,9 @@ export const refreshToken = async (req: Request, res: Response) => {
     const newAccessToken = generateAccessToken(user);
 
     // Set new access token cookie
-    res.cookie('accessToken', newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    res.cookie('accessToken', newAccessToken, getCookieOptions({
       maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    }));
 
     res.json({ message: 'Token refreshed successfully' });
   } catch (error) {
@@ -272,21 +261,13 @@ export const verifyEmail = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    res.cookie('accessToken', accessToken, getCookieOptions({
       maxAge: 15 * 60 * 1000,
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    }));
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    res.cookie('refreshToken', refreshToken, getCookieOptions({
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      domain: process.env.COOKIE_DOMAIN,
-    });
+    }));
 
     res.json({
       message: 'Email verified successfully.',

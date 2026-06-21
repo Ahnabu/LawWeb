@@ -27,13 +27,17 @@ export const validateRequest = (schema: z.ZodSchema) => {
       schema.parse(req);
       next();
     } catch (error: any) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        errors: error.errors.map((err: any) => ({
-          field: err.path.join('.'),
-          message: err.message,
-        })),
-      });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: 'Validation failed',
+          errors: error.issues.map((issue: any) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          })),
+        });
+      }
+      // Non-Zod error — pass to Express error handler
+      next(error);
     }
   };
 };
