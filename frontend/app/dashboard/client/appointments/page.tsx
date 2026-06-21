@@ -224,15 +224,33 @@ export default function ClientAppointmentsPage() {
               />
               <Row label="Time" value={selected.time} />
               <Row label="Type" value={CONSULTATION_TYPE_LABELS[selected.consultationType]} />
+              {(selected as any).meetingMode && (
+                <Row label="Meeting Mode" value={(selected as any).meetingMode.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              )}
               <Row label="Subject" value={selected.subject} />
               <Row label="Description" value={selected.description} />
-              {selected.notes && <Row label="Notes" value={selected.notes} />}
+              {(selected as any).clientPhone && (
+                <Row label="Contact Phone" value={(selected as any).clientPhone} />
+              )}
+              {selected.notes && <Row label="Lawyer Notes" value={selected.notes} />}
               <div className="flex items-center justify-between">
                 <span className="font-medium text-on-surface-variant">Status</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[selected.status]}`}>
                   {CONSULTATION_STATUS_LABELS[selected.status]}
                 </span>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-on-surface-variant">Lawyer Confirmed</span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${(selected as any).lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
+                  {(selected as any).lawyerConfirmed ? "Confirmed" : "Pending Confirmation"}
+                </span>
+              </div>
+              {(selected as any).whatsappDocSharing && (
+                <div className="rounded-lg bg-surface px-3 py-2 text-xs text-on-surface-variant">
+                  Documents will be shared via WhatsApp
+                  {(selected as any).whatsappDocNote && `: ${(selected as any).whatsappDocNote}`}
+                </div>
+              )}
             </div>
 
             {selected.status === "scheduled" && (

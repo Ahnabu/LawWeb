@@ -250,6 +250,35 @@ export const deleteCase = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const trackCasePublic = async (req: Request, res: Response) => {
+  try {
+    const query = String(req.params.query || '');
+    if (!query || query.trim().length < 3) {
+      return res.status(400).json({ status: 400, message: 'Please provide a valid case number or email' });
+    }
+
+    const q = query.trim();
+    const caseDoc = await Case.findOne({
+      $or: [
+        { caseNumber: q.toUpperCase() },
+        { clientEmail: q.toLowerCase() },
+      ],
+    })
+      .populate('lawyerId', 'name barId')
+      .select('caseNumber title type status stage priority courtName jurisdiction nextCourtDate filingDate notes lawyerId createdAt updatedAt')
+      .lean();
+
+    if (!caseDoc) {
+      return res.status(404).json({ status: 404, message: 'No case found with that case number or email.' });
+    }
+
+    res.json({ status: 200, message: 'Case found', data: caseDoc });
+  } catch (error) {
+    console.error('Track case error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
 export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;

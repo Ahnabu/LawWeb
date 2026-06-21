@@ -28,24 +28,26 @@ interface NavItem {
 const clientItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard/client', icon: <LayoutDashboard size={16} />, exact: true },
   { label: 'Book Consultation', href: '/dashboard/client/book-consultation', icon: <PlusCircle size={16} /> },
-  { label: 'My Appointments', href: '/dashboard/client/appointment', icon: <CalendarClock size={16} /> },
+  { label: 'My Appointments', href: '/dashboard/client/appointments', icon: <CalendarClock size={16} /> },
+  { label: 'My Cases', href: '/dashboard/client/cases', icon: <Briefcase size={16} /> },
+  { label: 'Track Case', href: '/dashboard/client/track-case', icon: <Scale size={16} /> },
   { label: 'Profile', href: '/profile', icon: <UserCircle size={16} /> },
 ]
 
 const lawyerItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard/lawyer', icon: <LayoutDashboard size={16} />, exact: true },
-  { label: 'My Cases', href: '/dashboard/lawyer#cases', icon: <Briefcase size={16} /> },
-  { label: 'Appointments', href: '/dashboard/lawyer#appointments', icon: <CalendarClock size={16} /> },
-  { label: 'Availability', href: '/dashboard/lawyer#availability', icon: <Clock size={16} /> },
+  { label: 'My Cases', href: '/dashboard/lawyer/cases', icon: <Briefcase size={16} /> },
+  { label: 'Appointments', href: '/dashboard/lawyer/appointments', icon: <CalendarClock size={16} /> },
+  { label: 'Availability', href: '/dashboard/lawyer/availability', icon: <Clock size={16} /> },
   { label: 'Profile', href: '/profile', icon: <UserCircle size={16} /> },
 ]
 
 const adminItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard/admin', icon: <BarChart3 size={16} />, exact: true },
-  { label: 'Cases', href: '/dashboard/admin#cases', icon: <Scale size={16} /> },
+  { label: 'Cases', href: '/dashboard/admin/cases', icon: <Scale size={16} /> },
   { label: 'Lawyers', href: '/dashboard/admin/lawyers', icon: <ShieldCheck size={16} /> },
-  { label: 'Appointments', href: '/dashboard/admin#appointments', icon: <CalendarClock size={16} /> },
-  { label: 'Clients', href: '/dashboard/admin#clients', icon: <Users size={16} /> },
+  { label: 'Appointments', href: '/dashboard/admin/appointments', icon: <CalendarClock size={16} /> },
+  { label: 'Clients', href: '/dashboard/admin/users', icon: <Users size={16} /> },
   { label: 'Blogs', href: '/dashboard/admin/blogs', icon: <Newspaper size={16} /> },
 ]
 

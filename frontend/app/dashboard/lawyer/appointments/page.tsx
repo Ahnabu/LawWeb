@@ -12,6 +12,7 @@ import {
   getMyConsultations,
   updateConsultationStatus,
 } from "../../../../lib/dashboard";
+import { API_BASE_URL } from "../../../../lib/api";
 
 const STATUS_TABS: { label: string; value: ConsultationStatus | "all" }[] = [
   { label: "All", value: "all" },
@@ -27,6 +28,7 @@ export default function LawyerAppointmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState<Consultation | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   useEffect(() => {
     getMyConsultations()
@@ -45,6 +47,28 @@ export default function LawyerAppointmentsPage() {
       setFiltered(appointments.filter((a) => a.status === activeTab));
     }
   }, [activeTab, appointments]);
+
+  const handleConfirm = async (id: string) => {
+    setConfirmingId(id);
+    const toastId = toast.loading("Confirming appointment...");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/consultations/${id}/confirm`, {
+        method: "PUT",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setAppointments((prev) =>
+        prev.map((a) => (a._id === id ? { ...a, lawyerConfirmed: true } as any : a)),
+      );
+      if (selected?._id === id) setSelected((prev) => prev && { ...prev, lawyerConfirmed: true } as any);
+      toast.success("Appointment confirmed.", { id: toastId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to confirm", { id: toastId });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const handleStatusChange = async (
     id: string,
@@ -225,7 +249,7 @@ export default function LawyerAppointmentsPage() {
             <div className="space-y-3 text-sm">
               <Row label="Client" value={selected.clientId?.name || "—"} />
               <Row label="Email" value={selected.clientId?.email || "—"} />
-              <Row label="Phone" value={selected.clientId?.phone || "—"} />
+              <Row label="Phone" value={selected.clientId?.phone || (selected as any).clientPhone || "—"} />
               <Row
                 label="Date"
                 value={new Date(selected.date).toLocaleDateString("en-BD", {
@@ -236,44 +260,63 @@ export default function LawyerAppointmentsPage() {
                 })}
               />
               <Row label="Time" value={selected.time} />
-              <Row
-                label="Type"
-                value={CONSULTATION_TYPE_LABELS[selected.consultationType]}
-              />
+              <Row label="Type" value={CONSULTATION_TYPE_LABELS[selected.consultationType]} />
+              {(selected as any).meetingMode && (
+                <Row label="Meeting Mode" value={(selected as any).meetingMode.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              )}
               <Row label="Subject" value={selected.subject} />
               <Row label="Description" value={selected.description} />
-              {selected.notes && (
-                <Row label="Notes" value={selected.notes} />
+              {selected.notes && <Row label="Notes" value={selected.notes} />}
+              {(selected as any).whatsappDocSharing && (
+                <div className="rounded-lg bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
+                  Client will share documents via WhatsApp
+                  {(selected as any).whatsappDocNote && `: ${(selected as any).whatsappDocNote}`}
+                </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-on-surface-variant font-medium">Status</span>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[selected.status]}`}
-                >
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[selected.status]}`}>
                   {CONSULTATION_STATUS_LABELS[selected.status]}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-on-surface-variant font-medium">Confirmation</span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${(selected as any).lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
+                  {(selected as any).lawyerConfirmed ? "Confirmed by you" : "Not yet confirmed"}
                 </span>
               </div>
             </div>
 
-            {/* Quick status update */}
             {selected.status === "scheduled" && (
-              <div className="mt-5 flex gap-2 border-t border-outline-variant pt-4">
-                <button
-                  type="button"
-                  disabled={updatingId === selected._id}
-                  onClick={() => handleStatusChange(selected._id, "completed")}
-                  className="flex-1 rounded-lg bg-success/15 py-2 text-sm font-semibold text-success hover:bg-success/25 disabled:opacity-50 transition-colors"
-                >
-                  Mark Completed
-                </button>
-                <button
-                  type="button"
-                  disabled={updatingId === selected._id}
-                  onClick={() => handleStatusChange(selected._id, "cancelled")}
-                  className="flex-1 rounded-lg bg-error/10 py-2 text-sm font-semibold text-error hover:bg-error/20 disabled:opacity-50 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="mt-5 flex flex-col gap-2 border-t border-outline-variant pt-4">
+                {!(selected as any).lawyerConfirmed && (
+                  <button
+                    type="button"
+                    disabled={confirmingId === selected._id}
+                    onClick={() => handleConfirm(selected._id)}
+                    className="w-full rounded-lg bg-secondary/20 py-2 text-sm font-semibold text-secondary hover:bg-secondary/30 disabled:opacity-50 transition-colors"
+                  >
+                    {confirmingId === selected._id ? "Confirming..." : "Confirm Booking"}
+                  </button>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={updatingId === selected._id}
+                    onClick={() => handleStatusChange(selected._id, "completed")}
+                    className="flex-1 rounded-lg bg-success/15 py-2 text-sm font-semibold text-success hover:bg-success/25 disabled:opacity-50 transition-colors"
+                  >
+                    Mark Completed
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingId === selected._id}
+                    onClick={() => handleStatusChange(selected._id, "cancelled")}
+                    className="flex-1 rounded-lg bg-error/10 py-2 text-sm font-semibold text-error hover:bg-error/20 disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </div>
