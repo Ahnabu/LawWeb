@@ -27,16 +27,47 @@ export type CaseStatus =
 
 export type CasePriority = 'high' | 'medium' | 'low';
 
+export type CaseStage =
+  | 'intake'
+  | 'pre-filing'
+  | 'filed'
+  | 'pre-trial'
+  | 'trial'
+  | 'post-trial'
+  | 'appeal'
+  | 'enforcement'
+  | 'closed';
+
+export type CaseOrigin = 'walk-in' | 'referral' | 'online' | 'existing-client' | 'court-appointed';
+
+export interface IHearing {
+  date: Date;
+  description: string;
+  outcome?: string;
+  nextSteps?: string;
+}
+
+export interface ICaseDocument {
+  name: string;
+  documentType: string;
+  sharedVia: 'whatsapp' | 'email' | 'portal' | 'physical';
+  date: Date;
+  notes?: string;
+}
+
 export interface ICase extends Document {
   caseNumber: string;
   clientId?: mongoose.Types.ObjectId;
   clientEmail: string;
   clientName: string;
+  clientPhone?: string;
+  clientWhatsapp?: string;
   lawyerId: mongoose.Types.ObjectId;
   type: CaseType;
   title: string;
   description: string;
   status: CaseStatus;
+  stage: CaseStage;
   priority: CasePriority;
   isOnline: boolean;
   isFeatured: boolean;
@@ -46,6 +77,18 @@ export interface ICase extends Document {
   opposingCounsel?: string;
   filingDate?: Date;
   nextCourtDate?: Date;
+  hearingHistory: IHearing[];
+  documents: ICaseDocument[];
+  statute?: string;
+  caseValue?: number;
+  retainerAmount?: number;
+  estimatedFee?: number;
+  retainerPaid: boolean;
+  referredBy?: string;
+  caseOrigin?: CaseOrigin;
+  witnessNames: string[];
+  evidenceSummary?: string;
+  internalNotes?: string;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -73,6 +116,8 @@ const CaseSchema: Schema = new Schema(
       required: true,
       trim: true,
     },
+    clientPhone: { type: String, trim: true },
+    clientWhatsapp: { type: String, trim: true },
     lawyerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -99,6 +144,11 @@ const CaseSchema: Schema = new Schema(
       enum: ['high', 'medium', 'low'],
       default: 'medium',
     },
+    stage: {
+      type: String,
+      enum: ['intake', 'pre-filing', 'filed', 'pre-trial', 'trial', 'post-trial', 'appeal', 'enforcement', 'closed'],
+      default: 'intake',
+    },
     isOnline: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
     courtName: { type: String, trim: true },
@@ -107,6 +157,37 @@ const CaseSchema: Schema = new Schema(
     opposingCounsel: { type: String, trim: true },
     filingDate: { type: Date, default: null },
     nextCourtDate: { type: Date, default: null },
+    hearingHistory: [
+      {
+        date: { type: Date, required: true },
+        description: { type: String, required: true, trim: true },
+        outcome: { type: String, trim: true },
+        nextSteps: { type: String, trim: true },
+      },
+    ],
+    documents: [
+      {
+        name: { type: String, required: true, trim: true },
+        documentType: { type: String, trim: true },
+        sharedVia: { type: String, enum: ['whatsapp', 'email', 'portal', 'physical'], default: 'whatsapp' },
+        date: { type: Date, default: Date.now },
+        notes: { type: String, trim: true },
+      },
+    ],
+    statute: { type: String, trim: true },
+    caseValue: { type: Number, default: null },
+    retainerAmount: { type: Number, default: null },
+    estimatedFee: { type: Number, default: null },
+    retainerPaid: { type: Boolean, default: false },
+    referredBy: { type: String, trim: true },
+    caseOrigin: {
+      type: String,
+      enum: ['walk-in', 'referral', 'online', 'existing-client', 'court-appointed'],
+      default: null,
+    },
+    witnessNames: [{ type: String, trim: true }],
+    evidenceSummary: { type: String, trim: true },
+    internalNotes: { type: String, trim: true },
     notes: { type: String, trim: true },
   },
   { timestamps: true }

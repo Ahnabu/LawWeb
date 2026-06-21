@@ -68,19 +68,43 @@ const STATUS_FILTERS: { label: string; value: CaseStatus | "all" }[] = [
   { label: "Closed", value: "closed" },
 ];
 
+type CaseStage = "intake" | "pre-filing" | "filed" | "pre-trial" | "trial" | "post-trial" | "appeal" | "enforcement" | "closed";
+type CaseOrigin = "walk-in" | "referral" | "online" | "existing-client" | "court-appointed";
+
 const emptyForm = {
+  // Client
   clientName: "",
   clientEmail: "",
+  clientPhone: "",
+  clientWhatsapp: "",
+  // Case
   type: "civil",
   title: "",
   description: "",
   priority: "medium" as CasePriority,
+  stage: "intake" as CaseStage,
+  // Court
   courtName: "",
   jurisdiction: "",
   opposingParty: "",
   opposingCounsel: "",
   filingDate: "",
   nextCourtDate: "",
+  // Legal
+  statute: "",
+  // Financial
+  caseValue: "",
+  retainerAmount: "",
+  estimatedFee: "",
+  retainerPaid: false,
+  // Intake
+  referredBy: "",
+  caseOrigin: "" as CaseOrigin | "",
+  // Additional
+  witnessNames: "",
+  evidenceSummary: "",
+  internalNotes: "",
+  notes: "",
   isOnline: true,
 };
 
@@ -130,15 +154,30 @@ export default function LawyerCasesPage() {
     setIsSubmitting(true);
     setFormError(null);
     try {
+      const payload = {
+        ...form,
+        filingDate: form.filingDate || undefined,
+        nextCourtDate: form.nextCourtDate || undefined,
+        caseValue: form.caseValue ? Number(form.caseValue) : undefined,
+        retainerAmount: form.retainerAmount ? Number(form.retainerAmount) : undefined,
+        estimatedFee: form.estimatedFee ? Number(form.estimatedFee) : undefined,
+        caseOrigin: form.caseOrigin || undefined,
+        witnessNames: form.witnessNames
+          ? form.witnessNames.split(",").map((s) => s.trim()).filter(Boolean)
+          : [],
+        statute: form.statute || undefined,
+        evidenceSummary: form.evidenceSummary || undefined,
+        internalNotes: form.internalNotes || undefined,
+        notes: form.notes || undefined,
+        referredBy: form.referredBy || undefined,
+        clientPhone: form.clientPhone || undefined,
+        clientWhatsapp: form.clientWhatsapp || undefined,
+      };
       const res = await fetch(`${API_BASE_URL}/api/cases`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          ...form,
-          filingDate: form.filingDate || undefined,
-          nextCourtDate: form.nextCourtDate || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create case");
@@ -368,227 +407,212 @@ export default function LawyerCasesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleAddCase} className="space-y-4">
-              {/* Client info */}
-              <fieldset className="space-y-3">
-                <legend className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+            <form onSubmit={handleAddCase} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+              {/* CLIENT INFORMATION */}
+              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                   Client Information
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Client Name *
-                    </label>
-                    <input
-                      required
-                      value={form.clientName}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, clientName: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                      placeholder="Full name"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client Name *</label>
+                    <input required value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Full name" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Client Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={form.clientEmail}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, clientEmail: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                      placeholder="email@example.com"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client Email *</label>
+                    <input type="email" required value={form.clientEmail} onChange={(e) => setForm((f) => ({ ...f, clientEmail: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="email@example.com" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client Phone</label>
+                    <input type="tel" value={form.clientPhone} onChange={(e) => setForm((f) => ({ ...f, clientPhone: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="+880 1XXXXXXXXX" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">WhatsApp Number</label>
+                    <input type="tel" value={form.clientWhatsapp} onChange={(e) => setForm((f) => ({ ...f, clientWhatsapp: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="For document sharing" />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Case Origin</label>
+                    <select value={form.caseOrigin} onChange={(e) => setForm((f) => ({ ...f, caseOrigin: e.target.value as CaseOrigin | "" }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
+                      <option value="">Select origin...</option>
+                      <option value="walk-in">Walk-In</option>
+                      <option value="referral">Referral</option>
+                      <option value="online">Online / Website</option>
+                      <option value="existing-client">Existing Client</option>
+                      <option value="court-appointed">Court Appointed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Referred By</label>
+                    <input value={form.referredBy} onChange={(e) => setForm((f) => ({ ...f, referredBy: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Name of referrer" />
                   </div>
                 </div>
               </fieldset>
 
-              {/* Case info */}
-              <fieldset className="space-y-3">
-                <legend className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              {/* CASE DETAILS */}
+              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                   Case Details
                 </legend>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                    Case Title *
-                  </label>
-                  <input
-                    required
-                    value={form.title}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, title: e.target.value }))
-                    }
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                    placeholder="Brief title of the case"
-                  />
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Case Title *</label>
+                  <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Brief title of the case" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                    Description *
-                  </label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, description: e.target.value }))
-                    }
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none"
-                    placeholder="Describe the nature of the case..."
-                  />
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Description *</label>
+                  <textarea required rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Describe the nature of the case..." />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <label htmlFor="case-type" className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Case Type *
-                    </label>
-                    <select
-                      id="case-type"
-                      required
-                      title="Case Type"
-                      value={form.type}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, type: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                    >
+                    <label htmlFor="case-type" className="mb-1 block text-xs font-medium text-on-surface-variant">Case Type *</label>
+                    <select id="case-type" required value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
                       {CASE_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                        </option>
+                        <option key={t} value={t}>{t.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="case-priority" className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Priority
-                    </label>
-                    <select
-                      id="case-priority"
-                      title="Priority"
-                      value={form.priority}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          priority: e.target.value as CasePriority,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                    >
+                    <label htmlFor="case-priority" className="mb-1 block text-xs font-medium text-on-surface-variant">Priority</label>
+                    <select id="case-priority" value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as CasePriority }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
                       <option value="high">High</option>
                       <option value="medium">Medium</option>
                       <option value="low">Low</option>
                     </select>
                   </div>
+                  <div>
+                    <label htmlFor="case-stage" className="mb-1 block text-xs font-medium text-on-surface-variant">Case Stage</label>
+                    <select id="case-stage" value={form.stage} onChange={(e) => setForm((f) => ({ ...f, stage: e.target.value as CaseStage }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
+                      <option value="intake">Intake</option>
+                      <option value="pre-filing">Pre-Filing</option>
+                      <option value="filed">Filed</option>
+                      <option value="pre-trial">Pre-Trial</option>
+                      <option value="trial">Trial</option>
+                      <option value="post-trial">Post-Trial</option>
+                      <option value="appeal">Appeal</option>
+                      <option value="enforcement">Enforcement</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Applicable Statute / Law</label>
+                  <input value={form.statute} onChange={(e) => setForm((f) => ({ ...f, statute: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. Contract Act 1872, Penal Code s.420" />
                 </div>
               </fieldset>
 
-              {/* Court info */}
-              <fieldset className="space-y-3">
-                <legend className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              {/* COURT & OPPOSING PARTY */}
+              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                   Court & Opposing Party
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Court Name
-                    </label>
-                    <input
-                      value={form.courtName}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, courtName: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                      placeholder="e.g. High Court Division"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Court Name</label>
+                    <input value={form.courtName} onChange={(e) => setForm((f) => ({ ...f, courtName: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. High Court Division" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Jurisdiction
-                    </label>
-                    <input
-                      value={form.jurisdiction}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          jurisdiction: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                      placeholder="e.g. Dhaka"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Jurisdiction</label>
+                    <input value={form.jurisdiction} onChange={(e) => setForm((f) => ({ ...f, jurisdiction: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. Dhaka" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Opposing Party
-                    </label>
-                    <input
-                      value={form.opposingParty}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          opposingParty: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                      placeholder="Name of opposing party"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Opposing Party</label>
+                    <input value={form.opposingParty} onChange={(e) => setForm((f) => ({ ...f, opposingParty: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Name of opposing party" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Opposing Counsel
-                    </label>
-                    <input
-                      value={form.opposingCounsel}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          opposingCounsel: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                      placeholder="Opposing lawyer's name"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Opposing Counsel</label>
+                    <input value={form.opposingCounsel} onChange={(e) => setForm((f) => ({ ...f, opposingCounsel: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Opposing lawyer's name" />
+                  </div>
+                  <div>
+                    <label htmlFor="filing-date" className="mb-1 block text-xs font-medium text-on-surface-variant">Filing Date</label>
+                    <input id="filing-date" type="date" value={form.filingDate} onChange={(e) => setForm((f) => ({ ...f, filingDate: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" />
+                  </div>
+                  <div>
+                    <label htmlFor="next-hearing-date" className="mb-1 block text-xs font-medium text-on-surface-variant">Next Hearing Date</label>
+                    <input id="next-hearing-date" type="date" value={form.nextCourtDate} onChange={(e) => setForm((f) => ({ ...f, nextCourtDate: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" />
                   </div>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+              </fieldset>
+
+              {/* FINANCIAL */}
+              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Financial
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <label htmlFor="filing-date" className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Filing Date
-                    </label>
-                    <input
-                      id="filing-date"
-                      type="date"
-                      title="Filing Date"
-                      value={form.filingDate}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, filingDate: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Case Value (৳)</label>
+                    <input type="number" min="0" value={form.caseValue} onChange={(e) => setForm((f) => ({ ...f, caseValue: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Monetary value at stake" />
                   </div>
                   <div>
-                    <label htmlFor="next-hearing-date" className="mb-1 block text-xs font-medium text-on-surface-variant">
-                      Next Hearing Date
-                    </label>
-                    <input
-                      id="next-hearing-date"
-                      type="date"
-                      title="Next Hearing Date"
-                      value={form.nextCourtDate}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          nextCourtDate: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Retainer Amount (৳)</label>
+                    <input type="number" min="0" value={form.retainerAmount} onChange={(e) => setForm((f) => ({ ...f, retainerAmount: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Retainer fee" />
                   </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Estimated Fee (৳)</label>
+                    <input type="number" min="0" value={form.estimatedFee} onChange={(e) => setForm((f) => ({ ...f, estimatedFee: e.target.value }))}
+                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Estimated total fee" />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-on-surface">
+                  <input type="checkbox" checked={form.retainerPaid} onChange={(e) => setForm((f) => ({ ...f, retainerPaid: e.target.checked }))}
+                    className="h-4 w-4 rounded border-outline" />
+                  Retainer has been paid
+                </label>
+              </fieldset>
+
+              {/* EVIDENCE & WITNESSES */}
+              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Evidence & Witnesses
+                </legend>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Witness Names</label>
+                  <input value={form.witnessNames} onChange={(e) => setForm((f) => ({ ...f, witnessNames: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Comma-separated names, e.g. John Doe, Jane Smith" />
+                  <p className="mt-0.5 text-xs text-on-surface-variant">Separate multiple witnesses with commas</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Evidence Summary</label>
+                  <textarea rows={2} value={form.evidenceSummary} onChange={(e) => setForm((f) => ({ ...f, evidenceSummary: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Key evidence, exhibits, or document list..." />
+                </div>
+              </fieldset>
+
+              {/* NOTES */}
+              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
+                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Notes
+                </legend>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client-Visible Notes</label>
+                  <textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Notes visible to client..." />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Internal Notes (Lawyer Only)</label>
+                  <textarea rows={2} value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Private notes not visible to client..." />
                 </div>
               </fieldset>
 
@@ -599,18 +623,12 @@ export default function LawyerCasesPage() {
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
-                >
+                <button type="button" onClick={() => setShowAddModal(false)}
+                  className="rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 disabled:opacity-50 transition-opacity"
-                >
+                <button type="submit" disabled={isSubmitting}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 disabled:opacity-50 transition-opacity">
                   {isSubmitting ? "Creating..." : "Create Case"}
                 </button>
               </div>

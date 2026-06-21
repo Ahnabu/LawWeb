@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Consultation, { IConsultation } from '../models/Consultation';
 import User from '../models/User';
+import LawyerAvailability from '../models/LawyerAvailability';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -13,7 +14,7 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    const { lawyerId, consultationType, date, time, subject, description } = req.body;
+    const { lawyerId, consultationType, meetingMode, date, time, subject, description, clientPhone, whatsappDocSharing, whatsappDocNote } = req.body;
 
     // Validate inputs
     if (!lawyerId || !consultationType || !date || !time || !subject || !description) {
@@ -34,6 +35,21 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Lawyer account is not verified' });
     }
 
+    // Validate booking date against lawyer's availability schedule
+    const availability = await LawyerAvailability.findOne({ lawyerId });
+    if (availability) {
+      if (!availability.isAcceptingNewClients) {
+        return res.status(400).json({ message: 'This lawyer is not currently accepting new clients.' });
+      }
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const bookingDate = new Date(date);
+      const dayName = dayNames[bookingDate.getDay()] as keyof typeof availability.schedule;
+      const daySchedule = availability.schedule[dayName];
+      if (!daySchedule || !daySchedule.isAvailable) {
+        return res.status(400).json({ message: `The lawyer is not available on ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}s. Please choose another date.` });
+      }
+    }
+
     // Check for conflicting consultations at the same time
     const existingConsultation = await Consultation.findOne({
       lawyerId,
@@ -51,11 +67,16 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
       clientId: userId,
       lawyerId,
       consultationType,
+      meetingMode: meetingMode || 'in-person',
       date: new Date(date),
       time,
       subject,
       description,
+      clientPhone: clientPhone || undefined,
       status: 'scheduled',
+      lawyerConfirmed: false,
+      whatsappDocSharing: whatsappDocSharing || false,
+      whatsappDocNote: whatsappDocNote || undefined,
     });
 
     await consultation.save();

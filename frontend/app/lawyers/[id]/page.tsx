@@ -10,7 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Scale, MapPin, Phone, Mail, Calendar, BookOpen } from "lucide-react";
+import { Scale, MapPin, Phone, Mail, Calendar, BookOpen, Clock, CheckCircle, XCircle, MessageSquare } from "lucide-react";
 import { Footer } from "../../../components/Footer";
 import { Navbar } from "../../../components/Navbar";
 import { WhatsAppCta } from "../../../components/WhatsAppCta";
@@ -28,6 +28,30 @@ interface LawyerUser {
   role: string;
   createdAt: string;
 }
+
+interface DaySchedule {
+  isAvailable: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+interface LawyerAvailabilityData {
+  isAcceptingNewClients: boolean;
+  schedule: {
+    monday: DaySchedule;
+    tuesday: DaySchedule;
+    wednesday: DaySchedule;
+    thursday: DaySchedule;
+    friday: DaySchedule;
+    saturday: DaySchedule;
+    sunday: DaySchedule;
+  };
+}
+
+const DAY_LABELS: Record<string, string> = {
+  monday: "Mon", tuesday: "Tue", wednesday: "Wed",
+  thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun",
+};
 
 interface LawyerProfileData {
   firstName: string;
@@ -51,17 +75,21 @@ export default function LawyerDetailPage() {
   const { locale } = useLanguage();
   const [lawyer, setLawyer] = useState<LawyerUser | null>(null);
   const [profile, setProfile] = useState<LawyerProfileData | null>(null);
+  const [availability, setAvailability] = useState<LawyerAvailabilityData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    fetch(`${API_BASE_URL}/api/lawyers/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.lawyer) { setNotFound(true); return; }
-        setLawyer(data.lawyer);
-        setProfile(data.profile || null);
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/lawyers/${id}`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/api/lawyers/${id}/availability`).then((r) => r.json()),
+    ])
+      .then(([profileData, availData]) => {
+        if (!profileData.lawyer) { setNotFound(true); return; }
+        setLawyer(profileData.lawyer);
+        setProfile(profileData.profile || null);
+        setAvailability(availData.data || null);
       })
       .catch(() => setNotFound(true))
       .finally(() => setIsLoading(false));
@@ -179,19 +207,26 @@ export default function LawyerDetailPage() {
 
               {/* CTA */}
               <div className="space-y-3 rounded-2xl border border-outline-variant bg-surface-container p-5">
-                <Link
-                  href="/dashboard/client/book-consultation"
-                  className="block w-full rounded-full bg-secondary py-3 text-center text-sm font-semibold text-primary transition hover:opacity-90"
-                >
-                  Book Appointment
-                </Link>
+                {availability?.isAcceptingNewClients === false ? (
+                  <div className="rounded-full border border-outline-variant bg-surface-container-high py-3 text-center text-sm text-on-surface-variant">
+                    Not accepting new clients
+                  </div>
+                ) : (
+                  <Link
+                    href={`/dashboard/client/book-consultation?lawyerId=${id}&lawyerName=${encodeURIComponent(lawyer?.name ?? "")}`}
+                    className="block w-full rounded-full bg-secondary py-3 text-center text-sm font-semibold text-primary transition hover:opacity-90"
+                  >
+                    Book Appointment
+                  </Link>
+                )}
                 <a
                   href={`https://wa.me/${whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full rounded-full border border-outline-variant bg-surface py-3 text-center text-sm font-semibold text-on-surface transition hover:border-secondary hover:text-secondary"
+                  className="flex items-center justify-center gap-2 w-full rounded-full border border-outline-variant bg-surface py-3 text-center text-sm font-semibold text-on-surface transition hover:border-secondary hover:text-secondary"
                 >
-                  WhatsApp Quick Link
+                  <MessageSquare className="h-4 w-4" />
+                  WhatsApp
                 </a>
               </div>
 
@@ -336,6 +371,45 @@ export default function LawyerDetailPage() {
                 </div>
               ) : null}
 
+              {/* Availability schedule */}
+              {availability && (
+                <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-secondary" />
+                      <h3 className="font-display text-base font-semibold text-on-surface">
+                        Availability
+                      </h3>
+                    </div>
+                    {availability.isAcceptingNewClients ? (
+                      <span className="flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+                        <CheckCircle className="h-3 w-3" /> Accepting Clients
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full bg-error/15 px-2.5 py-0.5 text-xs font-semibold text-error">
+                        <XCircle className="h-3 w-3" /> Not Accepting
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Object.entries(availability.schedule).map(([day, sched]) => (
+                      <div
+                        key={day}
+                        className={`rounded-lg p-2 text-center text-xs ${sched.isAvailable ? "bg-secondary/10 text-secondary" : "bg-surface text-on-surface-variant opacity-40"}`}
+                      >
+                        <p className="font-semibold">{DAY_LABELS[day]}</p>
+                        {sched.isAvailable && (
+                          <p className="mt-0.5 text-[10px] leading-tight">
+                            {sched.startTime}–{sched.endTime}
+                          </p>
+                        )}
+                        {!sched.isAvailable && <p className="mt-0.5 text-[10px]">Off</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Firm info */}
               <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
                 <div className="flex items-center gap-2 text-on-surface-variant">
@@ -355,12 +429,18 @@ export default function LawyerDetailPage() {
                 <p className="mt-2 text-sm text-on-primary/70">
                   Choose a convenient time for your consultation.
                 </p>
-                <Link
-                  href="/dashboard/client/book-consultation"
-                  className="mt-5 inline-flex rounded-full bg-secondary px-8 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
-                >
-                  Book Appointment
-                </Link>
+                {availability?.isAcceptingNewClients === false ? (
+                  <p className="mt-5 inline-flex rounded-full bg-secondary/50 px-8 py-3 text-sm font-semibold text-primary/70">
+                    Currently Unavailable
+                  </p>
+                ) : (
+                  <Link
+                    href={`/dashboard/client/book-consultation?lawyerId=${id}&lawyerName=${encodeURIComponent(lawyer.name)}`}
+                    className="mt-5 inline-flex rounded-full bg-secondary px-8 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
+                  >
+                    Book Appointment
+                  </Link>
+                )}
               </div>
             </div>
           </div>

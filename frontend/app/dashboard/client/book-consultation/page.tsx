@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
 
@@ -14,6 +14,17 @@ interface Lawyer {
   isVerified: boolean;
 }
 
+interface DaySchedule {
+  isAvailable: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+interface LawyerAvailability {
+  isAcceptingNewClients: boolean;
+  schedule: Record<string, DaySchedule>;
+}
+
 const CONSULTATION_TYPES = [
   { value: "initial-consultation", label: "Initial Consultation" },
   { value: "follow-up", label: "Follow-up Session" },
@@ -21,25 +32,56 @@ const CONSULTATION_TYPES = [
   { value: "case-discussion", label: "Case Discussion" },
 ];
 
-const TIME_SLOTS = [
-  "09:00 AM", "10:00 AM", "11:00 AM",
-  "02:00 PM", "03:00 PM", "04:00 PM",
+const MEETING_MODES = [
+  { value: "in-person", label: "In-Person" },
+  { value: "phone", label: "Phone Call" },
+  { value: "video", label: "Video Call" },
 ];
+
+const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+function generateTimeSlots(startTime: string, endTime: string): string[] {
+  const slots: string[] = [];
+  const [startH, startM] = startTime.split(":").map(Number);
+  const [endH, endM] = endTime.split(":").map(Number);
+  let current = startH * 60 + startM;
+  const end = endH * 60 + endM;
+  while (current + 60 <= end) {
+    const h = Math.floor(current / 60);
+    const m = current % 60;
+    const ampm = h < 12 ? "AM" : "PM";
+    const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    slots.push(`${String(displayH).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`);
+    current += 60;
+  }
+  return slots;
+}
 
 export default function BookConsultationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedLawyerId = searchParams.get("lawyerId") ?? "";
+  const preselectedLawyerName = searchParams.get("lawyerName") ?? "";
+
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
+  const [availability, setAvailability] = useState<LawyerAvailability | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
 
   const [form, setForm] = useState({
-    lawyerId: "",
+    lawyerId: preselectedLawyerId,
     consultationType: "initial-consultation",
+    meetingMode: "in-person",
     date: "",
     time: "",
     subject: "",
     description: "",
+    clientPhone: "",
+    whatsappDocSharing: false,
+    whatsappDocNote: "",
   });
 
   useEffect(() => {
@@ -50,6 +92,43 @@ export default function BookConsultationPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const fetchAvailability = useCallback(async (lawyerId: string) => {
+    if (!lawyerId) { setAvailability(null); setTimeSlots([]); return; }
+    setAvailabilityLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/lawyers/${lawyerId}/availability`);
+      const data = await res.json();
+      setAvailability(data.data || null);
+    } catch {
+      setAvailability(null);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (preselectedLawyerId) fetchAvailability(preselectedLawyerId);
+  }, [preselectedLawyerId, fetchAvailability]);
+
+  // Recalculate time slots when date + availability changes
+  useEffect(() => {
+    if (!form.date || !availability) { setTimeSlots([]); return; }
+    const dayIndex = new Date(form.date + "T00:00:00").getDay();
+    const dayName = DAY_NAMES[dayIndex];
+    const daySchedule = availability.schedule[dayName];
+    if (!daySchedule || !daySchedule.isAvailable) { setTimeSlots([]); return; }
+    setTimeSlots(generateTimeSlots(daySchedule.startTime, daySchedule.endTime));
+    setForm((f) => ({ ...f, time: "" }));
+  }, [form.date, availability]);
+
+  const isDateDisabled = (dateStr: string): boolean => {
+    if (!availability || !dateStr) return false;
+    const dayIndex = new Date(dateStr + "T00:00:00").getDay();
+    const dayName = DAY_NAMES[dayIndex];
+    const daySchedule = availability.schedule[dayName];
+    return !daySchedule?.isAvailable;
+  };
+
   const validate = () => {
     const errors: Record<string, string> = {};
     if (!form.lawyerId) errors.lawyerId = "Please select a lawyer";
@@ -57,6 +136,8 @@ export default function BookConsultationPage() {
       errors.date = "Please select a date";
     } else if (new Date(form.date) < new Date(new Date().toDateString())) {
       errors.date = "Please select a future date";
+    } else if (isDateDisabled(form.date)) {
+      errors.date = "The lawyer is not available on this day";
     }
     if (!form.time) errors.time = "Please select a time slot";
     if (!form.subject.trim()) errors.subject = "Please enter a subject";
@@ -78,7 +159,11 @@ export default function BookConsultationPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          clientPhone: form.clientPhone || undefined,
+          whatsappDocNote: form.whatsappDocSharing ? form.whatsappDocNote : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to book consultation");
@@ -93,13 +178,10 @@ export default function BookConsultationPage() {
 
   const minDate = new Date().toISOString().split("T")[0];
 
-  const field = (key: keyof typeof form) => ({
-    value: form[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-      setForm((f) => ({ ...f, [key]: e.target.value }));
-      setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
-    },
-  });
+  const setField = (key: keyof typeof form, value: string | boolean) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
 
   return (
     <div className="space-y-6">
@@ -114,6 +196,12 @@ export default function BookConsultationPage() {
           Connect with our experienced lawyers for professional legal guidance.
         </p>
       </header>
+
+      {preselectedLawyerName && (
+        <div className="rounded-lg border border-secondary/30 bg-secondary/10 px-4 py-3 text-sm text-on-surface">
+          Booking with <span className="font-semibold">{preselectedLawyerName}</span>
+        </div>
+      )}
 
       <div className="rounded-lg border border-outline-variant bg-surface-container p-6">
         {loading ? (
@@ -142,7 +230,13 @@ export default function BookConsultationPage() {
               </label>
               <select
                 id="lawyer-select"
-                {...field("lawyerId")}
+                value={form.lawyerId}
+                onChange={(e) => {
+                  setField("lawyerId", e.target.value);
+                  setField("date", "");
+                  setField("time", "");
+                  fetchAvailability(e.target.value);
+                }}
                 className={`w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none ${fieldErrors.lawyerId ? "border-error" : "border-outline"}`}
               >
                 <option value="">Choose a lawyer...</option>
@@ -156,22 +250,54 @@ export default function BookConsultationPage() {
               {fieldErrors.lawyerId && (
                 <p className="mt-1 text-xs text-error">{fieldErrors.lawyerId}</p>
               )}
+              {availabilityLoading && (
+                <p className="mt-1 text-xs text-on-surface-variant">Loading availability...</p>
+              )}
+              {availability && !availability.isAcceptingNewClients && (
+                <p className="mt-1 text-xs text-error">This lawyer is not currently accepting new clients.</p>
+              )}
+              {availability && availability.isAcceptingNewClients && (
+                <p className="mt-1 text-xs text-success">Available days: {
+                  Object.entries(availability.schedule)
+                    .filter(([, s]) => s.isAvailable)
+                    .map(([d]) => d.charAt(0).toUpperCase() + d.slice(1, 3))
+                    .join(", ")
+                }</p>
+              )}
             </div>
 
-            {/* Consultation type */}
-            <div>
-              <label htmlFor="consultation-type" className="mb-1 block text-sm font-medium text-on-surface-variant">
-                Consultation Type <span className="text-error">*</span>
-              </label>
-              <select
-                id="consultation-type"
-                {...field("consultationType")}
-                className="w-full rounded-lg border border-outline bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none"
-              >
-                {CONSULTATION_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+            {/* Consultation type + Meeting mode */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="consultation-type" className="mb-1 block text-sm font-medium text-on-surface-variant">
+                  Consultation Type <span className="text-error">*</span>
+                </label>
+                <select
+                  id="consultation-type"
+                  value={form.consultationType}
+                  onChange={(e) => setField("consultationType", e.target.value)}
+                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none"
+                >
+                  {CONSULTATION_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="meeting-mode" className="mb-1 block text-sm font-medium text-on-surface-variant">
+                  Meeting Mode <span className="text-error">*</span>
+                </label>
+                <select
+                  id="meeting-mode"
+                  value={form.meetingMode}
+                  onChange={(e) => setField("meetingMode", e.target.value)}
+                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none"
+                >
+                  {MEETING_MODES.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Date + Time */}
@@ -184,24 +310,30 @@ export default function BookConsultationPage() {
                   id="consult-date"
                   type="date"
                   min={minDate}
-                  {...field("date")}
+                  value={form.date}
+                  onChange={(e) => setField("date", e.target.value)}
                   className={`w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none ${fieldErrors.date ? "border-error" : "border-outline"}`}
                 />
                 {fieldErrors.date && (
                   <p className="mt-1 text-xs text-error">{fieldErrors.date}</p>
                 )}
+                {form.date && isDateDisabled(form.date) && !fieldErrors.date && (
+                  <p className="mt-1 text-xs text-error">Lawyer unavailable on this day.</p>
+                )}
               </div>
               <div>
                 <label htmlFor="consult-time" className="mb-1 block text-sm font-medium text-on-surface-variant">
-                  Time <span className="text-error">*</span>
+                  Time Slot <span className="text-error">*</span>
                 </label>
                 <select
                   id="consult-time"
-                  {...field("time")}
-                  className={`w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none ${fieldErrors.time ? "border-error" : "border-outline"}`}
+                  value={form.time}
+                  onChange={(e) => setField("time", e.target.value)}
+                  disabled={timeSlots.length === 0}
+                  className={`w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none disabled:opacity-50 ${fieldErrors.time ? "border-error" : "border-outline"}`}
                 >
-                  <option value="">Select a time slot...</option>
-                  {TIME_SLOTS.map((t) => (
+                  <option value="">{timeSlots.length === 0 ? "Select a date first..." : "Select a time slot..."}</option>
+                  {timeSlots.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
@@ -220,7 +352,8 @@ export default function BookConsultationPage() {
                 id="consult-subject"
                 type="text"
                 placeholder="e.g. Property Dispute, Contract Review"
-                {...field("subject")}
+                value={form.subject}
+                onChange={(e) => setField("subject", e.target.value)}
                 className={`w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none ${fieldErrors.subject ? "border-error" : "border-outline"}`}
               />
               {fieldErrors.subject && (
@@ -237,7 +370,8 @@ export default function BookConsultationPage() {
                 id="consult-desc"
                 rows={5}
                 placeholder="Describe your legal matter in detail..."
-                {...field("description")}
+                value={form.description}
+                onChange={(e) => setField("description", e.target.value)}
                 className={`w-full resize-none rounded-lg border bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none ${fieldErrors.description ? "border-error" : "border-outline"}`}
               />
               <p className="mt-1 text-xs text-on-surface-variant">{form.description.length}/500</p>
@@ -246,10 +380,55 @@ export default function BookConsultationPage() {
               )}
             </div>
 
+            {/* Contact phone */}
+            <div>
+              <label htmlFor="client-phone" className="mb-1 block text-sm font-medium text-on-surface-variant">
+                Contact Phone
+              </label>
+              <input
+                id="client-phone"
+                type="tel"
+                placeholder="+880 1XXXXXXXXX"
+                value={form.clientPhone}
+                onChange={(e) => setField("clientPhone", e.target.value)}
+                className="w-full rounded-lg border border-outline bg-surface px-3 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            {/* WhatsApp doc sharing */}
+            <div className="rounded-lg border border-outline-variant bg-surface p-4 space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.whatsappDocSharing}
+                  onChange={(e) => setField("whatsappDocSharing", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-outline"
+                />
+                <span className="text-sm text-on-surface">
+                  I plan to share case documents via WhatsApp with the lawyer
+                </span>
+              </label>
+              {form.whatsappDocSharing && (
+                <div>
+                  <label htmlFor="whatsapp-note" className="mb-1 block text-xs font-medium text-on-surface-variant">
+                    Document note (optional)
+                  </label>
+                  <input
+                    id="whatsapp-note"
+                    type="text"
+                    placeholder="e.g. ID documents, property deed, contract"
+                    value={form.whatsappDocNote}
+                    onChange={(e) => setField("whatsappDocNote", e.target.value)}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || (availability !== null && !availability.isAcceptingNewClients)}
                 className="flex-1 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? "Booking..." : "Book Consultation"}

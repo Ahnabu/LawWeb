@@ -16,9 +16,11 @@ export const createCase = async (req: AuthRequest, res: Response) => {
     }
 
     const {
-      lawyerId, clientId, clientEmail, clientName, type, title, description,
-      nextCourtDate, filingDate, isOnline, priority, courtName, jurisdiction,
-      opposingParty, opposingCounsel,
+      lawyerId, clientId, clientEmail, clientName, clientPhone, clientWhatsapp,
+      type, title, description, nextCourtDate, filingDate, isOnline, priority,
+      courtName, jurisdiction, opposingParty, opposingCounsel, stage,
+      statute, caseValue, retainerAmount, estimatedFee, retainerPaid,
+      referredBy, caseOrigin, witnessNames, evidenceSummary, internalNotes, notes,
     } = req.body;
 
     if (!clientEmail || !clientName || !type || !title || !description) {
@@ -41,11 +43,14 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       clientId: clientId || null,
       clientEmail,
       clientName,
+      clientPhone: clientPhone || undefined,
+      clientWhatsapp: clientWhatsapp || undefined,
       lawyerId: assignedLawyerId,
       type,
       title,
       description,
       priority: priority || 'medium',
+      stage: stage || 'intake',
       isOnline: isOnline ?? true,
       courtName,
       jurisdiction,
@@ -53,6 +58,17 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       opposingCounsel,
       filingDate: filingDate ? new Date(filingDate) : undefined,
       nextCourtDate: nextCourtDate ? new Date(nextCourtDate) : undefined,
+      statute: statute || undefined,
+      caseValue: caseValue || undefined,
+      retainerAmount: retainerAmount || undefined,
+      estimatedFee: estimatedFee || undefined,
+      retainerPaid: retainerPaid || false,
+      referredBy: referredBy || undefined,
+      caseOrigin: caseOrigin || undefined,
+      witnessNames: witnessNames || [],
+      evidenceSummary: evidenceSummary || undefined,
+      internalNotes: internalNotes || undefined,
+      notes: notes || undefined,
     });
 
     await caseDoc.save();
@@ -146,7 +162,14 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     const userId = req.user?._id;
     const userRole = req.user?.role;
     const { caseId } = req.params;
-    const { status, notes, nextCourtDate, title, description } = req.body;
+    const {
+      status, stage, notes, internalNotes, nextCourtDate, title, description,
+      courtName, jurisdiction, opposingParty, opposingCounsel,
+      statute, caseValue, retainerAmount, estimatedFee, retainerPaid,
+      referredBy, caseOrigin, witnessNames, evidenceSummary,
+      clientPhone, clientWhatsapp, priority,
+      hearingEntry, documentEntry,
+    } = req.body;
 
     const caseDoc = await Case.findById(caseId);
     if (!caseDoc) {
@@ -162,8 +185,30 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     }
 
     if (status) caseDoc.status = status;
+    if (stage) caseDoc.stage = stage;
+    if (priority) caseDoc.priority = priority;
     if (notes !== undefined) caseDoc.notes = notes;
+    if (internalNotes !== undefined) caseDoc.internalNotes = internalNotes;
     if (nextCourtDate !== undefined) caseDoc.nextCourtDate = nextCourtDate ? new Date(nextCourtDate) : undefined;
+    if (courtName !== undefined) caseDoc.courtName = courtName;
+    if (jurisdiction !== undefined) caseDoc.jurisdiction = jurisdiction;
+    if (opposingParty !== undefined) caseDoc.opposingParty = opposingParty;
+    if (opposingCounsel !== undefined) caseDoc.opposingCounsel = opposingCounsel;
+    if (statute !== undefined) caseDoc.statute = statute;
+    if (caseValue !== undefined) caseDoc.caseValue = caseValue;
+    if (retainerAmount !== undefined) caseDoc.retainerAmount = retainerAmount;
+    if (estimatedFee !== undefined) caseDoc.estimatedFee = estimatedFee;
+    if (retainerPaid !== undefined) caseDoc.retainerPaid = retainerPaid;
+    if (referredBy !== undefined) caseDoc.referredBy = referredBy;
+    if (caseOrigin !== undefined) caseDoc.caseOrigin = caseOrigin;
+    if (witnessNames !== undefined) caseDoc.witnessNames = witnessNames;
+    if (evidenceSummary !== undefined) caseDoc.evidenceSummary = evidenceSummary;
+    if (clientPhone !== undefined) caseDoc.clientPhone = clientPhone;
+    if (clientWhatsapp !== undefined) caseDoc.clientWhatsapp = clientWhatsapp;
+    // Append a new hearing entry
+    if (hearingEntry) caseDoc.hearingHistory.push({ ...hearingEntry, date: new Date(hearingEntry.date) });
+    // Append a new document reference
+    if (documentEntry) caseDoc.documents.push({ ...documentEntry, date: documentEntry.date ? new Date(documentEntry.date) : new Date() });
     if (title && userRole === 'admin') caseDoc.title = title;
     if (description && userRole === 'admin') caseDoc.description = description;
 
