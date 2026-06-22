@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Footer } from "../../components/Footer";
@@ -139,7 +140,15 @@ export default function BlogsPage() {
                 <article key={blog._id} className="group flex flex-col rounded-2xl border border-outline-variant bg-surface-container overflow-hidden hover:shadow-lg hover:border-secondary/40 transition-all duration-300">
                   {/* Cover */}
                   {blog.coverImageUrl ? (
-                    <img src={blog.coverImageUrl} alt={blog.title} className="h-44 w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="relative h-44 w-full overflow-hidden">
+                      <Image
+                        src={blog.coverImageUrl}
+                        alt={blog.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
                   ) : (
                     <div className="h-44 w-full bg-primary/5 flex items-center justify-center">
                       <Newspaper className="h-10 w-10 text-primary/20" />

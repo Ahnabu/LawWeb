@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -92,7 +93,13 @@ export default function BlogDetailPage() {
       {/* Hero / Cover */}
       {blog.coverImageUrl ? (
         <div className="relative h-72 sm:h-96 w-full overflow-hidden mt-14 sm:mt-17">
-          <img src={blog.coverImageUrl} alt={blog.title} className="h-full w-full object-cover" />
+          <Image
+            src={blog.coverImageUrl}
+            alt={blog.title}
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 sm:px-8">
             <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold capitalize text-primary">

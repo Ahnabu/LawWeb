@@ -224,13 +224,13 @@ export default function ClientAppointmentsPage() {
               />
               <Row label="Time" value={selected.time} />
               <Row label="Type" value={CONSULTATION_TYPE_LABELS[selected.consultationType]} />
-              {(selected as any).meetingMode && (
-                <Row label="Meeting Mode" value={(selected as any).meetingMode.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              {selected.meetingMode && (
+                <Row label="Meeting Mode" value={selected.meetingMode.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} />
               )}
               <Row label="Subject" value={selected.subject} />
               <Row label="Description" value={selected.description} />
-              {(selected as any).clientPhone && (
-                <Row label="Contact Phone" value={(selected as any).clientPhone} />
+              {selected.clientPhone && (
+                <Row label="Contact Phone" value={selected.clientPhone} />
               )}
               {selected.notes && <Row label="Lawyer Notes" value={selected.notes} />}
               <div className="flex items-center justify-between">
@@ -241,14 +241,14 @@ export default function ClientAppointmentsPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-on-surface-variant">Lawyer Confirmed</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${(selected as any).lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
-                  {(selected as any).lawyerConfirmed ? "Confirmed" : "Pending Confirmation"}
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${selected.lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
+                  {selected.lawyerConfirmed ? "Confirmed" : "Pending Confirmation"}
                 </span>
               </div>
-              {(selected as any).whatsappDocSharing && (
+              {selected.whatsappDocSharing && (
                 <div className="rounded-lg bg-surface px-3 py-2 text-xs text-on-surface-variant">
                   Documents will be shared via WhatsApp
-                  {(selected as any).whatsappDocNote && `: ${(selected as any).whatsappDocNote}`}
+                  {selected.whatsappDocNote && `: ${selected.whatsappDocNote}`}
                 </div>
               )}
             </div>

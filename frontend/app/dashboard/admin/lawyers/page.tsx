@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import {
@@ -296,11 +297,15 @@ export default function AdminLawyersPage() {
                   {/* Avatar + Name */}
                   <div className="flex items-center gap-4">
                     {detailsLawyer.profileImageUrl ? (
-                      <img
-                        src={detailsLawyer.profileImageUrl}
-                        alt={detailsLawyer.name}
-                        className="h-16 w-16 rounded-full object-cover border-2 border-primary/30"
-                      />
+                      <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-primary/30">
+                        <Image
+                          src={detailsLawyer.profileImageUrl}
+                          alt={detailsLawyer.name}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </div>
                     ) : (
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border-2 border-primary/20">
                         <span className="text-2xl font-bold text-primary">
@@ -487,6 +492,3 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function fmt(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
-import { CaseProgressTracker } from "../../../../components/CaseProgressTracker";
 import { API_BASE_URL } from "../../../../lib/api";
 
 type CaseStatus =

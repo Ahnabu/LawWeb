@@ -12,6 +12,15 @@ const VERIFICATION_CODE_EXPIRY_MINUTES = 10;
 const normalizeEmail = (email) => email.trim().toLowerCase();
 const generateVerificationCode = () => crypto_1.default.randomInt(100000, 1000000).toString();
 const hashVerificationCode = (code) => crypto_1.default.createHash('sha256').update(code).digest('hex');
+const getCookieOptions = (extra = {}) => {
+    const options = {
+        httpOnly: true,
+        secure: true, // Always secure (works on localhost & HTTPS)
+        sameSite: 'none', // Always none for cross-origin frontend-backend
+        ...extra,
+    };
+    return options;
+};
 const buildVerificationPayload = async (user) => {
     const code = generateVerificationCode();
     const codeHash = hashVerificationCode(code);
@@ -95,20 +104,12 @@ const login = async (req, res) => {
         const accessToken = (0, jwt_1.generateAccessToken)(user);
         const refreshToken = (0, jwt_1.generateRefreshToken)(user);
         // Set secure cookies
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        res.cookie('accessToken', accessToken, getCookieOptions({
             maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
-            domain: process.env.COOKIE_DOMAIN,
-        });
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        }));
+        res.cookie('refreshToken', refreshToken, getCookieOptions({
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            domain: process.env.COOKIE_DOMAIN,
-        });
+        }));
         // Return user data
         const userResponse = {
             _id: user._id,
@@ -134,18 +135,8 @@ exports.login = login;
 const logout = async (req, res) => {
     try {
         // Clear cookies
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-            domain: process.env.COOKIE_DOMAIN,
-        });
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-            domain: process.env.COOKIE_DOMAIN,
-        });
+        res.clearCookie('accessToken', getCookieOptions());
+        res.clearCookie('refreshToken', getCookieOptions());
         res.json({ message: 'Logout successful' });
     }
     catch (error) {
@@ -181,13 +172,9 @@ const refreshToken = async (req, res) => {
         }
         const newAccessToken = (0, jwt_1.generateAccessToken)(user);
         // Set new access token cookie
-        res.cookie('accessToken', newAccessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        res.cookie('accessToken', newAccessToken, getCookieOptions({
             maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
-            domain: process.env.COOKIE_DOMAIN,
-        });
+        }));
         res.json({ message: 'Token refreshed successfully' });
     }
     catch (error) {
@@ -235,20 +222,12 @@ const verifyEmail = async (req, res) => {
         await user.save();
         const accessToken = (0, jwt_1.generateAccessToken)(user);
         const refreshToken = (0, jwt_1.generateRefreshToken)(user);
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        res.cookie('accessToken', accessToken, getCookieOptions({
             maxAge: 15 * 60 * 1000,
-            domain: process.env.COOKIE_DOMAIN,
-        });
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        }));
+        res.cookie('refreshToken', refreshToken, getCookieOptions({
             maxAge: 7 * 24 * 60 * 60 * 1000,
-            domain: process.env.COOKIE_DOMAIN,
-        });
+        }));
         res.json({
             message: 'Email verified successfully.',
             user: {

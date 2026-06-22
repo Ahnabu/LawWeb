@@ -18,12 +18,17 @@ export interface Consultation {
   clientId: ConsultationUser
   lawyerId: ConsultationUser
   consultationType: ConsultationType
+  meetingMode?: 'in-person' | 'phone' | 'video'
   date: string
   time: string
   subject: string
   description: string
   status: ConsultationStatus
   notes?: string
+  clientPhone?: string
+  lawyerConfirmed?: boolean
+  whatsappDocSharing?: boolean
+  whatsappDocNote?: string
   createdAt: string
   updatedAt: string
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import {
@@ -140,7 +141,11 @@ export default function AdminBlogsPage() {
         coverImageUrl:form.coverImageUrl||undefined,
         tags:form.tags.split(",").map(t=>t.trim()).filter(Boolean),
         status:statusOverride??form.status,
-        blocks: blocks.map(({ id:_id, ...rest }) => rest),
+        blocks: blocks.map((block) => {
+          const { id, ...rest } = block;
+          void id;
+          return rest;
+        }),
       };
       const url = editId ? `${API_BASE_URL}/api/blogs/${editId}` : `${API_BASE_URL}/api/blogs`;
       const r = await fetch(url, {
@@ -197,8 +202,8 @@ export default function AdminBlogsPage() {
         <div>
           <p className="text-xs font-medium text-on-surface-variant mb-2">Cover Image</p>
           {form.coverImageUrl ? (
-            <div className="relative rounded-xl overflow-hidden border border-outline-variant">
-              <img src={form.coverImageUrl} alt="Cover" className="w-full h-48 object-cover"/>
+            <div className="relative h-48 w-full overflow-hidden rounded-xl border border-outline-variant">
+              <Image src={form.coverImageUrl} alt="Cover" fill sizes="100vw" className="object-cover" />
               <button onClick={() => setForm(f => ({...f, coverImageUrl:""}))}
                 className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white hover:bg-error transition">
                 <X className="h-4 w-4"/>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { CaseProgressTracker } from "../../components/CaseProgressTracker";
 import { Footer } from "../../components/Footer";
@@ -116,7 +117,7 @@ export default function TrackCasePage() {
           {notFound && (
             <div className="mt-10 rounded-xl border border-outline-variant bg-surface p-8 text-center text-sm text-on-surface-variant">
               No case found with that Case ID or email. Please check your details or{" "}
-              <a href="/#contact" className="text-secondary underline">contact us directly</a>.
+              <Link href="/#contact" className="text-secondary underline">contact us directly</Link>.
             </div>
           )}
 

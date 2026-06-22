@@ -8,7 +8,6 @@ import {
   LawyerProfileData,
   Education,
   Certification,
-  BilingualField,
   getMyLawyerProfile,
   updateMyLawyerProfile,
 } from "../../../../lib/dashboard";

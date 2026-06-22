@@ -9,6 +9,12 @@ const auth_1 = require("../middleware/auth");
 const validation_1 = require("../middleware/validation");
 const router = express_1.default.Router();
 // Public routes
+router.get('/login', (req, res) => {
+    res.status(405).json({
+        message: 'Method Not Allowed: This endpoint requires a POST request with email and password.',
+        status: 'Ready for POST requests'
+    });
+});
 router.post('/register', (0, validation_1.validateRequest)(validation_1.registerSchema), authController_1.register);
 router.post('/login', (0, validation_1.validateRequest)(validation_1.loginSchema), authController_1.login);
 router.post('/refresh', authController_1.refreshToken);

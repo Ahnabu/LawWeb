@@ -59,9 +59,9 @@ export default function LawyerAppointmentsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setAppointments((prev) =>
-        prev.map((a) => (a._id === id ? { ...a, lawyerConfirmed: true } as any : a)),
+        prev.map((a) => (a._id === id ? { ...a, lawyerConfirmed: true } : a)),
       );
-      if (selected?._id === id) setSelected((prev) => prev && { ...prev, lawyerConfirmed: true } as any);
+      if (selected?._id === id) setSelected((prev) => prev && { ...prev, lawyerConfirmed: true });
       toast.success("Appointment confirmed.", { id: toastId });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to confirm", { id: toastId });
@@ -249,7 +249,7 @@ export default function LawyerAppointmentsPage() {
             <div className="space-y-3 text-sm">
               <Row label="Client" value={selected.clientId?.name || "—"} />
               <Row label="Email" value={selected.clientId?.email || "—"} />
-              <Row label="Phone" value={selected.clientId?.phone || (selected as any).clientPhone || "—"} />
+              <Row label="Phone" value={selected.clientId?.phone || selected.clientPhone || "—"} />
               <Row
                 label="Date"
                 value={new Date(selected.date).toLocaleDateString("en-BD", {
@@ -261,16 +261,16 @@ export default function LawyerAppointmentsPage() {
               />
               <Row label="Time" value={selected.time} />
               <Row label="Type" value={CONSULTATION_TYPE_LABELS[selected.consultationType]} />
-              {(selected as any).meetingMode && (
-                <Row label="Meeting Mode" value={(selected as any).meetingMode.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              {selected.meetingMode && (
+                <Row label="Meeting Mode" value={selected.meetingMode.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} />
               )}
               <Row label="Subject" value={selected.subject} />
               <Row label="Description" value={selected.description} />
               {selected.notes && <Row label="Notes" value={selected.notes} />}
-              {(selected as any).whatsappDocSharing && (
+              {selected.whatsappDocSharing && (
                 <div className="rounded-lg bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
                   Client will share documents via WhatsApp
-                  {(selected as any).whatsappDocNote && `: ${(selected as any).whatsappDocNote}`}
+                  {selected.whatsappDocNote && `: ${selected.whatsappDocNote}`}
                 </div>
               )}
               <div className="flex items-center justify-between">
@@ -281,15 +281,15 @@ export default function LawyerAppointmentsPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-on-surface-variant font-medium">Confirmation</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${(selected as any).lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
-                  {(selected as any).lawyerConfirmed ? "Confirmed by you" : "Not yet confirmed"}
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${selected.lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
+                  {selected.lawyerConfirmed ? "Confirmed by you" : "Not yet confirmed"}
                 </span>
               </div>
             </div>
 
             {selected.status === "scheduled" && (
               <div className="mt-5 flex flex-col gap-2 border-t border-outline-variant pt-4">
-                {!(selected as any).lawyerConfirmed && (
+                {!selected.lawyerConfirmed && (
                   <button
                     type="button"
                     disabled={confirmingId === selected._id}
