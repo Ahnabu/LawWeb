@@ -15,16 +15,19 @@ export default function DashboardLayoutWrapper({
   children,
   role,
 }: DashboardLayoutWrapperProps) {
-  const { user, status, refreshSession } = useAuth();
+  const { user, status, refreshSession, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.replace("/login");
     } else if (status === "authenticated" && user?.role !== role) {
-      router.push(`/dashboard/${user?.role}`);
+      void (async () => {
+        await logout();
+        router.replace("/login");
+      })();
     }
-  }, [status, user, role, router]);
+  }, [status, user, role, router, logout]);
 
   if (status === "loading" || !user) {
     return (

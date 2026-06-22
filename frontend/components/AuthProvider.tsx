@@ -54,8 +54,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return redirect
   }
 
+  const getCookieValue = (name: string) => {
+    if (typeof document === 'undefined') {
+      return null
+    }
+
+    const value = document.cookie
+      .split('; ')
+      .find((cookie) => cookie.startsWith(`${name}=`))
+
+    return value ? decodeURIComponent(value.split('=')[1]) : null
+  }
+
   const loadSession = async () => {
     const session = await fetchSession()
+
+    if (session && typeof document !== 'undefined') {
+      const cookieRole = getCookieValue('userRole')
+      if (cookieRole && cookieRole !== session.role) {
+        await signOut()
+        setUser(null)
+        setStatus('unauthenticated')
+        return null
+      }
+    }
+
     setUser(session)
     setStatus(session ? 'authenticated' : 'unauthenticated')
     return session

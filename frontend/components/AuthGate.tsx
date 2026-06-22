@@ -19,7 +19,7 @@ const roleDashboardPath: Record<UserRole, string> = {
 export function AuthGate({ children, allowRoles }: AuthGateProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, status } = useAuth()
+  const { user, status, logout } = useAuth()
 
   useEffect(() => {
     if (status !== 'authenticated') {
@@ -27,9 +27,12 @@ export function AuthGate({ children, allowRoles }: AuthGateProps) {
     }
 
     if (allowRoles && user && !allowRoles.includes(user.role)) {
-      router.replace(roleDashboardPath[user.role])
+      void (async () => {
+        await logout()
+        router.replace(`/login?redirect=${encodeURIComponent(pathname || '/')}`)
+      })()
     }
-  }, [allowRoles, router, status, user])
+  }, [allowRoles, logout, pathname, router, status, user])
 
   useEffect(() => {
     if (status === 'unauthenticated') {

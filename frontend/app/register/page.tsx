@@ -30,8 +30,7 @@ function RegisterPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const redirectPath =
-    searchParams.get("redirect") || "/dashboard/client/appointment";
+  const redirectPath = searchParams.get("redirect") || "/dashboard/client";
 
   useEffect(() => {
     if (typeof window === "undefined") {
