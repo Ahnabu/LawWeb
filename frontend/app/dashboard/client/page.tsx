@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../../../lib/api";
 import { DashboardStats } from "../../../types/dashboard";
@@ -149,6 +150,21 @@ export default function ClientDashboardPage() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-secondary">Welcome back</p>
+          <h2 className="mt-1 font-display text-2xl font-semibold text-on-surface">
+            Your Legal Overview
+          </h2>
+        </div>
+        <Link
+          href="/dashboard/client/book-consultation"
+          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
+        >
+          Book Appointment
+        </Link>
+      </div>
+
       {/* Stats */}
       {stats && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
