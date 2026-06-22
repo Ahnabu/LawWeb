@@ -185,16 +185,24 @@ export default function BookConsultationPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-          Book a Consultation
-        </p>
-        <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
-          Schedule Your Session
-        </h3>
-        <p className="text-sm text-on-surface-variant">
-          Connect with our experienced lawyers for professional legal guidance.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+            Book a Consultation
+          </p>
+          <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+            Schedule Your Session
+          </h3>
+          <p className="text-sm text-on-surface-variant">
+            Connect with our experienced lawyers for professional legal guidance.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/client"
+          className="inline-flex items-center justify-center rounded-lg border border-outline px-4 py-2 text-sm font-semibold text-on-surface transition hover:border-primary hover:text-primary"
+        >
+          Back to Dashboard
+        </Link>
       </header>
 
       {preselectedLawyerName && (
