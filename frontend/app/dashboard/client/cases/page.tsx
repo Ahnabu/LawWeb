@@ -16,6 +16,13 @@ type CaseStatus =
   | "settled"
   | "appealed";
 
+interface IPayment {
+  _id: string;
+  amount: number;
+  date: string;
+  details?: string;
+}
+
 interface CaseItem {
   _id: string;
   caseNumber: string;
@@ -31,6 +38,8 @@ interface CaseItem {
   nextCourtDate?: string;
   filingDate?: string;
   notes?: string;
+  totalPayment?: number;
+  payments?: IPayment[];
   createdAt: string;
 }
 
@@ -131,11 +140,10 @@ export default function ClientCasesPage() {
             type="button"
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
-              activeTab === tab.value
+            className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${activeTab === tab.value
                 ? "bg-primary text-on-primary"
                 : "text-on-surface-variant hover:bg-surface-container-high"
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -190,17 +198,17 @@ export default function ClientCasesPage() {
                   <td className="px-3 py-2.5 whitespace-nowrap text-xs text-on-surface-variant">
                     {c.nextCourtDate
                       ? new Date(c.nextCourtDate).toLocaleDateString("en-BD", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
                       : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     <button
                       type="button"
                       onClick={() => setSelected(c)}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-primary transition-colors hover:bg-primary/10"
+                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-secondary transition-colors hover:bg-secondary/10"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       View
@@ -271,6 +279,62 @@ export default function ClientCasesPage() {
                 <div>
                   <p className="font-medium text-on-surface-variant">Notes</p>
                   <p className="mt-1 text-on-surface">{selected.notes}</p>
+                </div>
+              )}
+
+              {/* Financials & Payments */}
+              {(selected.totalPayment !== undefined || (selected.payments && selected.payments.length > 0)) && (
+                <div className="border-t border-outline-variant/60 pt-3 space-y-3">
+                  <h4 className="font-semibold text-on-surface">Payments & Financials</h4>
+
+                  <div className="rounded-lg bg-surface-container p-3 space-y-2 border border-outline-variant/35">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-on-surface-variant">Total Payment</span>
+                      <span className="font-semibold text-on-surface">৳{(selected.totalPayment || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-outline-variant/20 pt-2">
+                      <span className="font-medium text-on-surface-variant">Total Paid</span>
+                      <span className="font-semibold text-success">
+                        ৳{(selected.payments?.reduce((sum, p) => sum + p.amount, 0) || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-on-surface-variant">Remaining Balance</span>
+                      <span className={`font-bold ${Math.max(0, (selected.totalPayment || 0) - (selected.payments?.reduce((sum, p) => sum + p.amount, 0) || 0)) > 0 ? "text-error" : "text-success"}`}>
+                        ৳{Math.max(0, (selected.totalPayment || 0) - (selected.payments?.reduce((sum, p) => sum + p.amount, 0) || 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selected.payments && selected.payments.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Payment Records</p>
+                      <div className="max-h-36 overflow-y-auto rounded border border-outline-variant/40 bg-surface-container-low text-xs">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-outline-variant bg-surface-container text-on-surface-variant font-semibold">
+                              <th className="px-2.5 py-1">Date</th>
+                              <th className="px-2.5 py-1">Details</th>
+                              <th className="px-2.5 py-1 text-right">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-outline-variant/25">
+                            {selected.payments.map((p) => (
+                              <tr key={p._id} className="text-on-surface">
+                                <td className="px-2.5 py-1 whitespace-nowrap">
+                                  {new Date(p.date).toLocaleDateString("en-BD", { day: "numeric", month: "short", year: "numeric" })}
+                                </td>
+                                <td className="px-2.5 py-1">{p.details || "—"}</td>
+                                <td className="px-2.5 py-1 text-right font-medium text-success">
+                                  ৳{p.amount.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

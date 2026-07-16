@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "predev": "node -e \"const {execSync}=require('child_process');try{const r=execSync('netstat -ano | findstr :5000 | findstr LISTENING',{encoding:'utf8'});const pid=r.trim().split(/\\s+/).pop();if(pid&&pid!=='0'){execSync('taskkill /PID '+pid+' /F');console.log('Freed port 5000 (PID '+pid+')')}}catch(e){}\"",
+    "predev": "node src/scripts/free-port.js",
     "dev": "nodemon",
     "clean": "rm -rf dist"
   },

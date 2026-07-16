@@ -55,8 +55,17 @@ export interface ICaseDocument {
   notes?: string;
 }
 
+export interface IPayment {
+  _id?: mongoose.Types.ObjectId;
+  amount: number;
+  date: Date;
+  details?: string;
+}
+
 export interface ICase extends Document {
   caseNumber: string;
+  totalPayment?: number;
+  payments: IPayment[];
   clientId?: mongoose.Types.ObjectId;
   clientEmail: string;
   clientName: string;
@@ -179,6 +188,14 @@ const CaseSchema: Schema = new Schema(
     retainerAmount: { type: Number, default: null },
     estimatedFee: { type: Number, default: null },
     retainerPaid: { type: Boolean, default: false },
+    totalPayment: { type: Number, default: 0 },
+    payments: [
+      {
+        amount: { type: Number, required: true },
+        date: { type: Date, default: Date.now, required: true },
+        details: { type: String, trim: true }
+      }
+    ],
     referredBy: { type: String, trim: true },
     caseOrigin: {
       type: String,

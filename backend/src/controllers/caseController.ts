@@ -21,6 +21,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       courtName, jurisdiction, opposingParty, opposingCounsel, stage,
       statute, caseValue, retainerAmount, estimatedFee, retainerPaid,
       referredBy, caseOrigin, witnessNames, evidenceSummary, internalNotes, notes,
+      totalPayment,
     } = req.body;
 
     if (!clientEmail || !clientName || !type || !title || !description) {
@@ -69,6 +70,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       evidenceSummary: evidenceSummary || undefined,
       internalNotes: internalNotes || undefined,
       notes: notes || undefined,
+      totalPayment: totalPayment || 0,
     });
 
     await caseDoc.save();
@@ -169,6 +171,7 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       referredBy, caseOrigin, witnessNames, evidenceSummary,
       clientPhone, clientWhatsapp, priority,
       hearingEntry, documentEntry,
+      totalPayment, paymentEntry, deletePaymentId,
     } = req.body;
 
     const caseDoc = await Case.findById(caseId);
@@ -211,6 +214,29 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     if (documentEntry) caseDoc.documents.push({ ...documentEntry, date: documentEntry.date ? new Date(documentEntry.date) : new Date() });
     if (title && userRole === 'admin') caseDoc.title = title;
     if (description && userRole === 'admin') caseDoc.description = description;
+
+    if (totalPayment !== undefined) caseDoc.totalPayment = totalPayment;
+    if (paymentEntry) {
+      if (typeof paymentEntry.amount !== 'number' || paymentEntry.amount <= 0) {
+        return res.status(400).json({ status: 400, message: 'Invalid payment amount' });
+      }
+      caseDoc.payments.push({
+        amount: paymentEntry.amount,
+        date: paymentEntry.date ? new Date(paymentEntry.date) : new Date(),
+        details: paymentEntry.details || '',
+      });
+    }
+    if (deletePaymentId) {
+      if (userRole !== 'admin') {
+        return res.status(403).json({ status: 403, message: 'Only admins can delete payment entries' });
+      }
+      const paymentIndex = caseDoc.payments.findIndex((p: any) => p._id.toString() === deletePaymentId);
+      if (paymentIndex > -1) {
+        caseDoc.payments.splice(paymentIndex, 1);
+      } else {
+        return res.status(404).json({ status: 404, message: 'Payment entry not found' });
+      }
+    }
 
     await caseDoc.save();
 

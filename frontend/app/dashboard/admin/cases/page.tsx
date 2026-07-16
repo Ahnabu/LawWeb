@@ -10,6 +10,13 @@ interface LawyerOption {
   barId?: string;
 }
 
+interface IPayment {
+  _id: string;
+  amount: number;
+  date: string;
+  details?: string;
+}
+
 interface CaseItem {
   _id: string;
   caseNumber?: string;
@@ -24,6 +31,8 @@ interface CaseItem {
   clientEmail: string;
   lawyerId?: { _id: string; name?: string; email?: string; barId?: string };
   clientId?: { name?: string; email?: string };
+  totalPayment?: number;
+  payments?: IPayment[];
   createdAt: string;
 }
 
@@ -83,6 +92,111 @@ export default function AdminCasesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Payments states
+  const [isEditingTotalPayment, setIsEditingTotalPayment] = useState<string | null>(null);
+  const [tempTotalPayment, setTempTotalPayment] = useState("");
+  const [isSavingTotalPayment, setIsSavingTotalPayment] = useState(false);
+
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDetails, setPaymentDetails] = useState("");
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const handleToggleExpand = (caseId: string) => {
+    if (expandedId === caseId) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(caseId);
+      setPaymentAmount("");
+      setPaymentDetails("");
+      setPaymentDate(new Date().toISOString().split("T")[0]);
+      setPaymentError(null);
+      setIsEditingTotalPayment(null);
+    }
+  };
+
+  const handleUpdateTotalPayment = async (caseId: string, amountVal: number) => {
+    setIsSavingTotalPayment(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ totalPayment: amountVal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update total payment");
+      
+      setCases((prev) =>
+        prev.map((c) => (c._id === caseId ? { ...c, totalPayment: data.data.totalPayment } : c))
+      );
+      setIsEditingTotalPayment(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update total payment");
+    } finally {
+      setIsSavingTotalPayment(false);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent, caseId: string) => {
+    e.preventDefault();
+    const amount = Number(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setPaymentError("Please enter a valid positive number.");
+      return;
+    }
+    setIsRecordingPayment(true);
+    setPaymentError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          paymentEntry: {
+            amount,
+            date: paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString(),
+            details: paymentDetails,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to record payment");
+      
+      setCases((prev) =>
+        prev.map((c) => (c._id === caseId ? { ...c, payments: data.data.payments } : c))
+      );
+      setPaymentAmount("");
+      setPaymentDetails("");
+      setPaymentDate(new Date().toISOString().split("T")[0]);
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Failed to record payment");
+    } finally {
+      setIsRecordingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (caseId: string, paymentId: string) => {
+    if (!confirm("Are you sure you want to delete this payment entry?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ deletePaymentId: paymentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete payment entry");
+      
+      setCases((prev) =>
+        prev.map((c) => (c._id === caseId ? { ...c, payments: data.data.payments } : c))
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete payment");
+    }
+  };
 
   const fetchCases = useCallback(async () => {
     setIsLoading(true);
@@ -280,9 +394,7 @@ export default function AdminCasesPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() =>
-                    setExpandedId(expandedId === item._id ? null : item._id)
-                  }
+                  onClick={() => handleToggleExpand(item._id)}
                   className="rounded-lg border border-outline-variant p-1.5 text-on-surface-variant hover:bg-surface transition shrink-0"
                   aria-label="Toggle details"
                 >
@@ -327,6 +439,167 @@ export default function AdminCasesPage() {
                       <p className="mt-1 text-sm text-on-surface">{item.notes}</p>
                     </div>
                   )}
+
+                  {/* Financials & Payments Section */}
+                  <div className="border-t border-outline-variant/65 pt-4 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Financials & Payments</h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {/* Column 1: Summary */}
+                      <div className="rounded-lg bg-surface-container-low p-4 border border-outline-variant/30 space-y-3">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-on-surface-variant font-medium">Total Payment:</span>
+                          {isEditingTotalPayment === item._id ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min="0"
+                                title="Edit Total Payment"
+                                className="w-20 rounded border border-outline bg-surface px-1 py-0.5 text-xs text-on-surface focus:outline-none"
+                                value={tempTotalPayment}
+                                onChange={(e) => setTempTotalPayment(e.target.value)}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateTotalPayment(item._id, Number(tempTotalPayment))}
+                                disabled={isSavingTotalPayment}
+                                className="text-xs text-success hover:underline font-semibold"
+                              >
+                                {isSavingTotalPayment ? "..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsEditingTotalPayment(null)}
+                                className="text-xs text-error hover:underline font-semibold"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-on-surface">৳{(item.totalPayment || 0).toLocaleString()}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTempTotalPayment(String(item.totalPayment || 0));
+                                  setIsEditingTotalPayment(item._id);
+                                }}
+                                className="text-[10px] text-primary hover:underline font-semibold"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between text-sm border-t border-outline-variant/20 pt-2">
+                          <span className="text-on-surface-variant">Total Paid:</span>
+                          <span className="font-semibold text-success">
+                            ৳{(item.payments?.reduce((sum, p) => sum + p.amount, 0) || 0).toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className="text-on-surface-variant">Remaining Balance:</span>
+                          <span className={`font-bold ${Math.max(0, (item.totalPayment || 0) - (item.payments?.reduce((sum, p) => sum + p.amount, 0) || 0)) > 0 ? "text-error" : "text-success"}`}>
+                            ৳{Math.max(0, (item.totalPayment || 0) - (item.payments?.reduce((sum, p) => sum + p.amount, 0) || 0)).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Column 2: Record Payment */}
+                      <form onSubmit={(e) => handleRecordPayment(e, item._id)} className="rounded-lg bg-surface-container-low p-4 border border-outline-variant/30 space-y-2">
+                        <h5 className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Record Offline Payment</h5>
+                        <div className="grid gap-2 grid-cols-2">
+                          <div>
+                            <label htmlFor={`pay-amount-${item._id}`} className="block text-[10px] text-on-surface-variant">Amount (৳)</label>
+                            <input
+                              id={`pay-amount-${item._id}`}
+                              type="number"
+                              min="1"
+                              value={paymentAmount}
+                              onChange={(e) => setPaymentAmount(e.target.value)}
+                              placeholder="Amount"
+                              className="w-full rounded border border-outline bg-surface px-2 py-1 text-xs text-on-surface focus:outline-none"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`pay-date-${item._id}`} className="block text-[10px] text-on-surface-variant">Date</label>
+                            <input
+                              id={`pay-date-${item._id}`}
+                              type="date"
+                              value={paymentDate}
+                              onChange={(e) => setPaymentDate(e.target.value)}
+                              className="w-full rounded border border-outline bg-surface px-2 py-1 text-xs text-on-surface focus:outline-none"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label htmlFor={`pay-details-${item._id}`} className="block text-[10px] text-on-surface-variant">Details</label>
+                          <input
+                            id={`pay-details-${item._id}`}
+                            type="text"
+                            value={paymentDetails}
+                            onChange={(e) => setPaymentDetails(e.target.value)}
+                            placeholder="e.g. Cash / Bank transfer"
+                            className="w-full rounded border border-outline bg-surface px-2 py-1 text-xs text-on-surface focus:outline-none"
+                          />
+                        </div>
+                        {paymentError && <p className="text-[10px] text-error">{paymentError}</p>}
+                        <button
+                          type="submit"
+                          disabled={isRecordingPayment}
+                          className="w-full rounded bg-secondary py-1 text-xs font-semibold text-on-secondary hover:opacity-90 disabled:opacity-50 transition"
+                        >
+                          {isRecordingPayment ? "Recording..." : "Record Payment"}
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Payment History List */}
+                    <div className="space-y-1">
+                      <h5 className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Payment History Logs</h5>
+                      {!item.payments || item.payments.length === 0 ? (
+                        <p className="text-xs text-on-surface-variant italic">No payments recorded yet.</p>
+                      ) : (
+                        <div className="overflow-x-auto rounded border border-outline-variant/40 bg-surface">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-outline-variant bg-surface-container-low text-on-surface-variant font-semibold">
+                                <th className="px-3 py-1.5">Date</th>
+                                <th className="px-3 py-1.5">Details</th>
+                                <th className="px-3 py-1.5 text-right">Amount</th>
+                                <th className="px-3 py-1.5 text-center">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant/20">
+                              {item.payments.map((p) => (
+                                <tr key={p._id} className="text-on-surface">
+                                  <td className="px-3 py-1.5 whitespace-nowrap">
+                                    {new Date(p.date).toLocaleDateString("en-BD", { day: "numeric", month: "short", year: "numeric" })}
+                                  </td>
+                                  <td className="px-3 py-1.5">{p.details || "—"}</td>
+                                  <td className="px-3 py-1.5 text-right font-medium text-success">
+                                    ৳{p.amount.toLocaleString()}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeletePayment(item._id, p._id)}
+                                      className="text-error hover:underline text-[11px] font-medium"
+                                    >
+                                      Delete
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Status update */}
                   <div className="flex flex-wrap gap-2 pt-1">

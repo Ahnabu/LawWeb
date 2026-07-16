@@ -77,7 +77,7 @@ export const getAllCasesAdmin = async (req: AuthRequest, res: Response) => {
 
 export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
   try {
-    const { clientEmail, clientName, lawyerId, type, title, description, isOnline, nextCourtDate, notes } = req.body;
+    const { clientEmail, clientName, lawyerId, type, title, description, isOnline, nextCourtDate, notes, totalPayment } = req.body;
 
     if (!clientEmail || !clientName || !lawyerId || !type || !title || !description) {
       return res.status(400).json({ status: 400, message: 'Required fields: clientEmail, clientName, lawyerId, type, title, description' });
@@ -102,6 +102,7 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
       isOnline: isOnline ?? true,
       nextCourtDate: nextCourtDate ? new Date(nextCourtDate) : undefined,
       notes,
+      totalPayment: totalPayment || 0,
     });
 
     await newCase.save();

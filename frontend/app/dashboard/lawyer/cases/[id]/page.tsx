@@ -35,6 +35,13 @@ interface ICaseDocument {
   notes?: string;
 }
 
+interface IPayment {
+  _id: string;
+  amount: number;
+  date: string;
+  details?: string;
+}
+
 interface CaseDetail {
   _id: string;
   caseNumber: string;
@@ -62,6 +69,8 @@ interface CaseDetail {
   retainerAmount?: number;
   estimatedFee?: number;
   retainerPaid?: boolean;
+  totalPayment?: number;
+  payments?: IPayment[];
   referredBy?: string;
   caseOrigin?: string;
   witnessNames?: string[];
@@ -112,6 +121,82 @@ export default function CaseDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [isToggling, setIsToggling] = useState(false);
+
+  // Payments states
+  const [isEditingTotalPayment, setIsEditingTotalPayment] = useState(false);
+  const [tempTotalPayment, setTempTotalPayment] = useState("");
+  const [isSavingTotalPayment, setIsSavingTotalPayment] = useState(false);
+
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDetails, setPaymentDetails] = useState("");
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const totalPaid = caseData?.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  const remainingAmount = Math.max(0, (caseData?.totalPayment || 0) - totalPaid);
+
+  const handleSaveTotalPayment = async () => {
+    if (!caseData) return;
+    const value = Number(tempTotalPayment);
+    if (isNaN(value) || value < 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+    setIsSavingTotalPayment(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ totalPayment: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update total payment");
+      setCaseData(data.data);
+      setIsEditingTotalPayment(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update total payment");
+    } finally {
+      setIsSavingTotalPayment(false);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!caseData) return;
+    const amount = Number(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setPaymentError("Please enter a valid positive number.");
+      return;
+    }
+    setIsRecordingPayment(true);
+    setPaymentError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          paymentEntry: {
+            amount,
+            date: paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString(),
+            details: paymentDetails,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to record payment");
+      setCaseData(data.data);
+      setPaymentAmount("");
+      setPaymentDetails("");
+      setPaymentDate(new Date().toISOString().split("T")[0]);
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Failed to record payment");
+    } finally {
+      setIsRecordingPayment(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCase = async () => {
@@ -374,6 +459,89 @@ export default function CaseDetailPage() {
             </section>
           )}
 
+          {/* Payments & Financial History */}
+          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+            <h3 className="mb-3 text-sm font-semibold text-on-surface">Payments & Financial History</h3>
+            
+            {/* Add Payment Form */}
+            <form onSubmit={handleRecordPayment} className="mb-6 rounded-lg bg-surface p-4 border border-outline-variant/50">
+              <h4 className="mb-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Record Offline Payment</h4>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label htmlFor="pay-amount" className="mb-1 block text-[11px] font-medium text-on-surface-variant">Amount (৳)</label>
+                  <input
+                    id="pay-amount"
+                    type="number"
+                    min="1"
+                    placeholder="5000"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="pay-date" className="mb-1 block text-[11px] font-medium text-on-surface-variant">Payment Date</label>
+                  <input
+                    id="pay-date"
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="pay-details" className="mb-1 block text-[11px] font-medium text-on-surface-variant">Details</label>
+                  <input
+                    id="pay-details"
+                    type="text"
+                    placeholder="Cash / Bank / bkash reference"
+                    value={paymentDetails}
+                    onChange={(e) => setPaymentDetails(e.target.value)}
+                    className="w-full rounded-lg border border-outline bg-surface px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+              {paymentError && <p className="mt-2 text-xs text-error">{paymentError}</p>}
+              <button
+                type="submit"
+                disabled={isRecordingPayment}
+                className="mt-3 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-on-secondary hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {isRecordingPayment ? "Recording..." : "Record Payment"}
+              </button>
+            </form>
+
+            {/* Payments List */}
+            <div className="space-y-2">
+              {!caseData.payments || caseData.payments.length === 0 ? (
+                <p className="text-xs text-on-surface-variant italic">No payments recorded yet.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-outline-variant/60">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-outline-variant bg-surface text-on-surface-variant font-semibold uppercase tracking-wider">
+                        <th className="px-3 py-2">Date</th>
+                        <th className="px-3 py-2">Details</th>
+                        <th className="px-3 py-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/30 bg-surface">
+                      {caseData.payments.map((p) => (
+                        <tr key={p._id} className="text-on-surface">
+                          <td className="px-3 py-2 whitespace-nowrap">{fmt(p.date)}</td>
+                          <td className="px-3 py-2">{p.details || "—"}</td>
+                          <td className="px-3 py-2 text-right font-medium text-success">৳{p.amount.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Update Case */}
           <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Update Case</h3>
@@ -504,37 +672,100 @@ export default function CaseDetailPage() {
           )}
 
           {/* Financials */}
-          {(caseData.caseValue || caseData.retainerAmount || caseData.estimatedFee) && (
-            <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
-              <h3 className="mb-3 text-sm font-semibold text-on-surface">Financial</h3>
-              <div className="space-y-2 text-sm">
-                {caseData.caseValue && (
-                  <div className="flex justify-between">
-                    <span className="text-on-surface-variant">Case Value</span>
-                    <span className="font-medium text-on-surface">৳{caseData.caseValue.toLocaleString()}</span>
-                  </div>
-                )}
-                {caseData.retainerAmount && (
-                  <div className="flex justify-between">
-                    <span className="text-on-surface-variant">Retainer</span>
-                    <span className="font-medium text-on-surface">৳{caseData.retainerAmount.toLocaleString()}</span>
-                  </div>
-                )}
-                {caseData.estimatedFee && (
-                  <div className="flex justify-between">
-                    <span className="text-on-surface-variant">Est. Fee</span>
-                    <span className="font-medium text-on-surface">৳{caseData.estimatedFee.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Retainer Paid</span>
-                  <span className={`text-xs font-semibold ${caseData.retainerPaid ? "text-success" : "text-error"}`}>
-                    {caseData.retainerPaid ? "Yes" : "No"}
-                  </span>
+          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+            <h3 className="mb-3 text-sm font-semibold text-on-surface">Financials</h3>
+            <div className="space-y-3 text-sm">
+              {/* Total Payment Edit */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-on-surface-variant font-medium">Total Payment</span>
+                  {isEditingTotalPayment ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        title="Total Payment"
+                        className="w-20 rounded border border-outline bg-surface px-1 py-0.5 text-xs text-on-surface focus:outline-none"
+                        value={tempTotalPayment}
+                        onChange={(e) => setTempTotalPayment(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveTotalPayment}
+                        disabled={isSavingTotalPayment}
+                        className="text-[10px] text-success hover:underline font-semibold"
+                      >
+                        {isSavingTotalPayment ? "..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingTotalPayment(false)}
+                        className="text-[10px] text-error hover:underline font-semibold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-on-surface">৳{(caseData.totalPayment || 0).toLocaleString()}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTempTotalPayment(String(caseData.totalPayment || 0));
+                          setIsEditingTotalPayment(true);
+                        }}
+                        className="text-[10px] text-primary hover:underline font-semibold"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            </section>
-          )}
+
+              {/* Calculated metrics */}
+              <div className="flex justify-between border-t border-outline-variant/30 pt-2">
+                <span className="text-on-surface-variant font-medium">Total Paid</span>
+                <span className="font-semibold text-success">৳{totalPaid.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-on-surface-variant font-medium">Remaining</span>
+                <span className={`font-bold ${remainingAmount > 0 ? "text-error" : "text-success"}`}>
+                  ৳{remainingAmount.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Other existing fields if present */}
+              {(caseData.caseValue || caseData.retainerAmount || caseData.estimatedFee || caseData.retainerPaid !== undefined) && (
+                <div className="border-t border-outline-variant/30 pt-2 space-y-2">
+                  {caseData.caseValue && (
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Case Value</span>
+                      <span className="font-medium text-on-surface">৳{caseData.caseValue.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {caseData.retainerAmount && (
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Retainer</span>
+                      <span className="font-medium text-on-surface">৳{caseData.retainerAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {caseData.estimatedFee && (
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Est. Fee</span>
+                      <span className="font-medium text-on-surface">৳{caseData.estimatedFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">Retainer Paid</span>
+                    <span className={`text-xs font-semibold ${caseData.retainerPaid ? "text-success" : "text-error"}`}>
+                      {caseData.retainerPaid ? "Yes" : "No"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* Timestamps */}
           <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
