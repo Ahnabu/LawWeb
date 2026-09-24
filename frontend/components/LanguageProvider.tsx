@@ -12,8 +12,9 @@ import {
   availableLocales,
   defaultLocale,
   Locale,
-  translate,
 } from "../lib/i18n";
+import { resolveString } from "../lib/content";
+import { useContent } from "./ContentProvider";
 
 interface LanguageContextValue {
   locale: Locale;
@@ -33,6 +34,7 @@ export function useLanguage() {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(defaultLocale);
+  const { stringOverrides } = useContent();
 
   useEffect(() => {
     try {
@@ -63,9 +65,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         setLocale(next);
         window.localStorage.setItem("lawweb-lang", next);
       },
-      t: (key: string) => translate(locale, key),
+      t: (key: string) => resolveString(locale, key, stringOverrides),
     }),
-    [locale],
+    [locale, stringOverrides],
   );
 
   return (

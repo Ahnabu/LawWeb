@@ -7,16 +7,25 @@ export const navLinks = [
   { labelKey: 'nav.contact', fallback: 'Contact', href: '/#contact' },
 ]
 
-export const practiceAreas = [
-  { titleKey: 'common.practiceAreas.immigration.title', descriptionKey: 'common.practiceAreas.immigration.description' },
-  { titleKey: 'common.practiceAreas.criminal.title', descriptionKey: 'common.practiceAreas.criminal.description' },
-  { titleKey: 'common.practiceAreas.civil.title', descriptionKey: 'common.practiceAreas.civil.description' },
-  { titleKey: 'common.practiceAreas.corporate.title', descriptionKey: 'common.practiceAreas.corporate.description' },
-  { titleKey: 'common.practiceAreas.family.title', descriptionKey: 'common.practiceAreas.family.description' },
-  { titleKey: 'common.practiceAreas.realEstate.title', descriptionKey: 'common.practiceAreas.realEstate.description' },
-  { titleKey: 'common.practiceAreas.intellectualProperty.title', descriptionKey: 'common.practiceAreas.intellectualProperty.description' },
-  { titleKey: 'common.practiceAreas.bankingFinance.title', descriptionKey: 'common.practiceAreas.bankingFinance.description' },
+// Default for the CMS "practice-areas" page's `areas` list (Home, Footer and
+// the Practice Areas page all read it through useContentList).
+const practiceAreaIds = [
+  ['immigration', 'immigration'],
+  ['criminal', 'criminal'],
+  ['civil', 'civil'],
+  ['corporate', 'corporate'],
+  ['family', 'family'],
+  ['real-estate', 'realEstate'],
+  ['intellectual-property', 'intellectualProperty'],
+  ['banking-finance', 'bankingFinance'],
 ]
+
+export const practiceAreas = practiceAreaIds.map(([slug, key]) => ({
+  slug,
+  titleKey: `common.practiceAreas.${key}.title`,
+  descriptionKey: `common.practiceAreas.${key}.description`,
+  detailsKey: `common.practiceAreas.${key}.details`,
+}))
 
 export const lawyers = [
   {
@@ -72,8 +81,15 @@ export const lawyers = [
   },
 ]
 
+export const homeStats = [1, 2, 3, 4].map((n) => ({
+  id: `stat${n}`,
+  valueKey: `common.stat${n}`,
+  labelKey: `common.statLabel${n}`,
+}))
+
 export const successStories = [
   {
+    id: 'immigration',
     titleKey: 'common.successStories.immigration.title',
     summaryKey: 'common.successStories.immigration.summary',
     initials: 'A.A.',
@@ -81,6 +97,7 @@ export const successStories = [
     badgeKey: 'common.successStories.immigration.badge',
   },
   {
+    id: 'corporate',
     titleKey: 'common.successStories.corporate.title',
     summaryKey: 'common.successStories.corporate.summary',
     initials: 'M.R.',
@@ -88,6 +105,7 @@ export const successStories = [
     badgeKey: 'common.successStories.corporate.badge',
   },
   {
+    id: 'civil',
     titleKey: 'common.successStories.civil.title',
     summaryKey: 'common.successStories.civil.summary',
     initials: 'S.H.',
@@ -96,24 +114,24 @@ export const successStories = [
   },
 ]
 
-export const timelineItems = [
-  { year: '1930s–40s', title: 'Advocate Mumtaz Uddin Ahmed', description: 'Great-grandfather laid the family legal foundation.' },
-  { year: '1950s–60s', title: 'Advocate K M Sadequr Rahman', description: 'Grandfather expanded the firm’s civil and corporate practice.' },
-  { year: '1970s–80s', title: 'Advocate Nazrul Islam', description: 'Father established the firm’s courtroom excellence.' },
-  { year: '1997', title: 'Mufassil MM Islam founded Islam & Associates', description: 'Modern law firm founded in Dhaka with international reach.' },
-  { year: '2000s–Present', title: 'Global expansion', description: 'Harvard training and international syndicate partnerships.' },
-]
+export const timelineItems = ['greatGrandfather', 'grandfather', 'father', 'founding', 'global'].map((id) => ({
+  id,
+  yearKey: `about.timeline.${id}.year`,
+  titleKey: `about.timeline.${id}.title`,
+  descriptionKey: `about.timeline.${id}.description`,
+}))
 
-export const practiceAreaDetails = [
-  { titleKey: 'common.practiceAreas.immigration.title', detailsKey: 'common.practiceAreas.immigration.details' },
-  { titleKey: 'common.practiceAreas.criminal.title', detailsKey: 'common.practiceAreas.criminal.details' },
-  { titleKey: 'common.practiceAreas.civil.title', detailsKey: 'common.practiceAreas.civil.details' },
-  { titleKey: 'common.practiceAreas.corporate.title', detailsKey: 'common.practiceAreas.corporate.details' },
-  { titleKey: 'common.practiceAreas.family.title', detailsKey: 'common.practiceAreas.family.details' },
-  { titleKey: 'common.practiceAreas.realEstate.title', detailsKey: 'common.practiceAreas.realEstate.details' },
-  { titleKey: 'common.practiceAreas.intellectualProperty.title', detailsKey: 'common.practiceAreas.intellectualProperty.details' },
-  { titleKey: 'common.practiceAreas.bankingFinance.title', detailsKey: 'common.practiceAreas.bankingFinance.details' },
-]
+const aboutInstitutions = ['harvard', 'centralLaw', 'kensington', 'neilWeinrib', 'ashleyBean']
+
+export const aboutCertifications = aboutInstitutions.map((id) => ({ id, labelKey: `about.certifications.${id}` }))
+
+export const principalCredentials = aboutInstitutions.map((id) => ({ id, labelKey: `about.credentials.${id}` }))
+
+export const missionValues = ['integrity', 'expertise', 'clientSuccess'].map((id) => ({
+  id,
+  titleKey: `about.values.${id}.title`,
+  descriptionKey: `about.values.${id}.description`,
+}))
 
 export const adminStats = [
   { label: 'Total Cases', value: '1,280' },

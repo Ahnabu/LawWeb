@@ -9,7 +9,8 @@ import { LawyerPublicCard } from '../components/LawyerPublicCard'
 import { SuccessStoryCard } from '../components/SuccessStoryCard'
 import { PracticeAreaCard } from '../components/PracticeAreaCard'
 import { useLanguage } from '../components/LanguageProvider'
-import { practiceAreas, successStories } from '../lib/data'
+import { useContentList, useSiteSettings } from '../components/contentHooks'
+import { homeStats, practiceAreas, successStories } from '../lib/data'
 import { API_BASE_URL } from '../lib/api'
 
 interface PublicLawyer {
@@ -22,6 +23,10 @@ interface PublicLawyer {
 export default function HomePage() {
   const { t } = useLanguage()
   const [lawyers, setLawyers] = useState<PublicLawyer[]>([])
+  const { whatsappHref } = useSiteSettings()
+  const stats = useContentList('home', 'stats', homeStats)
+  const stories = useContentList('home', 'successStories', successStories)
+  const areas = useContentList('practice-areas', 'areas', practiceAreas)
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/lawyers/public`)
@@ -29,13 +34,6 @@ export default function HomePage() {
       .then((d) => setLawyers((d.lawyers ?? []).slice(0, 3)))
       .catch(() => {})
   }, [])
-
-  const stats = [
-    { labelKey: 'common.statLabel1', valueKey: 'common.stat1' },
-    { labelKey: 'common.statLabel2', valueKey: 'common.stat2' },
-    { labelKey: 'common.statLabel3', valueKey: 'common.stat3' },
-    { labelKey: 'common.statLabel4', valueKey: 'common.stat4' },
-  ]
 
   return (
     <main className="relative overflow-hidden">
@@ -57,7 +55,7 @@ export default function HomePage() {
             <Link href="/dashboard/client/appointment" className="inline-flex rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:bg-secondary/90 w-full sm:w-auto justify-center">
               {t('common.bookAppointment')}
             </Link>
-            <Link href="https://wa.me/8801715365380" className="inline-flex items-center justify-center rounded-md border border-whatsapp/50 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:border-whatsapp hover:bg-white/15 w-full sm:w-auto">
+            <Link href={whatsappHref()} className="inline-flex items-center justify-center rounded-md border border-whatsapp/50 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:border-whatsapp hover:bg-white/15 w-full sm:w-auto">
               {t('common.whatsapp')}
             </Link>
           </div>
@@ -68,9 +66,9 @@ export default function HomePage() {
       <section className="bg-primary px-4 sm:px-6 py-8 sm:py-10 lg:px-8">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.valueKey} className="rounded-lg sm:rounded-xl border border-white/10 bg-white/5 p-4 sm:p-6 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t(stat.labelKey)}</p>
-              <p className="mt-3 sm:mt-4 text-lg sm:text-xl font-semibold text-white">{t(stat.valueKey)}</p>
+            <div key={stat.id} className="rounded-lg sm:rounded-xl border border-white/10 bg-white/5 p-4 sm:p-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{stat.label}</p>
+              <p className="mt-3 sm:mt-4 text-lg sm:text-xl font-semibold text-white">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -87,11 +85,11 @@ export default function HomePage() {
             </p>
           </div>
           <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {practiceAreas.map((area) => (
+            {areas.map((area) => (
               <PracticeAreaCard
-                key={area.titleKey}
-                title={t(area.titleKey)}
-                description={t(area.descriptionKey)}
+                key={area.id}
+                title={area.title}
+                description={area.description}
               />
             ))}
           </div>
@@ -135,14 +133,14 @@ export default function HomePage() {
             <h2 className="mt-3 sm:mt-4 font-display font-semibold text-on-surface">{t('common.victoriesHeading')}</h2>
           </div>
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-            {successStories.map((story) => (
+            {stories.map((story) => (
               <SuccessStoryCard
-                key={story.titleKey}
-                title={t(story.titleKey)}
-                summary={t(story.summaryKey)}
+                key={story.id}
+                title={story.title}
+                summary={story.summary}
                 initials={story.initials}
-                quote={t(story.quoteKey)}
-                badge={t(story.badgeKey)}
+                quote={story.quote}
+                badge={story.badge}
               />
             ))}
           </div>
@@ -180,7 +178,7 @@ export default function HomePage() {
             <Link href="/dashboard/client/appointment" className="rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90 text-center">
               {t('common.ctaBookAppointment')}
             </Link>
-            <Link href="https://wa.me/8801715365380" className="rounded-md border border-white/30 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:bg-white/20 text-center">
+            <Link href={whatsappHref()} className="rounded-md border border-white/30 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:bg-white/20 text-center">
               {t('common.ctaChatWhatsApp')}
             </Link>
           </div>

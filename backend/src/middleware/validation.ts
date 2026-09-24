@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONTENT_PAGE_KEYS } from '../config/contentSchemas';
 
 export const registerSchema = z.object({
   body: z.object({
@@ -21,6 +22,27 @@ export const loginSchema = z.object({
   }),
 });
 
+// ── CMS content ───────────────────────────────────────────────────────────────
+const contentPageKeyParam = z.object({ pageKey: z.enum(CONTENT_PAGE_KEYS) });
+
+export const contentPageSchema = z.object({ params: contentPageKeyParam });
+
+// Page-specific shape is validated in the controller against contentPageSchemas
+export const saveContentDraftSchema = z.object({
+  params: contentPageKeyParam,
+  body: z.object({ data: z.record(z.string(), z.unknown()) }),
+});
+
+export const contentRevisionSchema = z.object({
+  params: contentPageKeyParam.extend({ version: z.coerce.number().int().positive() }),
+});
+
+export const formatZodIssues = (error: z.ZodError) =>
+  error.issues.map((issue) => ({
+    field: issue.path.join('.'),
+    message: issue.message,
+  }));
+
 export const validateRequest = (schema: z.ZodSchema) => {
   return (req: any, res: any, next: any) => {
     try {
@@ -30,10 +52,7 @@ export const validateRequest = (schema: z.ZodSchema) => {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: 'Validation failed',
-          errors: error.issues.map((issue: any) => ({
-            field: issue.path.join('.'),
-            message: issue.message,
-          })),
+          errors: formatZodIssues(error),
         });
       }
       // Non-Zod error — pass to Express error handler

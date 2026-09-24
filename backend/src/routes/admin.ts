@@ -20,7 +20,24 @@ import {
   updateBlog,
   deleteBlog,
 } from '../controllers/blogController';
+import {
+  listContentPages,
+  getContentPageAdmin,
+  saveContentDraft,
+  publishContentPage,
+  discardContentDraft,
+  listContentRevisions,
+  getContentRevision,
+  restoreContentRevision,
+} from '../controllers/contentController';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
+import {
+  validateRequest,
+  contentPageSchema,
+  saveContentDraftSchema,
+  contentRevisionSchema,
+} from '../middleware/validation';
+import { uploadContentImage } from '../config/multer.config';
 
 const router = express.Router();
 
@@ -59,5 +76,21 @@ router.patch("/blogs/:blogId/publish", (req, res, next) => {
   req.body = { ...req.body, status: 'published' };
   next();
 }, updateBlog);
+
+// ── Content (CMS) ─────────────────────────────────────────────────────────────
+// Image upload → returns { url }. Declared before /:pageKey routes.
+router.post('/content/upload', uploadContentImage.single('image'), (req, res) => {
+  const file = req.file as Express.Multer.File & { path?: string };
+  if (!file) return res.status(400).json({ status: 400, message: 'No file uploaded' });
+  res.json({ status: 200, message: 'Image uploaded', url: file.path });
+});
+router.get('/content', listContentPages);
+router.get('/content/:pageKey', validateRequest(contentPageSchema), getContentPageAdmin);
+router.put('/content/:pageKey', validateRequest(saveContentDraftSchema), saveContentDraft);
+router.post('/content/:pageKey/publish', validateRequest(contentPageSchema), publishContentPage);
+router.post('/content/:pageKey/discard', validateRequest(contentPageSchema), discardContentDraft);
+router.get('/content/:pageKey/revisions', validateRequest(contentPageSchema), listContentRevisions);
+router.get('/content/:pageKey/revisions/:version', validateRequest(contentRevisionSchema), getContentRevision);
+router.post('/content/:pageKey/revisions/:version/restore', validateRequest(contentRevisionSchema), restoreContentRevision);
 
 export default router;

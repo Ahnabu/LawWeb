@@ -16,6 +16,7 @@ import { Navbar } from "../../../components/Navbar";
 import { WhatsAppCta } from "../../../components/WhatsAppCta";
 import { useLanguage } from "../../../components/LanguageProvider";
 import { API_BASE_URL } from "../../../lib/api";
+import { useSiteSettings } from "../../../components/contentHooks";
 
 interface LawyerUser {
   _id: string;
@@ -73,6 +74,7 @@ interface LawyerProfileData {
 export default function LawyerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { locale } = useLanguage();
+  const siteSettings = useSiteSettings();
   const [lawyer, setLawyer] = useState<LawyerUser | null>(null);
   const [profile, setProfile] = useState<LawyerProfileData | null>(null);
   const [availability, setAvailability] = useState<LawyerAvailabilityData | null>(null);
@@ -99,7 +101,7 @@ export default function LawyerDetailPage() {
     ? lawyer.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
     : "??";
 
-  const whatsappNumber = profile?.whatsappNumber || "8801715365380";
+  const whatsappNumber = profile?.whatsappNumber || siteSettings.whatsappNumber;
 
   // Get bilingual content based on current locale
   const designation = profile?.designation?.[locale] || profile?.designation?.en || "Attorney at Law";

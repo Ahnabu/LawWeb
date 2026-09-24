@@ -5,10 +5,12 @@ import { Navbar } from '../../components/Navbar'
 import { WhatsAppCta } from '../../components/WhatsAppCta'
 import { PracticeAreaCard } from '../../components/PracticeAreaCard'
 import { useLanguage } from '../../components/LanguageProvider'
-import { practiceAreaDetails } from '../../lib/data'
+import { useContentList } from '../../components/contentHooks'
+import { practiceAreas } from '../../lib/data'
 
 export default function PracticeAreasPage() {
   const { t } = useLanguage()
+  const areas = useContentList('practice-areas', 'areas', practiceAreas)
   return (
     <main className="min-h-screen bg-surface text-on-surface">
       <Navbar />
@@ -21,8 +23,8 @@ export default function PracticeAreasPage() {
           </p>
         </div>
         <div className="mx-auto mt-12 max-w-6xl grid gap-6 xl:grid-cols-2">
-          {practiceAreaDetails.slice(0, 4).map((area) => (
-            <PracticeAreaCard key={area.titleKey} title={t(area.titleKey)} description={t(area.detailsKey)} />
+          {areas.slice(0, 4).map((area) => (
+            <PracticeAreaCard key={area.id} title={area.title} description={area.details} />
           ))}
         </div>
       </section>
@@ -30,10 +32,10 @@ export default function PracticeAreasPage() {
         <div className="mx-auto max-w-6xl">
           <h2 className="font-display text-3xl font-semibold text-on-surface">All Practice Areas</h2>
           <div className="mt-10 space-y-4">
-            {practiceAreaDetails.map((area) => (
-              <details key={area.titleKey} className="card-elevated p-6">
-                <summary className="cursor-pointer text-lg font-semibold text-on-surface">{t(area.titleKey)}</summary>
-                <p className="mt-4 text-on-surface-variant">{t(area.detailsKey)}</p>
+            {areas.map((area) => (
+              <details key={area.id} id={area.slug} className="card-elevated p-6">
+                <summary className="cursor-pointer text-lg font-semibold text-on-surface">{area.title}</summary>
+                <p className="mt-4 text-on-surface-variant">{area.details}</p>
               </details>
             ))}
           </div>

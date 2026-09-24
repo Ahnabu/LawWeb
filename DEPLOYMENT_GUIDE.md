@@ -41,6 +41,7 @@ This document addresses the critical connectivity issues that occurred during th
    - Add the following:
      ```
      NEXT_PUBLIC_API_URL=https://your-backend-url.com
+     REVALIDATE_SECRET=<random-long-secret, same value as on the backend>
      ```
    - Replace `https://your-backend-url.com` with your actual backend URL (e.g., Render, Railway, etc.)
 
@@ -65,6 +66,10 @@ This document addresses the critical connectivity issues that occurred during th
    - `JWT_REFRESH_SECRET=<random-long-secret>`
    - `COOKIE_DOMAIN=<your-cookie-domain>`
 
+   Optional (CMS instant publish, see below):
+   - `FRONTEND_REVALIDATE_URL=https://your-frontend-domain.com/api/revalidate`
+   - `REVALIDATE_SECRET=<random-long-secret, same value as on the frontend>`
+
    For local development, keep the values in your private `.env` file only.
 
 2. **For Multiple Frontend Origins (if needed)**
@@ -80,6 +85,7 @@ This document addresses the critical connectivity issues that occurred during th
 
 #### Frontend (.env.local for development, Vercel for production)
 - `NEXT_PUBLIC_API_URL`: URL of your backend API (e.g., `https://backend-url.com`)
+- `REVALIDATE_SECRET`: Shared secret the backend sends to `/api/revalidate` after a CMS publish
 
 #### Backend (.env file)
 - `PORT`: Server port (default: 5000)
@@ -89,6 +95,16 @@ This document addresses the critical connectivity issues that occurred during th
 - `JWT_SECRET`: Secret key for JWT signing
 - `JWT_REFRESH_SECRET`: Secret key for refresh tokens
 - `COOKIE_DOMAIN`: Cookie domain for credentials
+- `FRONTEND_REVALIDATE_URL` (optional): `https://<frontend>/api/revalidate`
+- `REVALIDATE_SECRET` (optional): Same value as the frontend's
+
+#### CMS content and caching
+Public pages read published CMS content on the server and cache it for 5 minutes. When both
+`FRONTEND_REVALIDATE_URL` and `REVALIDATE_SECRET` are set, publishing in the admin dashboard
+refreshes the site immediately. Without them, a publish shows up within 5 minutes.
+
+If the backend is unreachable during a frontend build, pages are built with the default text
+and pick up the published content within 5 minutes of the deploy.
 
 ---
 
@@ -136,4 +152,5 @@ This document addresses the critical connectivity issues that occurred during th
 | Login fails | Clear cookies and try again; check network tab for actual error |
 | Cookies not persisting | Verify `credentials: 'include'` is set in fetch requests (already configured) |
 | 404 on health check | Ensure backend is deployed and running |
+| Published CMS content takes ~5 min to appear | Set `FRONTEND_REVALIDATE_URL` + `REVALIDATE_SECRET` on the backend and the same `REVALIDATE_SECRET` on the frontend; check backend logs for `Content revalidation failed` |
 

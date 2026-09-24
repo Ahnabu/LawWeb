@@ -13,6 +13,12 @@ const translationBundle = {
       caseTracker: "Case Tracker",
       appointment: "Appointment",
       contact: "Contact",
+      dashboard: "Dashboard",
+      profile: "Profile",
+      logout: "Logout",
+      openMenu: "Open menu",
+      closeMenu: "Close menu",
+      openProfileMenu: "Open profile menu",
     },
     common: {
       login: "Login",
@@ -55,36 +61,6 @@ const translationBundle = {
       ctaTitle: "Book a Free Consultation Today.",
       ctaBookAppointment: "Book Appointment",
       ctaChatWhatsApp: "Chat on WhatsApp",
-      trackCaseHeading: "Track Your Case",
-      trackCaseSubtitle:
-        "Enter your Case ID or Email Address to view the latest status and next scheduled hearing.",
-      trackCasePlaceholder: "Case ID or Email Address",
-      trackNow: "Track Now",
-      clientName: "Client Name",
-      assignedLawyer: "Assigned Lawyer",
-      caseType: "Case Type",
-      nextAppointment: "Next Appointment",
-      lawyerNotes: "Lawyer Notes",
-      noCaseFound:
-        "No case found? Please check your Case ID or contact us directly. For offline cases, please check the email we sent you with your Case ID.",
-      aboutHeroTitle: "A Legacy of Legal Excellence in Bangladesh",
-      aboutHeroSubtitle:
-        "We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients' successes.",
-      firmOverviewTitle: "Firm Overview",
-      firmOverviewText:
-        "Islam & Associates is an elite law firm serving Dhaka and global clients with deep expertise across corporate, civil, criminal, immigration, and family law.",
-      ourPromiseTitle: "Our Promise",
-      ourPromiseText:
-        "We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients' successes.",
-      certificationsTitle: "Certifications & Affiliations",
-      foundingTimelineTitle: "Founding Timeline",
-      principalProfileTitle: "Principal Profile",
-      principalProfileText:
-        "Principal counsel with decades of litigation and international compliance experience. Trusted by local and global clients to navigate complex law with clarity.",
-      missionValuesTitle: "Mission & Values",
-      value1: "Integrity",
-      value2: "Expertise",
-      value3: "Client Success",
       appointmentTitle: "Book a Consultation",
       appointmentSubtitle:
         "Choose from an appointment form or start a direct conversation on WhatsApp with our legal team.",
@@ -184,6 +160,7 @@ const translationBundle = {
       preferredServiceValue: "In-Person or Online",
       fastResponse: "Fast Response",
       fastResponseValue: "Within 24 hours",
+      quickBookingText: "Submit your case details and receive a fast callback from our legal team.",
       messageWhatsApp: "Message Us on WhatsApp",
       filters: {
         all: "All",
@@ -308,6 +285,146 @@ const translationBundle = {
       footerRights: "© 2026 Islam & Associates. All rights reserved.",
       footerTagline: "Trusted legal counsel in Dhaka and beyond.",
     },
+    site: {
+      firmName: "Islam & Associates",
+      address: "1st Floor, 30 Court House Street, Dhaka 1000, Bangladesh",
+      phoneLabel: "Phone",
+      faxLabel: "Fax",
+      emailLabel: "Email",
+      followUs: "Follow us",
+      whatsappMessage: "Hi, I need legal consultation regarding ...",
+    },
+    about: {
+      heroLabel: "About Islam & Associates",
+      heroTitle: "A Legacy of Legal Excellence in Bangladesh",
+      heroSubtitle:
+        "We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients' successes.",
+      overviewTitle: "Firm Overview",
+      overviewText:
+        "Islam & Associates is an elite law firm serving Dhaka and global clients with deep expertise across corporate, civil, criminal, immigration, and family law. Our commitment is to deliver transparent, ethical, and rapid legal solutions.",
+      promiseTitle: "Our Promise",
+      promiseText:
+        "We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients' successes.",
+      certificationsTitle: "Certifications & Affiliations",
+      certifications: {
+        harvard: "Harvard University - Internet Law",
+        centralLaw: "Central Law Training, England",
+        kensington: "Kensington University, USA",
+        neilWeinrib: "Neil Weinrib PC, USA",
+        ashleyBean: "Ashley Bean & Co. Solicitors, England",
+      },
+      timelineTitle: "Founding Timeline",
+      timeline: {
+        greatGrandfather: {
+          year: "1930s–40s",
+          title: "Advocate Mumtaz Uddin Ahmed",
+          description: "Great-grandfather laid the family legal foundation.",
+        },
+        grandfather: {
+          year: "1950s–60s",
+          title: "Advocate K M Sadequr Rahman",
+          description: "Grandfather expanded the firm’s civil and corporate practice.",
+        },
+        father: {
+          year: "1970s–80s",
+          title: "Advocate Nazrul Islam",
+          description: "Father established the firm’s courtroom excellence.",
+        },
+        founding: {
+          year: "1997",
+          title: "Mufassil MM Islam founded Islam & Associates",
+          description: "Modern law firm founded in Dhaka with international reach.",
+        },
+        global: {
+          year: "2000s–Present",
+          title: "Global expansion",
+          description: "Harvard training and international syndicate partnerships.",
+        },
+      },
+      principalTitle: "Principal Profile",
+      principalName: "Mufassil MM Islam — LL.B (Hons) & LL.M, Dhaka University",
+      principalText:
+        "Principal counsel with decades of litigation and international compliance experience. Trusted by local and global clients to navigate complex law with clarity.",
+      credentials: {
+        harvard: "Harvard University (Internet Law)",
+        centralLaw: "Central Law Training England",
+        kensington: "Kensington University USA",
+        neilWeinrib: "Neil Weinrib PC USA",
+        ashleyBean: "Ashley Bean & Co. Solicitors England",
+      },
+      missionTitle: "Mission & Values",
+      values: {
+        integrity: {
+          title: "Integrity",
+          description:
+            "Committed to maintaining the highest standards in every legal engagement, always acting with honesty and transparency.",
+        },
+        expertise: {
+          title: "Expertise",
+          description:
+            "Committed to maintaining the highest standards in every legal engagement, always acting with honesty and transparency.",
+        },
+        clientSuccess: {
+          title: "Client Success",
+          description:
+            "Committed to maintaining the highest standards in every legal engagement, always acting with honesty and transparency.",
+        },
+      },
+    },
+    trackCase: {
+      label: "Track Your Case",
+      title: "Track Your Case",
+      subtitle:
+        "Enter your Case ID (e.g. CAS-2025-001) or the email address used when filing to view the latest status.",
+      placeholder: "Case ID or Email Address",
+      trackNow: "Track Now",
+      searching: "Searching...",
+      notFound:
+        "No case found with that Case ID or email. Please check your details or",
+      contactUs: "contact us directly",
+      caseStatus: "Case Status",
+      stage: "Stage",
+      caseType: "Case Type",
+      assignedLawyer: "Assigned Lawyer",
+      pendingAssignment: "Pending Assignment",
+      court: "Court",
+      nextHearing: "Next Hearing",
+      notScheduled: "Not yet scheduled",
+      filingDate: "Filing Date",
+      lawyerNotes: "Lawyer Notes",
+      lastUpdated: "Last updated",
+      emptyHint: "Enter your Case ID or email above to check your case status.",
+      fetchError: "Failed to fetch case",
+      genericError: "Something went wrong",
+    },
+    blogsPage: {
+      label: "Our Blog",
+      title: "Legal Insights & News",
+      subtitle:
+        "Stay informed with expert articles on immigration, corporate law, legal tips and more.",
+      searchPlaceholder: "Search articles…",
+      noArticles: "No articles found. Check back soon!",
+      article: "article",
+      articles: "articles",
+      minRead: "min",
+      readMore: "Read More",
+      loadError: "Failed to load blogs",
+      categories: {
+        all: "All",
+        immigration: "Immigration",
+        "criminal-law": "Criminal Law",
+        "civil-law": "Civil Law",
+        "corporate-law": "Corporate Law",
+        "family-law": "Family Law",
+        "real-estate": "Real Estate",
+        "banking-finance": "Banking & Finance",
+        "labor-law": "Labor Law",
+        "tax-law": "Tax Law",
+        "legal-tips": "Legal Tips",
+        news: "News",
+        other: "Other",
+      },
+    },
   },
   bn: {
     nav: {
@@ -319,6 +436,12 @@ const translationBundle = {
       caseTracker: "কেস ট্র্যাকার",
       appointment: "অ্যাপয়েন্টমেন্ট",
       contact: "যোগাযোগ",
+      dashboard: "ড্যাশবোর্ড",
+      profile: "প্রোফাইল",
+      logout: "লগআউট",
+      openMenu: "মেনু খুলুন",
+      closeMenu: "মেনু বন্ধ করুন",
+      openProfileMenu: "প্রোফাইল মেনু খুলুন",
     },
     common: {
       login: "লগইন",
@@ -361,36 +484,6 @@ const translationBundle = {
       ctaTitle: "আজই একটি ফ্রি পরামর্শ বুক করুন।",
       ctaBookAppointment: "অ্যাপয়েন্টমেন্ট বুক করুন",
       ctaChatWhatsApp: "হোয়াটসঅ্যাপে চ্যাট করুন",
-      trackCaseHeading: "আপনার মামলা ট্র্যাক করুন",
-      trackCaseSubtitle:
-        "সর্বশেষ অবস্থা এবং পরবর্তী শুনানির জন্য আপনার মামলা আইডি বা ইমেল লিখুন।",
-      trackCasePlaceholder: "মামলা আইডি বা ইমেল",
-      trackNow: "এখন ট্র্যাক করুন",
-      clientName: "ক্লায়েন্টের নাম",
-      assignedLawyer: "নির্ধারিত আইনজীবী",
-      caseType: "মামলার ধরন",
-      nextAppointment: "পরবর্তী অ্যাপয়েন্টমেন্ট",
-      lawyerNotes: "আইনজীবীর নোট",
-      noCaseFound:
-        "কোন মামলা পাওয়া যায়নি? দয়া করে আপনার মামলা আইডি পরীক্ষা করুন অথবা সরাসরি আমাদের সাথে যোগাযোগ করুন।",
-      aboutHeroTitle: "বাংলাদেশে আইনগত উৎকর্ষতার একটি উত্তরাধিকার",
-      aboutHeroSubtitle:
-        "আমরা আমাদের ক্লায়েন্টদের জন্য সৎ, আন্তরিক এবং দ্রুত প্রতিকার বিশ্বাস করি এবং আমাদের ক্লায়েন্টদের সাফল্যের সাথে বৃদ্ধি দেখতে চাই।",
-      firmOverviewTitle: "ফার্ম পর্যালোচনা",
-      firmOverviewText:
-        "ইসলাম অ্যান্ড অ্যাসোসিয়েটস একটি বিশিষ্ট আইন সংস্থা যা কর্পোরেট, সিভিল, ক্রিমিনাল, ইমিগ্রেশন এবং পরিবার আইনের উচ্চ দক্ষতা সহ ঢাকায় এবং বৈশ্বিক ক্লায়েন্টদের সেবা দেয়।",
-      ourPromiseTitle: "আমাদের প্রতিশ্রুতি",
-      ourPromiseText:
-        "আমরা আমাদের ক্লায়েন্টদের জন্য সৎ, আন্তরিক এবং দ্রুত প্রতিকার বিশ্বাস করি এবং আমাদের ক্লায়েন্টদের সাফল্যের সাথে বৃদ্ধি দেখতে চাই।",
-      certificationsTitle: "সার্টিফিকেশন ও সম্পর্ক",
-      foundingTimelineTitle: "প্রতিষ্ঠার সময়রেখা",
-      principalProfileTitle: "প্রধান প্রোফাইল",
-      principalProfileText:
-        "বিচার ও আন্তর্জাতিক সম্মতি অভিজ্ঞতার দশকের পর্যবেক্ষণ সহ প্রধান পরামর্শদাতা।",
-      missionValuesTitle: "মিশন ও মূল্যবোধ",
-      value1: "সততা",
-      value2: "দক্ষতা",
-      value3: "ক্লায়েন্ট সাফল্য",
       appointmentTitle: "একটি পরামর্শ বুক করুন",
       appointmentSubtitle:
         "একটি অ্যাপয়েন্টমেন্ট ফর্ম থেকে নির্বাচন করুন অথবা আমাদের আইনি দলের সাথে সরাসরি হোয়াটসঅ্যাপে কথোপকথন শুরু করুন।",
@@ -490,6 +583,7 @@ const translationBundle = {
       preferredServiceValue: "ব্যক্তিগত বা অনলাইন",
       fastResponse: "দ্রুত সাড়া",
       fastResponseValue: "২৪ ঘণ্টার মধ্যে",
+      quickBookingText: "আপনার মামলার বিবরণ জমা দিন এবং আমাদের আইনি দলের কাছ থেকে দ্রুত কলব্যাক পান।",
       messageWhatsApp: "হোয়াটসঅ্যাপে বার্তা পাঠান",
       filters: {
         all: "সব",
@@ -610,21 +704,164 @@ const translationBundle = {
       footerRights: "© ২০২৬ ইসলাম অ্যান্ড অ্যাসোসিয়েটস। সর্বস্বত্ব সংরক্ষিত।",
       footerTagline: "ঢাকা ও তার বাইরে নির্ভরযোগ্য আইনগত পরামর্শ।",
     },
+    site: {
+      firmName: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+      address: "১ম তলা, ৩০ কোর্ট হাউস স্ট্রিট, ঢাকা ১০০০, বাংলাদেশ",
+      phoneLabel: "ফোন",
+      faxLabel: "ফ্যাক্স",
+      emailLabel: "ইমেইল",
+      followUs: "আমাদের অনুসরণ করুন",
+      whatsappMessage: "হ্যালো, আমি ... বিষয়ে আইনি পরামর্শ চাই",
+    },
+    about: {
+      heroLabel: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস সম্পর্কে",
+      heroTitle: "বাংলাদেশে আইনগত উৎকর্ষতার একটি উত্তরাধিকার",
+      heroSubtitle:
+        "আমরা আমাদের ক্লায়েন্টদের জন্য সৎ, আন্তরিক এবং দ্রুত প্রতিকার বিশ্বাস করি এবং আমাদের ক্লায়েন্টদের সাফল্যের সাথে বৃদ্ধি দেখতে চাই।",
+      overviewTitle: "ফার্ম পরিচিতি",
+      overviewText:
+        "ইসলাম অ্যান্ড অ্যাসোসিয়েটস একটি বিশিষ্ট আইন সংস্থা যা কর্পোরেট, সিভিল, ক্রিমিনাল, ইমিগ্রেশন এবং পরিবার আইনের উচ্চ দক্ষতা সহ ঢাকায় এবং বৈশ্বিক ক্লায়েন্টদের সেবা দেয়। আমাদের অঙ্গীকার স্বচ্ছ, নৈতিক ও দ্রুত আইনি সমাধান প্রদান করা।",
+      promiseTitle: "আমাদের প্রতিশ্রুতি",
+      promiseText:
+        "আমরা আমাদের ক্লায়েন্টদের জন্য সৎ, আন্তরিক এবং দ্রুত প্রতিকার বিশ্বাস করি এবং আমাদের ক্লায়েন্টদের সাফল্যের সাথে বৃদ্ধি দেখতে চাই।",
+      certificationsTitle: "সার্টিফিকেশন ও অধিভুক্তি",
+      certifications: {
+        harvard: "হার্ভার্ড বিশ্ববিদ্যালয় - ইন্টারনেট আইন",
+        centralLaw: "সেন্ট্রাল ল ট্রেনিং, ইংল্যান্ড",
+        kensington: "কেনসিংটন বিশ্ববিদ্যালয়, যুক্তরাষ্ট্র",
+        neilWeinrib: "নিল ওয়েনরিব পিসি, যুক্তরাষ্ট্র",
+        ashleyBean: "অ্যাশলি বিন অ্যান্ড কোং সলিসিটরস, ইংল্যান্ড",
+      },
+      timelineTitle: "প্রতিষ্ঠার সময়রেখা",
+      timeline: {
+        greatGrandfather: {
+          year: "১৯৩০–৪০-এর দশক",
+          title: "অ্যাডভোকেট মুমতাজ উদ্দিন আহমেদ",
+          description: "প্রপিতামহ পরিবারের আইনি ভিত্তি স্থাপন করেন।",
+        },
+        grandfather: {
+          year: "১৯৫০–৬০-এর দশক",
+          title: "অ্যাডভোকেট কে এম সাদেকুর রহমান",
+          description: "পিতামহ ফার্মের দেওয়ানি ও কর্পোরেট অনুশীলন সম্প্রসারণ করেন।",
+        },
+        father: {
+          year: "১৯৭০–৮০-এর দশক",
+          title: "অ্যাডভোকেট নজরুল ইসলাম",
+          description: "পিতা আদালতে ফার্মের উৎকর্ষতা প্রতিষ্ঠা করেন।",
+        },
+        founding: {
+          year: "১৯৯৭",
+          title: "মুফাস্সিল এমএম ইসলাম ইসলাম অ্যান্ড অ্যাসোসিয়েটস প্রতিষ্ঠা করেন",
+          description: "আন্তর্জাতিক পরিসরসহ ঢাকায় একটি আধুনিক আইন ফার্ম প্রতিষ্ঠিত হয়।",
+        },
+        global: {
+          year: "২০০০-এর দশক–বর্তমান",
+          title: "বৈশ্বিক সম্প্রসারণ",
+          description: "হার্ভার্ডে প্রশিক্ষণ ও আন্তর্জাতিক সিন্ডিকেট অংশীদারিত্ব।",
+        },
+      },
+      principalTitle: "প্রধান আইনজীবীর প্রোফাইল",
+      principalName: "মুফাস্সিল এমএম ইসলাম — এলএল.বি (অনার্স) ও এলএল.এম, ঢাকা বিশ্ববিদ্যালয়",
+      principalText:
+        "মামলা পরিচালনা ও আন্তর্জাতিক কমপ্লায়েন্সে কয়েক দশকের অভিজ্ঞতাসম্পন্ন প্রধান আইনজীবী। জটিল আইনি বিষয়ে স্পষ্ট দিকনির্দেশনার জন্য দেশি ও বিদেশি ক্লায়েন্টদের আস্থাভাজন।",
+      credentials: {
+        harvard: "হার্ভার্ড বিশ্ববিদ্যালয় (ইন্টারনেট আইন)",
+        centralLaw: "সেন্ট্রাল ল ট্রেনিং ইংল্যান্ড",
+        kensington: "কেনসিংটন বিশ্ববিদ্যালয় যুক্তরাষ্ট্র",
+        neilWeinrib: "নিল ওয়েনরিব পিসি যুক্তরাষ্ট্র",
+        ashleyBean: "অ্যাশলি বিন অ্যান্ড কোং সলিসিটরস ইংল্যান্ড",
+      },
+      missionTitle: "মিশন ও মূল্যবোধ",
+      values: {
+        integrity: {
+          title: "সততা",
+          description:
+            "প্রতিটি আইনি কাজে সর্বোচ্চ মান বজায় রাখতে আমরা প্রতিশ্রুতিবদ্ধ, সর্বদা সততা ও স্বচ্ছতার সাথে কাজ করি।",
+        },
+        expertise: {
+          title: "দক্ষতা",
+          description:
+            "প্রতিটি আইনি কাজে সর্বোচ্চ মান বজায় রাখতে আমরা প্রতিশ্রুতিবদ্ধ, সর্বদা সততা ও স্বচ্ছতার সাথে কাজ করি।",
+        },
+        clientSuccess: {
+          title: "ক্লায়েন্টের সাফল্য",
+          description:
+            "প্রতিটি আইনি কাজে সর্বোচ্চ মান বজায় রাখতে আমরা প্রতিশ্রুতিবদ্ধ, সর্বদা সততা ও স্বচ্ছতার সাথে কাজ করি।",
+        },
+      },
+    },
+    trackCase: {
+      label: "আপনার মামলা ট্র্যাক করুন",
+      title: "আপনার মামলা ট্র্যাক করুন",
+      subtitle:
+        "সর্বশেষ অবস্থা দেখতে আপনার কেস আইডি (যেমন CAS-2025-001) অথবা মামলা দায়েরের সময় ব্যবহৃত ইমেল ঠিকানা লিখুন।",
+      placeholder: "কেস আইডি বা ইমেল ঠিকানা",
+      trackNow: "এখন ট্র্যাক করুন",
+      searching: "অনুসন্ধান করা হচ্ছে...",
+      notFound:
+        "এই কেস আইডি বা ইমেলের সাথে কোনো মামলা পাওয়া যায়নি। অনুগ্রহ করে আপনার তথ্য যাচাই করুন অথবা",
+      contactUs: "সরাসরি আমাদের সাথে যোগাযোগ করুন",
+      caseStatus: "মামলার অবস্থা",
+      stage: "পর্যায়",
+      caseType: "মামলার ধরন",
+      assignedLawyer: "নির্ধারিত আইনজীবী",
+      pendingAssignment: "নিয়োগ অপেক্ষমাণ",
+      court: "আদালত",
+      nextHearing: "পরবর্তী শুনানি",
+      notScheduled: "এখনও নির্ধারিত হয়নি",
+      filingDate: "দায়েরের তারিখ",
+      lawyerNotes: "আইনজীবীর নোট",
+      lastUpdated: "সর্বশেষ হালনাগাদ",
+      emptyHint: "আপনার মামলার অবস্থা দেখতে উপরে কেস আইডি বা ইমেল লিখুন।",
+      fetchError: "মামলার তথ্য আনতে ব্যর্থ হয়েছে",
+      genericError: "কিছু একটা ভুল হয়েছে",
+    },
+    blogsPage: {
+      label: "আমাদের ব্লগ",
+      title: "আইনি অন্তর্দৃষ্টি ও সংবাদ",
+      subtitle:
+        "ইমিগ্রেশন, কর্পোরেট আইন, আইনি পরামর্শ ও আরও অনেক বিষয়ে বিশেষজ্ঞদের লেখা পড়ে হালনাগাদ থাকুন।",
+      searchPlaceholder: "লেখা খুঁজুন…",
+      noArticles: "কোনো লেখা পাওয়া যায়নি। শীঘ্রই আবার দেখুন!",
+      article: "টি লেখা",
+      articles: "টি লেখা",
+      minRead: "মিনিট",
+      readMore: "আরও পড়ুন",
+      loadError: "ব্লগ লোড করতে ব্যর্থ হয়েছে",
+      categories: {
+        all: "সব",
+        immigration: "ইমিগ্রেশন",
+        "criminal-law": "ফৌজদারি আইন",
+        "civil-law": "দেওয়ানি আইন",
+        "corporate-law": "কর্পোরেট আইন",
+        "family-law": "পারিবারিক আইন",
+        "real-estate": "রিয়েল এস্টেট",
+        "banking-finance": "ব্যাংকিং ও অর্থায়ন",
+        "labor-law": "শ্রম আইন",
+        "tax-law": "কর আইন",
+        "legal-tips": "আইনি পরামর্শ",
+        news: "সংবাদ",
+        other: "অন্যান্য",
+      },
+    },
   },
 } as const;
 
-export function translate(locale: Locale, key: string): string {
-  const pieces = key.split(".");
-  let current: unknown =
-    translationBundle[locale] ?? translationBundle[defaultLocale];
+// Returns undefined when the key has no string in this locale
+export function lookupTranslation(locale: Locale, key: string): string | undefined {
+  let current: unknown = translationBundle[locale] ?? translationBundle[defaultLocale];
 
-  for (const piece of pieces) {
+  for (const piece of key.split(".")) {
     if (current && typeof current === "object" && piece in current) {
       current = (current as Record<string, unknown>)[piece];
     } else {
-      return key;
+      return undefined;
     }
   }
 
-  return typeof current === "string" ? current : key;
+  return typeof current === "string" ? current : undefined;
+}
+
+export function translate(locale: Locale, key: string): string {
+  return lookupTranslation(locale, key) ?? key;
 }

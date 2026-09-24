@@ -1,3 +1,8 @@
+'use client'
+
+import { useLanguage } from './LanguageProvider'
+import { useSiteSettings } from './contentHooks'
+
 interface WhatsAppCtaProps {
   inline?: boolean
 }
@@ -16,16 +21,19 @@ function WhatsAppMark({ className }: { className?: string }) {
 }
 
 export function WhatsAppCta({ inline }: WhatsAppCtaProps) {
+  const { t } = useLanguage()
+  const { whatsappHref } = useSiteSettings()
+
   return (
     <a
-      href="https://wa.me/8801715365380?text=Hi%2C%20I%20need%20legal%20consultation%20regarding%20..."
+      href={whatsappHref(t('site.whatsappMessage'))}
       target="_blank"
       rel="noreferrer"
       className={inline ? 'inline-flex items-center justify-center gap-2 rounded-md border border-whatsapp/20 bg-whatsapp/10 px-4 py-3 text-sm font-semibold text-whatsapp transition hover:bg-whatsapp/20' : 'fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-whatsapp text-white shadow-lg shadow-whatsapp/30 transition hover:scale-[1.05] hover:bg-whatsapp/90'}
-      aria-label="Chat with us on WhatsApp"
+      aria-label={t('common.chatWhatsApp')}
     >
       <WhatsAppMark className={inline ? 'h-4 w-4' : 'h-6 w-6'} />
-      {inline ? 'Message Us on WhatsApp' : null}
+      {inline ? t('common.messageWhatsApp') : null}
     </a>
   )
 }

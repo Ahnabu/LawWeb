@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "predev": "node src/scripts/free-port.js",
     "dev": "nodemon",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test:content": "ts-node --transpile-only tests/content/schema.check.ts && ts-node --transpile-only tests/content/flow.check.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -68,7 +68,7 @@ export function Navbar() {
             ⚖️
           </span>
           <span className="text-base font-semibold tracking-wide text-on-surface sm:text-lg">
-            Islam & Associates
+            {t("site.firmName")}
           </span>
         </Link>
 
@@ -93,7 +93,7 @@ export function Navbar() {
                 type="button"
                 onClick={() => setIsProfileMenuOpen((open) => !open)}
                 className="inline-flex items-center gap-3 rounded-full border border-outline-variant bg-surface px-2 py-1.5 pr-3 text-left shadow-sm transition hover:border-secondary"
-                aria-label="Open profile menu"
+                aria-label={t("nav.openProfileMenu")}
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
               >
@@ -111,7 +111,7 @@ export function Navbar() {
                     className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
                   >
                     <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
                   <Link
                     href="/profile"
@@ -119,7 +119,7 @@ export function Navbar() {
                     className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
                   >
                     <UserCircle2 className="h-4 w-4" />
-                    Profile
+                    {t("nav.profile")}
                   </Link>
                   <button
                     type="button"
@@ -131,7 +131,7 @@ export function Navbar() {
                     className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
                   >
                     <LogOut className="h-4 w-4" />
-                    Logout
+                    {t("nav.logout")}
                   </button>
                 </div>
               ) : null}
@@ -150,7 +150,7 @@ export function Navbar() {
           type="button"
           className="inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface-variant transition hover:border-secondary hover:text-secondary md:hidden"
           onClick={() => setIsMobileMenuOpen((open) => !open)}
-          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-label={isMobileMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
           aria-haspopup="menu"
           aria-expanded={isMobileMenuOpen}
         >
@@ -200,14 +200,14 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
                   >
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
                   <Link
                     href="/profile"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
                   >
-                    Profile
+                    {t("nav.profile")}
                   </Link>
                   <button
                     type="button"
@@ -218,7 +218,7 @@ export function Navbar() {
                     }}
                     className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
                   >
-                    Logout
+                    {t("nav.logout")}
                   </button>
                 </div>
               </div>

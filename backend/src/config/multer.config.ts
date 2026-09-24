@@ -26,6 +26,15 @@ const blogCoverStorage = new CloudinaryStorage({
   } as object,
 });
 
+const contentImageStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'lawweb/content',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 1600, crop: 'limit', quality: 'auto' }],
+  } as object,
+});
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const BLOG_MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
 
@@ -45,6 +54,12 @@ export const uploadProfileImage = multer({
 
 export const uploadBlogCover = multer({
   storage: blogCoverStorage,
+  limits: { fileSize: BLOG_MAX_FILE_SIZE },
+  fileFilter: imageFilter,
+});
+
+export const uploadContentImage = multer({
+  storage: contentImageStorage,
   limits: { fileSize: BLOG_MAX_FILE_SIZE },
   fileFilter: imageFilter,
 });

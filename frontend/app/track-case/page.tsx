@@ -6,6 +6,7 @@ import { CaseProgressTracker } from "../../components/CaseProgressTracker";
 import { Footer } from "../../components/Footer";
 import { Navbar } from "../../components/Navbar";
 import { WhatsAppCta } from "../../components/WhatsAppCta";
+import { useLanguage } from "../../components/LanguageProvider";
 import { API_BASE_URL } from "../../lib/api";
 
 const STATUS_STEP: Record<string, number> = {
@@ -43,6 +44,7 @@ interface TrackedCase {
 }
 
 export default function TrackCasePage() {
+  const { t, locale } = useLanguage();
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<TrackedCase | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -60,10 +62,10 @@ export default function TrackCasePage() {
       const res = await fetch(`${API_BASE_URL}/api/cases/track/${encodeURIComponent(q)}`);
       const data = await res.json();
       if (res.status === 404) { setNotFound(true); return; }
-      if (!res.ok) throw new Error(data.message || "Failed to fetch case");
+      if (!res.ok) throw new Error(data.message || t("trackCase.fetchError"));
       setResult(data.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t("trackCase.genericError"));
     } finally {
       setLoading(false);
     }
@@ -74,7 +76,7 @@ export default function TrackCasePage() {
   };
 
   const fmt = (d: string) =>
-    new Date(d).toLocaleDateString("en-BD", { day: "numeric", month: "long", year: "numeric" });
+    new Date(d).toLocaleDateString(locale === "bn" ? "bn-BD" : "en-BD", { day: "numeric", month: "long", year: "numeric" });
 
   const currentStep = result ? (STATUS_STEP[result.stage || result.status] ?? 1) : 0;
 
@@ -84,10 +86,10 @@ export default function TrackCasePage() {
       <section className="px-6 py-16 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-4xl card-elevated p-10">
           <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Track Your Case</p>
-            <h1 className="mt-4 font-display text-4xl font-semibold text-on-surface">Track Your Case</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t("trackCase.label")}</p>
+            <h1 className="mt-4 font-display text-4xl font-semibold text-on-surface">{t("trackCase.title")}</h1>
             <p className="mt-4 text-sm leading-7 text-on-surface-variant">
-              Enter your Case ID (e.g. CAS-2025-001) or the email address used when filing to view the latest status.
+              {t("trackCase.subtitle")}
             </p>
           </div>
 
@@ -97,7 +99,7 @@ export default function TrackCasePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Case ID or Email Address"
+              placeholder={t("trackCase.placeholder")}
               className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder-on-surface-variant focus:border-secondary focus:outline-none"
             />
             <button
@@ -106,7 +108,7 @@ export default function TrackCasePage() {
               disabled={loading || !query.trim()}
               className="rounded-lg bg-secondary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90 disabled:opacity-50"
             >
-              {loading ? "Searching..." : "Track Now"}
+              {loading ? t("trackCase.searching") : t("trackCase.trackNow")}
             </button>
           </div>
 
@@ -116,8 +118,8 @@ export default function TrackCasePage() {
 
           {notFound && (
             <div className="mt-10 rounded-xl border border-outline-variant bg-surface p-8 text-center text-sm text-on-surface-variant">
-              No case found with that Case ID or email. Please check your details or{" "}
-              <Link href="/#contact" className="text-secondary underline">contact us directly</Link>.
+              {t("trackCase.notFound")}{" "}
+              <Link href="/#contact" className="text-secondary underline">{t("trackCase.contactUs")}</Link>
             </div>
           )}
 
@@ -125,7 +127,7 @@ export default function TrackCasePage() {
             <div className="mt-10 rounded-xl border border-outline-variant bg-surface-container p-8">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Case Status</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t("trackCase.caseStatus")}</p>
                   <h2 className="mt-3 font-display text-3xl font-semibold text-on-surface">{result.caseNumber}</h2>
                   <p className="mt-1 text-sm text-on-surface-variant">{result.title}</p>
                 </div>
@@ -135,7 +137,7 @@ export default function TrackCasePage() {
                   </span>
                   {result.stage && result.stage !== result.status && (
                     <span className="rounded-full border border-outline-variant px-3 py-1 text-xs text-on-surface-variant capitalize">
-                      Stage: {result.stage.replace(/-/g, " ")}
+                      {t("trackCase.stage")}: {result.stage.replace(/-/g, " ")}
                     </span>
                   )}
                 </div>
@@ -144,13 +146,13 @@ export default function TrackCasePage() {
               <div className="mt-8 grid gap-6 md:grid-cols-2">
                 <div className="rounded-xl bg-surface p-6 space-y-4">
                   <div>
-                    <p className="text-xs text-on-surface-variant">Case Type</p>
+                    <p className="text-xs text-on-surface-variant">{t("trackCase.caseType")}</p>
                     <p className="mt-1 font-semibold text-on-surface capitalize">{result.type.replace(/-/g, " ")}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-on-surface-variant">Assigned Lawyer</p>
+                    <p className="text-xs text-on-surface-variant">{t("trackCase.assignedLawyer")}</p>
                     <p className="mt-1 font-semibold text-on-surface">
-                      {result.lawyerId?.name || "Pending Assignment"}
+                      {result.lawyerId?.name || t("trackCase.pendingAssignment")}
                       {result.lawyerId?.barId && (
                         <span className="ml-1 text-xs font-normal text-on-surface-variant">({result.lawyerId.barId})</span>
                       )}
@@ -160,19 +162,19 @@ export default function TrackCasePage() {
                 <div className="rounded-xl bg-surface p-6 space-y-4">
                   {result.courtName && (
                     <div>
-                      <p className="text-xs text-on-surface-variant">Court</p>
+                      <p className="text-xs text-on-surface-variant">{t("trackCase.court")}</p>
                       <p className="mt-1 font-semibold text-on-surface">{result.courtName}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs text-on-surface-variant">Next Hearing</p>
+                    <p className="text-xs text-on-surface-variant">{t("trackCase.nextHearing")}</p>
                     <p className="mt-1 font-semibold text-secondary">
-                      {result.nextCourtDate ? fmt(result.nextCourtDate) : "Not yet scheduled"}
+                      {result.nextCourtDate ? fmt(result.nextCourtDate) : t("trackCase.notScheduled")}
                     </p>
                   </div>
                   {result.filingDate && (
                     <div>
-                      <p className="text-xs text-on-surface-variant">Filing Date</p>
+                      <p className="text-xs text-on-surface-variant">{t("trackCase.filingDate")}</p>
                       <p className="mt-1 font-semibold text-on-surface">{fmt(result.filingDate)}</p>
                     </div>
                   )}
@@ -185,20 +187,20 @@ export default function TrackCasePage() {
 
               {result.notes && (
                 <div className="mt-8 rounded-xl bg-surface p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Lawyer Notes</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t("trackCase.lawyerNotes")}</p>
                   <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">{result.notes}</p>
                 </div>
               )}
 
               <p className="mt-6 text-center text-xs text-on-surface-variant">
-                Last updated: {fmt(result.updatedAt)}
+                {t("trackCase.lastUpdated")}: {fmt(result.updatedAt)}
               </p>
             </div>
           )}
 
           {!result && !notFound && !loading && !error && (
             <div className="mt-10 rounded-xl border border-outline-variant bg-surface p-8 text-center text-sm text-on-surface-variant">
-              Enter your Case ID or email above to check your case status.
+              {t("trackCase.emptyHint")}
             </div>
           )}
         </div>

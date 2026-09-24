@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { Home, Users, Search, CalendarDays, Phone } from 'lucide-react'
+import { useSiteSettings } from './contentHooks'
 
 export function MobileBottomNav() {
+  const { telHref } = useSiteSettings()
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 block rounded-t-3xl border border-slate-200/80 bg-white/95 p-3 shadow-2xl shadow-slate-900/5 sm:hidden">
       <div className="mx-auto flex max-w-lg items-center justify-between px-3">
@@ -19,7 +21,7 @@ export function MobileBottomNav() {
         <Link href="/dashboard/client/appointment" className="flex flex-col items-center gap-1 text-xs text-slate-600">
           <CalendarDays className="h-5 w-5" /> Book
         </Link>
-        <a href="tel:+8801715365380" className="flex flex-col items-center gap-1 text-xs text-slate-600">
+        <a href={telHref()} className="flex flex-col items-center gap-1 text-xs text-slate-600">
           <Phone className="h-5 w-5" /> Call
         </a>
       </div>

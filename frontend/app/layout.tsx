@@ -1,16 +1,20 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { LanguageProvider } from '../components/LanguageProvider'
+import { ContentProvider } from '../components/ContentProvider'
 import { ThemeProvider } from '../components/ThemeProvider'
 import { AuthProvider } from '../components/AuthProvider'
 import { SonnerToaster } from '../components/SonnerToaster'
+import { getPublishedContent } from '../lib/content'
 
 export const metadata: Metadata = {
   title: 'Islam & Associates | Dhaka Law Firm',
   description: 'Islam & Associates is a leading law firm in Dhaka, Bangladesh offering corporate, civil, criminal and immigration legal services since 1997.',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const content = await getPublishedContent()
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -31,7 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <AuthProvider>
-            <LanguageProvider>{children}</LanguageProvider>
+            <ContentProvider content={content}>
+              <LanguageProvider>{children}</LanguageProvider>
+            </ContentProvider>
           </AuthProvider>
           <SonnerToaster />
         </ThemeProvider>

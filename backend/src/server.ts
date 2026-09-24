@@ -16,6 +16,7 @@ import caseRoutes from "./routes/cases";
 import adminRoutes from "./routes/admin";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blogs";
+import contentRoutes from "./routes/content";
 import { resendVerificationCode } from "./controllers/authController";
 
 const app = express();
@@ -103,6 +104,7 @@ app.use("/api/cases", caseRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/content", contentRoutes);
 
 // Backwards-compatible/fallback endpoints in case frontend calls short paths
 app.post("/resend-verification-code", express.json(), resendVerificationCode);
