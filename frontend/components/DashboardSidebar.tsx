@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   BarChart3,
   Newspaper,
+  FileText,
   LogOut,
 } from 'lucide-react'
 import { useAuth } from './AuthProvider'
@@ -49,6 +50,7 @@ const adminItems: NavItem[] = [
   { label: 'Appointments', href: '/dashboard/admin/appointments', icon: <CalendarClock size={16} /> },
   { label: 'Clients', href: '/dashboard/admin/users', icon: <Users size={16} /> },
   { label: 'Blogs', href: '/dashboard/admin/blogs', icon: <Newspaper size={16} /> },
+  { label: 'Content', href: '/dashboard/admin/content', icon: <FileText size={16} /> },
 ]
 
 const itemsByRole = { admin: adminItems, lawyer: lawyerItems, client: clientItems }

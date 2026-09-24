@@ -36,10 +36,16 @@ const I18N_KEY = z
   .max(120)
   .regex(/^[a-zA-Z][\w-]*(\.[\w-]+)+$/, 'Invalid translation key');
 
+// Fingerprint (8 hex chars) of the English text a Bangla translation was
+// written for. The admin editor compares it with the current English to flag
+// Bangla that went stale after an English edit. Never read by the public site.
+const bnFor = z.string().regex(/^[0-9a-f]{8}$/, 'Invalid translation fingerprint').optional();
+
 // Override value: either language may be omitted/empty to keep its default.
 const stringOverride = z.object({
   en: z.string().trim().max(LONG_TEXT).optional(),
   bn: z.string().trim().max(LONG_TEXT).optional(),
+  bnFor,
 });
 
 const strings = z
@@ -53,6 +59,7 @@ const localized = (max: number = SHORT_TEXT) =>
   z.object({
     en: z.string().trim().min(1, 'English text is required').max(max),
     bn: z.string().trim().max(max).default(''),
+    bnFor,
   });
 
 const slug = z

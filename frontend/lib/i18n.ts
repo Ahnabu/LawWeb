@@ -425,6 +425,28 @@ const translationBundle = {
         other: "Other",
       },
     },
+    seo: {
+      home: {
+        title: "Islam & Associates | Dhaka Law Firm",
+        description: "Islam & Associates is a leading law firm in Dhaka, Bangladesh offering corporate, civil, criminal and immigration legal services since 1997.",
+      },
+      about: {
+        title: "About Us | Islam & Associates",
+        description: "Since 1997, Islam & Associates has represented clients in Dhaka and across Bangladesh. Meet our principal, our history and the values behind our practice.",
+      },
+      practiceAreas: {
+        title: "Practice Areas | Islam & Associates",
+        description: "Corporate, civil, criminal, family, immigration and property law services from an experienced Dhaka law firm.",
+      },
+      trackCase: {
+        title: "Track Your Case | Islam & Associates",
+        description: "Check the status, next hearing date and lawyer notes for your case with Islam & Associates.",
+      },
+      blogs: {
+        title: "Legal Blog | Islam & Associates",
+        description: "Legal insights, news and practical guidance on Bangladeshi law from the lawyers at Islam & Associates.",
+      },
+    },
   },
   bn: {
     nav: {
@@ -842,6 +864,28 @@ const translationBundle = {
         "legal-tips": "আইনি পরামর্শ",
         news: "সংবাদ",
         other: "অন্যান্য",
+      },
+    },
+    seo: {
+      home: {
+        title: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস | ঢাকার আইন প্রতিষ্ঠান",
+        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস ঢাকার একটি শীর্ষস্থানীয় আইন প্রতিষ্ঠান, যা ১৯৯৭ সাল থেকে কর্পোরেট, দেওয়ানি, ফৌজদারি ও অভিবাসন বিষয়ক আইনি সেবা দিয়ে আসছে।",
+      },
+      about: {
+        title: "আমাদের সম্পর্কে | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "১৯৯৭ সাল থেকে ইসলাম অ্যান্ড অ্যাসোসিয়েটস ঢাকা ও সারা বাংলাদেশে মক্কেলদের প্রতিনিধিত্ব করছে। আমাদের প্রধান আইনজীবী, ইতিহাস ও মূল্যবোধ সম্পর্কে জানুন।",
+      },
+      practiceAreas: {
+        title: "আইনি সেবার ক্ষেত্র | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ঢাকার একটি অভিজ্ঞ আইন প্রতিষ্ঠান থেকে কর্পোরেট, দেওয়ানি, ফৌজদারি, পারিবারিক, অভিবাসন ও সম্পত্তি আইন বিষয়ক সেবা।",
+      },
+      trackCase: {
+        title: "মামলার অবস্থা জানুন | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসে আপনার মামলার অবস্থা, পরবর্তী শুনানির তারিখ ও আইনজীবীর মন্তব্য দেখুন।",
+      },
+      blogs: {
+        title: "আইনি ব্লগ | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসের আইনজীবীদের কাছ থেকে বাংলাদেশের আইন বিষয়ে বিশ্লেষণ, সংবাদ ও ব্যবহারিক পরামর্শ।",
       },
     },
   },

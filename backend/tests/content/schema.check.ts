@@ -39,6 +39,14 @@ expect('site: whatsapp with + rejected', !ok('site', { settings: { whatsappNumbe
 expect('site: javascript: url rejected', !ok('site', { settings: { socials: [{ platform: 'x', url: 'javascript:alert(1)' }] } }).success);
 expect('site: unknown settings field rejected', !ok('site', { settings: { adminPassword: 'x' } }).success);
 
+// Bangla fingerprint (bnFor)
+r = ok('about', { strings: { 'about.heroTitle': { en: 'A', bn: 'খ', bnFor: '0a1b2c3d' } } });
+expect('bnFor on string override kept', r.success && (r.data as any).strings['about.heroTitle'].bnFor === '0a1b2c3d', r);
+r = ok('about', { certifications: [{ en: 'A', bn: 'খ', bnFor: 'deadbeef' }] });
+expect('bnFor on list item kept', r.success && (r.data as any).certifications[0].bnFor === 'deadbeef', r);
+expect('bad bnFor rejected', !ok('about', { strings: { 'about.heroTitle': { en: 'A', bnFor: '<script>' } } }).success);
+expect('SEO keys accepted as string overrides', ok('home', { strings: { 'seo.home.title': { en: 'T' }, 'seo.home.description': { en: 'D' } } }).success);
+
 // Route-level request validation middleware
 const run = (schema: any, req: any) => {
   let status = 0; let nextCalled = false;

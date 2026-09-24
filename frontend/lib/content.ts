@@ -18,14 +18,18 @@ export const CONTENT_PAGE_KEYS = [
 
 export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number]
 
+// `bnFor` is an admin-editor fingerprint of the English the Bangla was
+// written for (stale-translation flag); the public site ignores it.
 export interface LocalizedText {
   en: string
   bn?: string
+  bnFor?: string
 }
 
 export interface StringOverride {
   en?: string
   bn?: string
+  bnFor?: string
 }
 
 export type StringOverrides = Record<string, StringOverride>
@@ -104,7 +108,7 @@ export function isLocalizedText(value: unknown): value is LocalizedText {
     typeof value === 'object' &&
     !Array.isArray(value) &&
     typeof (value as LocalizedText).en === 'string' &&
-    Object.keys(value).every((k) => k === 'en' || k === 'bn')
+    Object.keys(value).every((k) => k === 'en' || k === 'bn' || k === 'bnFor')
   )
 }
 

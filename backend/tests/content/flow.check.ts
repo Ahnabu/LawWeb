@@ -37,7 +37,7 @@ const heroTitle = (en: string) => ({ strings: { 'about.heroTitle': { en, bn: 'рж
 
   let r = await call(c.listContentPages, {});
   expect('list: all 7 pages returned before any doc exists', r.json.data.length === 7 && r.json.data.every((p: any) => p.version === 0));
-  expect('list: no draft/published payload in list', !('draft' in r.json.data[0]));
+  expect('list: draft included, published omitted', 'draft' in r.json.data[0] && !('published' in r.json.data[0]));
 
   r = await call(c.getContentPageAdmin, { pageKey: 'about' });
   expect('get: missing page returns empty virtual page', r.status === 200 && r.json.data.version === 0);

@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import './globals.css'
 import { LanguageProvider } from '../components/LanguageProvider'
 import { ContentProvider } from '../components/ContentProvider'
@@ -6,11 +5,10 @@ import { ThemeProvider } from '../components/ThemeProvider'
 import { AuthProvider } from '../components/AuthProvider'
 import { SonnerToaster } from '../components/SonnerToaster'
 import { getPublishedContent } from '../lib/content'
+import { getPageMetadata } from '../lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Islam & Associates | Dhaka Law Firm',
-  description: 'Islam & Associates is a leading law firm in Dhaka, Bangladesh offering corporate, civil, criminal and immigration legal services since 1997.',
-}
+// Home page SEO, also the default for pages without their own
+export const generateMetadata = () => getPageMetadata('home')
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const content = await getPublishedContent()

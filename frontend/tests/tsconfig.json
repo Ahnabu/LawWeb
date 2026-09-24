@@ -1,0 +1,9 @@
+{
+  // Tests are excluded from the app tsconfig (next build) because
+  // registry.test.ts imports the backend schema, whose deps only exist when
+  // backend/node_modules is installed. Type-check with: npx tsc -p tests
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["./**/*.ts", "../global.d.ts", "../next-env.d.ts"],
+  "exclude": []
+}

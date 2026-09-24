@@ -81,15 +81,17 @@ export const getPublishedPage = async (req: Request, res: Response) => {
 };
 
 // ── Admin: list every CMS page with its publish status ──────────────────────
+// Includes the draft (sparse, small) so the admin page list can show Bangla
+// completeness without one request per page.
 export const listContentPages = async (_req: Request, res: Response) => {
   try {
-    const pages = await ContentPage.find().select('-draft -published');
+    const pages = await ContentPage.find().select('-published');
     const byKey = new Map(pages.map((p) => [p.key, p]));
 
     const data = CONTENT_PAGE_KEYS.map((key) => {
       const page = byKey.get(key) ?? null;
-      const { draft, published, ...meta } = serializePage(key, page);
-      return meta;
+      const { published, ...rest } = serializePage(key, page);
+      return rest;
     });
 
     res.json({ status: 200, message: 'Content pages retrieved successfully', data });
