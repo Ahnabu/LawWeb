@@ -57,7 +57,7 @@ const quickLinks = [
   { labelKey: 'nav.home', href: '/' },
   { labelKey: 'nav.about', href: '/about' },
   { labelKey: 'nav.lawyers', href: '/lawyers' },
-  { labelKey: 'nav.appointment', href: '/dashboard/client/appointment' },
+  { labelKey: 'nav.appointment', href: '/appointment' },
   { labelKey: 'nav.caseTracker', href: '/track-case' },
 ]
 

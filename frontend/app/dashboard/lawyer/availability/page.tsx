@@ -19,6 +19,15 @@ const DAY_LABELS: Record<keyof LawyerAvailability["schedule"], string> = {
   sunday: "Sunday",
 };
 
+const DAY_ORDER = Object.keys(DAY_LABELS) as (keyof LawyerAvailability["schedule"])[];
+
+const SLOT_MINUTES = 60;
+
+const toMinutes = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+};
+
 const buildDefaultSchedule = (): LawyerAvailability["schedule"] => ({
   monday: { isAvailable: true, startTime: "09:00", endTime: "17:00" },
   tuesday: { isAvailable: true, startTime: "09:00", endTime: "17:00" },
@@ -78,8 +87,24 @@ export default function LawyerAvailabilityPage() {
     }));
   };
 
+  // Mirrors the server rule: each working day needs room for at least one 60-minute slot
+  const scheduleErrors = useMemo(() => {
+    const errors: Partial<Record<keyof LawyerAvailability["schedule"], string>> = {};
+    for (const day of DAY_ORDER) {
+      const { isAvailable, startTime, endTime } = schedule[day];
+      if (!isAvailable) continue;
+      if (!startTime || !endTime) {
+        errors[day] = "Start and end times are required.";
+      } else if (toMinutes(endTime) - toMinutes(startTime) < SLOT_MINUTES) {
+        errors[day] = `End time must be at least ${SLOT_MINUTES} minutes after start time.`;
+      }
+    }
+    return errors;
+  }, [schedule]);
+  const hasErrors = Object.keys(scheduleErrors).length > 0;
+
   const handleSave = async () => {
-    if (!availability) {
+    if (!availability || hasErrors) {
       return;
     }
 
@@ -126,7 +151,9 @@ export default function LawyerAvailabilityPage() {
           Availability
         </h2>
         <p className="text-sm text-on-surface-variant">
-          Update your consultation schedule and booking preferences.
+          Update your consultation schedule and booking preferences. Clients book
+          {" "}{SLOT_MINUTES}-minute slots starting at your start time; existing bookings are
+          not affected when you change your hours.
         </p>
       </header>
 
@@ -161,8 +188,9 @@ export default function LawyerAvailabilityPage() {
       </section>
 
       <section className="space-y-4">
-        {Object.entries(schedule).map(([day, values]) => {
-          const key = day as keyof LawyerAvailability["schedule"];
+        {DAY_ORDER.map((key) => {
+          const day = key;
+          const values = schedule[key];
           return (
             <div
               key={day}
@@ -213,6 +241,9 @@ export default function LawyerAvailabilityPage() {
                   />
                 </label>
               </div>
+              {scheduleErrors[key] && (
+                <p className="w-full text-xs text-error">{scheduleErrors[key]}</p>
+              )}
             </div>
           );
         })}
@@ -223,7 +254,7 @@ export default function LawyerAvailabilityPage() {
           type="button"
           onClick={handleSave}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50"
-          disabled={isSaving}
+          disabled={isSaving || hasErrors || !availability}
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </button>

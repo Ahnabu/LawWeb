@@ -13,6 +13,12 @@ import {
   cancelConsultation,
 } from "../../../../lib/dashboard";
 
+const isActive = (status: ConsultationStatus) =>
+  status === "scheduled" || status === "rescheduled";
+
+const matchesTab = (status: ConsultationStatus, tab: ConsultationStatus | "all") =>
+  tab === "all" || (tab === "scheduled" ? isActive(status) : status === tab);
+
 const STATUS_TABS: { label: string; value: ConsultationStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Scheduled", value: "scheduled" },
@@ -42,7 +48,7 @@ export default function ClientAppointmentsPage() {
     if (activeTab === "all") {
       setFiltered(appointments);
     } else {
-      setFiltered(appointments.filter((a) => a.status === activeTab));
+      setFiltered(appointments.filter((a) => matchesTab(a.status, activeTab)));
     }
   }, [activeTab, appointments]);
 
@@ -67,7 +73,7 @@ export default function ClientAppointmentsPage() {
 
   const stats = {
     total: appointments.length,
-    scheduled: appointments.filter((a) => a.status === "scheduled").length,
+    scheduled: appointments.filter((a) => isActive(a.status)).length,
     completed: appointments.filter((a) => a.status === "completed").length,
     cancelled: appointments.filter((a) => a.status === "cancelled").length,
   };
@@ -118,7 +124,7 @@ export default function ClientAppointmentsPage() {
             {tab.label}
             {tab.value !== "all" && (
               <span className="ml-1 opacity-60">
-                ({appointments.filter((a) => a.status === tab.value).length})
+                ({appointments.filter((a) => matchesTab(a.status, tab.value)).length})
               </span>
             )}
           </button>
@@ -155,6 +161,7 @@ export default function ClientAppointmentsPage() {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
+                      timeZone: "UTC",
                     })}
                     <div className="text-xs">{apt.time}</div>
                   </td>
@@ -220,6 +227,7 @@ export default function ClientAppointmentsPage() {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
+                  timeZone: "UTC",
                 })}
               />
               <Row label="Time" value={selected.time} />
@@ -253,7 +261,7 @@ export default function ClientAppointmentsPage() {
               )}
             </div>
 
-            {selected.status === "scheduled" && (
+            {isActive(selected.status) && (
               <div className="mt-5 border-t border-outline-variant pt-4">
                 <button
                   type="button"

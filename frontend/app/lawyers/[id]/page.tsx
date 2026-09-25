@@ -215,7 +215,7 @@ export default function LawyerDetailPage() {
                   </div>
                 ) : (
                   <Link
-                    href={`/dashboard/client/book-consultation?lawyerId=${id}&lawyerName=${encodeURIComponent(lawyer?.name ?? "")}`}
+                    href={`/appointment?lawyerId=${id}`}
                     className="block w-full rounded-full bg-secondary py-3 text-center text-sm font-semibold text-primary transition hover:opacity-90"
                   >
                     Book Appointment
@@ -394,7 +394,7 @@ export default function LawyerDetailPage() {
                     )}
                   </div>
                   <div className="grid grid-cols-7 gap-1">
-                    {Object.entries(availability.schedule).map(([day, sched]) => (
+                    {(Object.keys(DAY_LABELS) as (keyof LawyerAvailabilityData["schedule"])[]).map((day) => [day, availability.schedule[day]] as const).filter(([, sched]) => sched).map(([day, sched]) => (
                       <div
                         key={day}
                         className={`rounded-lg p-2 text-center text-xs ${sched.isAvailable ? "bg-secondary/10 text-secondary" : "bg-surface text-on-surface-variant opacity-40"}`}
@@ -437,7 +437,7 @@ export default function LawyerDetailPage() {
                   </p>
                 ) : (
                   <Link
-                    href={`/dashboard/client/book-consultation?lawyerId=${id}&lawyerName=${encodeURIComponent(lawyer.name)}`}
+                    href={`/appointment?lawyerId=${id}`}
                     className="mt-5 inline-flex rounded-full bg-secondary px-8 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
                   >
                     Book Appointment

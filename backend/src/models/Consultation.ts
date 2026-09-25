@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { ACTIVE_STATUSES, toDateKey } from '../utils/schedule';
 
 export interface IConsultation extends Document {
   clientId: mongoose.Types.ObjectId;
@@ -16,6 +17,8 @@ export interface IConsultation extends Document {
   whatsappDocSharing: boolean;
   whatsappDocNote?: string;
   notes?: string;
+  // Set only while the booking holds its slot (scheduled/rescheduled); backs a unique index
+  slotKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,8 +88,26 @@ const ConsultationSchema: Schema = new Schema(
       type: String,
       trim: true,
     },
+    slotKey: {
+      type: String,
+      select: false,
+    },
   },
   { timestamps: true }
 );
+
+// One active booking per lawyer per slot, enforced by the database so two
+// concurrent requests cannot both pass the application-level conflict check.
+ConsultationSchema.index({ slotKey: 1 }, { unique: true, sparse: true });
+ConsultationSchema.index({ lawyerId: 1, date: 1 });
+
+ConsultationSchema.pre('validate', function () {
+  const doc = this as unknown as IConsultation;
+  if (ACTIVE_STATUSES.includes(doc.status as (typeof ACTIVE_STATUSES)[number]) && doc.date) {
+    doc.slotKey = `${doc.lawyerId}|${toDateKey(doc.date)}|${doc.time}`;
+  } else {
+    doc.slotKey = undefined;
+  }
+});
 
 export default mongoose.model<IConsultation>('Consultation', ConsultationSchema);

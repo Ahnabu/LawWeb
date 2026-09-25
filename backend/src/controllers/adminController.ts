@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import Case from '../models/Case';
 import Consultation from '../models/Consultation';
+import { ACTIVE_STATUSES, businessNow, parseDateOnly } from '../utils/schedule';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -10,10 +11,10 @@ interface AuthRequest extends Request {
 
 export const getAdminStats = async (req: AuthRequest, res: Response) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Consultation dates are stored as UTC midnight of the firm's calendar day
+    const today = parseDateOnly(businessNow().dateKey) as Date;
     const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    tomorrow.setUTCDate(today.getUTCDate() + 1);
 
     const [totalCases, activeCases, totalLawyers, totalClients, todayConsultations] = await Promise.all([
       Case.countDocuments(),
@@ -188,17 +189,35 @@ export const updateConsultationStatusAdmin = async (req: AuthRequest, res: Respo
       return res.status(400).json({ status: 400, message: `Status must be one of: ${validStatuses.join(', ')}` });
     }
 
-    const consultation = await Consultation.findByIdAndUpdate(
-      consultationId,
-      { $set: { status, ...(notes !== undefined && { notes }) } },
-      { new: true }
-    )
-      .populate('clientId', 'name email phone')
-      .populate('lawyerId', 'name email barId');
-
+    const consultation = await Consultation.findById(consultationId);
     if (!consultation) {
       return res.status(404).json({ status: 404, message: 'Consultation not found' });
     }
+
+    // Re-activating a closed booking must not collide with a booking made for that slot since
+    const wasActive = (ACTIVE_STATUSES as readonly string[]).includes(consultation.status);
+    const willBeActive = (ACTIVE_STATUSES as readonly string[]).includes(status);
+    if (!wasActive && willBeActive) {
+      const conflict = await Consultation.exists({
+        _id: { $ne: consultation._id },
+        lawyerId: consultation.lawyerId,
+        date: consultation.date,
+        time: consultation.time,
+        status: { $in: ACTIVE_STATUSES },
+      });
+      if (conflict) {
+        return res.status(409).json({ status: 409, message: 'That time slot has since been booked by another consultation' });
+      }
+    }
+
+    consultation.status = status;
+    if (notes !== undefined) consultation.notes = notes;
+    // save() (not findByIdAndUpdate) so the slot guard in the model stays in sync
+    await consultation.save();
+    await consultation.populate([
+      { path: 'clientId', select: 'name email phone' },
+      { path: 'lawyerId', select: 'name email barId' },
+    ]);
 
     res.json({
       status: 200,
@@ -206,6 +225,9 @@ export const updateConsultationStatusAdmin = async (req: AuthRequest, res: Respo
       data: consultation,
     });
   } catch (error) {
+    if ((error as { code?: number })?.code === 11000) {
+      return res.status(409).json({ status: 409, message: 'That time slot has since been booked by another consultation' });
+    }
     console.error('Admin update consultation status error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }

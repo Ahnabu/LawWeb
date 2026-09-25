@@ -62,7 +62,7 @@ export default function HomePage() {
                 {t('common.heroSubtitle')}
               </p>
               <div className="hero-rise mt-6 flex flex-col items-center justify-center gap-3 [animation-delay:360ms] sm:mt-8 sm:flex-row sm:gap-4">
-                <Link href="/dashboard/client/appointment" className="inline-flex w-full justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:w-auto sm:px-8 sm:py-3.5">
+                <Link href="/appointment" className="inline-flex w-full justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:w-auto sm:px-8 sm:py-3.5">
                   {t('common.bookAppointment')}
                 </Link>
                 <Link href={whatsappHref()} className="inline-flex w-full items-center justify-center rounded-md border border-whatsapp/60 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-whatsapp hover:bg-white/15 sm:w-auto sm:px-8 sm:py-3.5">
@@ -84,7 +84,7 @@ export default function HomePage() {
               {t('common.heroSubtitle')}
             </p>
             <div className="hero-rise mt-8 flex flex-col items-center justify-center gap-3 [animation-delay:360ms] sm:mt-10 sm:flex-row sm:gap-4">
-              <Link href="/dashboard/client/appointment" className="inline-flex w-full justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:w-auto sm:px-8 sm:py-4">
+              <Link href="/appointment" className="inline-flex w-full justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:w-auto sm:px-8 sm:py-4">
                 {t('common.bookAppointment')}
               </Link>
               <Link href={whatsappHref()} className="inline-flex w-full items-center justify-center rounded-md border border-whatsapp/50 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:border-whatsapp hover:bg-white/15 sm:w-auto sm:px-8 sm:py-4">
@@ -211,7 +211,7 @@ export default function HomePage() {
             <h2 className="mt-2 sm:mt-3 font-display text-2xl sm:text-3xl font-semibold">{t('common.ctaTitle')}</h2>
           </div>
           <div className="flex w-full lg:w-auto flex-col gap-3 sm:flex-row">
-            <Link href="/dashboard/client/appointment" className="rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90 text-center">
+            <Link href="/appointment" className="rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90 text-center">
               {t('common.ctaBookAppointment')}
             </Link>
             <Link href={whatsappHref()} className="rounded-md border border-white/30 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:bg-white/20 text-center">

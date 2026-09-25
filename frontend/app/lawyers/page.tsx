@@ -73,7 +73,7 @@ export default function LawyersPage() {
             className="w-full sm:w-96 text-sm rounded-lg border border-outline bg-surface px-3 py-2 text-on-surface outline-none focus:border-primary"
           />
           <Link
-            href="/dashboard/client/appointment"
+            href="/appointment"
             className="inline-flex items-center justify-center rounded-md bg-secondary px-4 sm:px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90 w-full sm:w-auto"
           >
             {t('common.lawyersPage.bookConsultation')}

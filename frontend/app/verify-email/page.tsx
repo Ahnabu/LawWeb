@@ -11,9 +11,6 @@ export default function VerifyEmailPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [redirectPath, setRedirectPath] = useState(
-    "/dashboard/client/appointment",
-  );
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
@@ -30,16 +27,7 @@ export default function VerifyEmailPage() {
 
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get("email");
-    const redirectParam = params.get("redirect");
     const storedEmail = window.localStorage.getItem("pendingVerificationEmail");
-    const storedRedirect = window.localStorage.getItem("postAuthRedirect");
-
-    if (redirectParam && redirectParam.startsWith("/")) {
-      setRedirectPath(redirectParam);
-      window.localStorage.setItem("postAuthRedirect", redirectParam);
-    } else if (storedRedirect) {
-      setRedirectPath(storedRedirect);
-    }
 
     if (emailParam && emailParam !== "undefined") {
       setEmail(emailParam);
@@ -90,16 +78,11 @@ export default function VerifyEmailPage() {
         window.localStorage.removeItem("pendingVerificationEmail");
       }
       login(data.user);
-      const nextRedirect =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("postAuthRedirect")
-          : null;
-      if (nextRedirect) {
+      // A newly verified account always lands on its own dashboard; drop any
+      // redirect saved earlier in the login/register flow.
+      if (typeof window !== "undefined") {
         window.localStorage.removeItem("postAuthRedirect");
-        router.push(nextRedirect);
-        return;
       }
-
       router.push(`/dashboard/${data.user.role}`);
     } catch (submitError) {
       const text =
@@ -189,13 +172,13 @@ export default function VerifyEmailPage() {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Link
-                href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
+                href="/login"
                 className="rounded-xl border border-outline px-4 py-2.5 text-center text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary"
               >
                 Back to Login
               </Link>
               <Link
-                href={`/register?redirect=${encodeURIComponent(redirectPath)}`}
+                href="/register"
                 className="rounded-xl bg-primary px-4 py-2.5 text-center text-sm font-semibold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-95 hover:shadow-xl"
               >
                 Create Account
@@ -292,7 +275,7 @@ export default function VerifyEmailPage() {
                 {isResending ? "Resending..." : "Resend Code"}
               </button>
               <Link
-                href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
+                href="/login"
                 className="rounded-xl border border-outline px-4 py-2.5 text-center text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary"
               >
                 Back to Login

@@ -6,6 +6,7 @@ import {
   getMyAvailability,
   updateMyAvailability,
   getLawyerAvailabilityPublic,
+  getLawyerSlotsPublic,
 } from '../controllers/lawyerController';
 import { getMyLawyerProfile, updateMyLawyerProfile, uploadProfileImage } from '../controllers/lawyerProfileController';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
@@ -26,6 +27,7 @@ router.post('/me/profile/image', authenticateToken, authorizeRoles('lawyer'), mu
 
 // Parameterized public routes
 router.get('/:lawyerId/availability', getLawyerAvailabilityPublic);
+router.get('/:lawyerId/slots', getLawyerSlotsPublic);
 router.get('/:lawyerId', getLawyerProfile);
 
 export default router;

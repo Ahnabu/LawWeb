@@ -2,6 +2,22 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import LawyerAvailability from '../models/LawyerAvailability';
 import LawyerProfile from '../models/LawyerProfile';
+import Consultation from '../models/Consultation';
+import mongoose from 'mongoose';
+import {
+  ACTIVE_STATUSES,
+  WeekSchedule,
+  businessNow,
+  dayKeyOf,
+  defaultSchedule,
+  formatSlotLabel,
+  generateSlots,
+  hasSlotStarted,
+  normalizeSchedule,
+  parseDateOnly,
+  toDateKey,
+  toMinutes,
+} from '../utils/schedule';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -101,11 +117,24 @@ export const updateMyAvailability = async (req: AuthRequest, res: Response) => {
     const userId = req.user?._id;
     const { schedule, isAcceptingNewClients } = req.body;
 
+    let normalizedSchedule: WeekSchedule | undefined;
+    if (schedule !== undefined) {
+      const result = normalizeSchedule(schedule);
+      if (result.error) {
+        return res.status(400).json({ status: 400, message: result.error });
+      }
+      normalizedSchedule = result.schedule;
+    }
+
+    if (isAcceptingNewClients !== undefined && typeof isAcceptingNewClients !== 'boolean') {
+      return res.status(400).json({ status: 400, message: 'isAcceptingNewClients must be a boolean' });
+    }
+
     const availability = await LawyerAvailability.findOneAndUpdate(
       { lawyerId: userId },
       {
         $set: {
-          ...(schedule !== undefined && { schedule }),
+          ...(normalizedSchedule && { schedule: normalizedSchedule }),
           ...(isAcceptingNewClients !== undefined && { isAcceptingNewClients }),
         },
       },
@@ -126,16 +155,76 @@ export const updateMyAvailability = async (req: AuthRequest, res: Response) => {
 export const getLawyerAvailabilityPublic = async (req: Request, res: Response) => {
   try {
     const { lawyerId } = req.params;
+    if (!mongoose.isValidObjectId(lawyerId)) {
+      return res.status(400).json({ status: 400, message: 'Invalid lawyer ID' });
+    }
 
     const availability = await LawyerAvailability.findOne({ lawyerId }).lean();
 
+    // Lawyers who never saved a schedule are bookable on the model defaults,
+    // so expose those instead of null (which the booking form treats as "no slots").
     res.json({
       status: 200,
       message: 'Availability retrieved successfully',
-      data: availability ?? null,
+      data: availability ?? {
+        lawyerId,
+        isAcceptingNewClients: true,
+        schedule: defaultSchedule(),
+      },
     });
   } catch (error) {
     console.error('Get lawyer availability error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// Public: bookable slots for one lawyer on one date, with booked/past slots flagged.
+// Exposes only times, never who booked them.
+export const getLawyerSlotsPublic = async (req: Request, res: Response) => {
+  try {
+    const { lawyerId } = req.params;
+    if (!mongoose.isValidObjectId(lawyerId)) {
+      return res.status(400).json({ status: 400, message: 'Invalid lawyer ID' });
+    }
+
+    const date = parseDateOnly(req.query.date);
+    if (!date) {
+      return res.status(400).json({ status: 400, message: 'A valid date (YYYY-MM-DD) is required' });
+    }
+
+    const availability = await LawyerAvailability.findOne({ lawyerId }).lean();
+    const schedule = (availability?.schedule ?? defaultSchedule()) as WeekSchedule;
+    const daySchedule = schedule[dayKeyOf(date)];
+    const slotStarts = generateSlots(daySchedule);
+
+    const booked = slotStarts.length
+      ? await Consultation.find({ lawyerId, date, status: { $in: ACTIVE_STATUSES } }).select('time').lean()
+      : [];
+    const bookedMinutes = new Set(booked.map((c) => toMinutes(c.time)));
+
+    res.json({
+      status: 200,
+      message: 'Slots retrieved successfully',
+      data: {
+        date: toDateKey(date),
+        isAvailable: Boolean(daySchedule?.isAvailable),
+        isAcceptingNewClients: availability?.isAcceptingNewClients ?? true,
+        startTime: daySchedule?.startTime,
+        endTime: daySchedule?.endTime,
+        today: businessNow().dateKey,
+        slots: slotStarts.map((minutes) => {
+          const isBooked = bookedMinutes.has(minutes);
+          const isPast = hasSlotStarted(date, minutes);
+          return {
+            time: formatSlotLabel(minutes),
+            available: !isBooked && !isPast,
+            reason: isBooked ? 'booked' : isPast ? 'past' : undefined,
+          };
+        }),
+      },
+    });
+  } catch (error) {
+    console.error('Get lawyer slots error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };

@@ -118,7 +118,17 @@ export default function ClientDashboardPage() {
           activeCases,
           resolvedCases,
         });
-        setAppointments(normalizedAppointments);
+        // Only future, still-active bookings belong under "Upcoming", soonest first
+        const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(new Date());
+        setAppointments(
+          normalizedAppointments
+            .filter(
+              (item) =>
+                (item.status === "scheduled" || item.status === "rescheduled") &&
+                item.date.slice(0, 10) >= todayKey,
+            )
+            .sort((a, b) => a.date.localeCompare(b.date)),
+        );
         setCases(normalizedCases);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -158,7 +168,7 @@ export default function ClientDashboardPage() {
           </h2>
         </div>
         <Link
-          href="/dashboard/client/book-consultation"
+          href="/appointment"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
         >
           Book Appointment
@@ -184,7 +194,7 @@ export default function ClientDashboardPage() {
           Upcoming Appointments
         </h3>
         {appointments.length === 0 ? (
-          <p className="text-on-surface-variant">No appointments booked yet.</p>
+          <p className="text-on-surface-variant">No upcoming appointments.</p>
         ) : (
           <div className="space-y-3">
             {appointments.map((apt) => (
@@ -193,7 +203,14 @@ export default function ClientDashboardPage() {
                 className="rounded-lg border border-outline-variant bg-surface-container p-4"
               >
                 <p className="font-semibold text-on-surface">
-                  {apt.date} at {apt.time}
+                  {new Date(apt.date).toLocaleDateString("en-BD", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    timeZone: "UTC",
+                  })}{" "}
+                  at {apt.time}
                 </p>
                 <p className="text-sm text-on-surface-variant">
                   Lawyer: {apt.lawyerName || "Assigned lawyer"}

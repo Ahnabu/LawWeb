@@ -75,7 +75,10 @@ export default function AdminAppointmentsPage() {
           body: JSON.stringify({ status: newStatus }),
         },
       );
-      if (!response.ok) throw new Error("Failed to update status");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to update status");
+      }
       setConsultations((prev) =>
         prev.map((c) =>
           c._id === id ? { ...c, status: newStatus as ConsultationItem["status"] } : c,
@@ -171,6 +174,7 @@ export default function AdminAppointmentsPage() {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
+                      timeZone: "UTC",
                     })}
                   </span>
                   <span className="flex items-center gap-1.5 text-on-surface-variant">
