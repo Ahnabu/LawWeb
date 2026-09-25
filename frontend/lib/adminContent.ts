@@ -185,6 +185,11 @@ export function cleanPageData(page: ContentPageDef, data: PageContent): PageCont
     if (Object.keys(settings).length) out.settings = settings
   }
 
+  for (const field of page.sections.flatMap((s) => s.images ?? [])) {
+    const value = typeof data[field.name] === 'string' ? (data[field.name] as string).trim() : ''
+    if (value) out[field.name] = value
+  }
+
   for (const section of page.sections) {
     const list = section.list
     if (!list || !Array.isArray(data[list.name])) continue
@@ -300,6 +305,10 @@ export function diffPageData(page: ContentPageDef, a: PageContent, b: PageConten
       if (!localizedEqual(a.strings?.[field.key], b.strings?.[field.key])) changes.push(`${section.title} › ${field.label}`)
     }
 
+    for (const field of section.images ?? []) {
+      if ((a[field.name] ?? '') !== (b[field.name] ?? '')) changes.push(`${section.title} › ${field.label}`)
+    }
+
     if (section.settings) {
       const sa = (a.settings ?? {}) as SiteSettingsOverride
       const sb = (b.settings ?? {}) as SiteSettingsOverride
@@ -331,6 +340,9 @@ export function describeFieldPath(page: ContentPageDef, path: string): string {
     return `${field?.label ?? key}${lang(parts[parts.length - 1])}`
   }
   if (parts[0] === 'settings') return `Contact details › ${parts.slice(1).join(' › ')}`
+
+  const image = page.sections.flatMap((s) => s.images ?? []).find((f) => f.name === parts[0])
+  if (image) return image.label
 
   const list = page.sections.map((s) => s.list).find((l) => l?.name === parts[0])
   if (!list) return path

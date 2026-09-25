@@ -47,10 +47,18 @@ export interface ListDef {
   defaults: readonly Record<string, string>[]
 }
 
+// An uploaded image URL, stored under `data[name]` (one for both languages)
+export interface ImageField {
+  name: string
+  label: string
+  hint?: string
+}
+
 export interface ContentSection {
   title: string
   description?: string
   texts?: TextField[]
+  images?: ImageField[]
   list?: ListDef
   // Site contact settings (phone, WhatsApp, socials); only on the `site` page
   settings?: boolean
@@ -167,6 +175,13 @@ export const contentRegistry: ContentPageDef[] = [
     sections: [
       {
         title: 'Hero',
+        images: [
+          {
+            name: 'heroImage',
+            label: 'Background image',
+            hint: 'Shown behind the hero text with a dark overlay so the text stays readable. Use a wide landscape photo (at least 1600px wide). Leave empty for the default pattern.',
+          },
+        ],
         texts: [
           text('common.established', 'Eyebrow'),
           text('common.heroTitle', 'Title'),

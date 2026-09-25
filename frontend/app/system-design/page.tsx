@@ -94,7 +94,7 @@ const requirements = [
     items: [
       "Material Design 3 color tokens (Navy #0a1628, Gold #c9a84c)",
       "Light & dark mode (localStorage persisted)",
-      "Playfair Display (headings) + Inter (body) + Hind Siliguri (Bengali)",
+      "Libre Baskerville (headings) + Source Sans 3 (body) + Noto Sans Bengali (Bengali)",
       "Fully responsive — mobile-first Tailwind CSS v4",
       "Sonner toast notifications (theme-aware)",
       "CSS bar-wave loader animation (compositor layer)",
@@ -369,7 +369,7 @@ function SectionHeader({ number, title, subtitle }: { number: string; title: str
         </span>
         <h3
           className="text-2xl md:text-3xl font-bold"
-          style={{ fontFamily: "'Playfair Display', serif", color: NAVY }}
+          style={{ fontFamily: "var(--font-display)", color: NAVY }}
         >
           {title}
         </h3>
@@ -499,7 +499,7 @@ export default function SystemDesignPage() {
                   <div>
                     <h3
                       className="font-bold text-xl"
-                      style={{ fontFamily: "'Playfair Display', serif", color: role.color }}
+                      style={{ fontFamily: "var(--font-display)", color: role.color }}
                     >
                       {role.name}
                     </h3>
@@ -833,7 +833,7 @@ export default function SystemDesignPage() {
                 >
                   <span
                     className="font-bold"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    style={{ fontFamily: "var(--font-display)" }}
                   >
                     {model.name}
                   </span>
@@ -918,7 +918,7 @@ export default function SystemDesignPage() {
                     />
                     <span
                       className="font-bold text-lg"
-                      style={{ fontFamily: "'Playfair Display', serif", color: NAVY }}
+                      style={{ fontFamily: "var(--font-display)", color: NAVY }}
                     >
                       {group.domain}
                     </span>
@@ -983,7 +983,7 @@ export default function SystemDesignPage() {
           >
             <span
               className="text-white font-bold"
-              style={{ fontFamily: "'Playfair Display', serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Islam &amp; Associates
             </span>

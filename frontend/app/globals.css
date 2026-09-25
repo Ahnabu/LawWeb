@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 /* ─── Tailwind v4 Theme Tokens ─── */
@@ -22,12 +22,13 @@
   --color-outline-variant: var(--clr-outline-variant);
 
   --color-error: var(--clr-error);
+  --color-heading: var(--clr-heading);
   --color-success: #10b981;
   --color-whatsapp: #25d366;
 
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body: "Inter", system-ui, -apple-system, sans-serif;
-  --font-bengali: "Hind Siliguri", sans-serif;
+  --font-display: "Libre Baskerville", "Noto Sans Bengali", Georgia, serif;
+  --font-body: "Source Sans 3", "Noto Sans Bengali", system-ui, -apple-system, sans-serif;
+  --font-bengali: "Noto Sans Bengali", sans-serif;
 }
 
 /* ─── Light Theme (default) ─── */
@@ -335,6 +336,81 @@ select:focus {
   background-color: var(--clr-primary);
 }
 
+/* Hero with an admin-uploaded photo. The photo sits on its own layer so it
+   can move without moving the text: it settles in from a slight zoom, then
+   drifts very slowly (Ken Burns). A light black overlay keeps the white text
+   readable without tinting the photo. */
+.hero-photo {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform-origin: 50% 40%;
+  animation:
+    hero-settle 2.4s cubic-bezier(0.22, 1, 0.36, 1) both,
+    hero-drift 24s ease-in-out 2.4s infinite alternate;
+}
+
+.hero-overlay {
+  /* Light neutral black, slightly stronger at the bottom; no brand tint */
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.25) 100%);
+}
+
+.hero-with-photo h1 {
+  /* Smaller than the global h1 so title, text and buttons fit the banner */
+  font-size: clamp(1.625rem, 3vw, 2.5rem);
+}
+
+.hero-with-photo h1,
+.hero-with-photo p {
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes hero-settle {
+  from { transform: scale(1.1); }
+  to { transform: scale(1); }
+}
+
+@keyframes hero-drift {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.06) translate3d(-1%, -1%, 0); }
+}
+
+/* Hero text rises in, one line after another */
+.hero-rise {
+  animation: hero-rise 0.7s ease-out both;
+}
+
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo,
+  .hero-rise {
+    animation: none;
+  }
+}
+
+/* Frosted-glass card for light sections (home stats) */
+.stat-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 8px 32px rgba(10, 22, 40, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+
+.dark .stat-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 /* Section Divider */
 .section-divider {
   border-top: 1px solid var(--clr-outline-variant);
@@ -365,25 +441,9 @@ select:focus {
   --clr-on-surface-rgb: 245 245 245;
 }
 
-/* Small set of utility classes mapped to CSS variables so components adapt to theme */
-.text-secondary {
-  color: var(--clr-secondary);
-}
-.bg-secondary {
-  background: var(--clr-secondary);
-}
-.border-secondary {
-  border-color: var(--clr-secondary);
-}
-.text-primary {
-  color: var(--clr-primary);
-}
-.bg-primary {
-  background: var(--clr-primary);
-}
-.text-heading {
-  color: var(--clr-heading);
-}
+/* Theme colours come from the @theme tokens above (text-secondary, bg-primary, ...).
+   Don't redeclare those classes here: unlayered CSS beats Tailwind's utilities,
+   so hover:/dark: variants on the same element would stop working. */
 
 /* translucent variants using RGB variables */
 .bg-secondary-10 {
@@ -391,9 +451,6 @@ select:focus {
 }
 .border-secondary-25 {
   border-color: rgb(var(--clr-secondary-rgb) / 0.25);
-}
-.text-on-surface-variant {
-  color: var(--clr-on-surface-variant);
 }
 
 /* Accent gradient that uses theme tokens */
@@ -417,19 +474,6 @@ select:focus {
   border-color: var(--clr-secondary);
 }
 
-/* Surface container utilities and semantic text colors */
-.bg-surface-container {
-  background: var(--clr-surface-container);
-}
-.bg-surface-container-high {
-  background: var(--clr-surface-container-high);
-}
-.text-on-secondary {
-  color: var(--clr-on-secondary);
-}
-.text-success {
-  color: var(--color-success);
-}
 
 /* Call-to-action variant: light accent on light theme, toned in dark theme */
 .cta-variant {

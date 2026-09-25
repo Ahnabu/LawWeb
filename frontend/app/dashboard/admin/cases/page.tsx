@@ -550,7 +550,7 @@ export default function AdminCasesPage() {
                         <button
                           type="submit"
                           disabled={isRecordingPayment}
-                          className="w-full rounded bg-secondary py-1 text-xs font-semibold text-on-secondary hover:opacity-90 disabled:opacity-50 transition"
+                          className="w-full rounded bg-secondary py-1 text-xs font-semibold text-primary hover:opacity-90 disabled:opacity-50 transition"
                         >
                           {isRecordingPayment ? "Recording..." : "Record Payment"}
                         </button>

@@ -23,7 +23,7 @@ import {
   type FieldError,
   type ListItem,
 } from "../../../../../lib/adminContent";
-import { ListEditor, SiteSettingsEditor, TextFieldEditor } from "../../../../../components/ContentEditorFields";
+import { ImageFieldEditor, ListEditor, SiteSettingsEditor, TextFieldEditor } from "../../../../../components/ContentEditorFields";
 import { ContentHistory } from "../../../../../components/ContentHistory";
 
 const formatDateTime = (value: string) =>
@@ -84,6 +84,15 @@ export default function AdminContentEditorPage() {
     setData((prev) => {
       const next = { ...prev };
       if (items) next[name] = items;
+      else delete next[name];
+      return next;
+    });
+  }, []);
+
+  const setImage = useCallback((name: string, url: string | undefined) => {
+    setData((prev) => {
+      const next = { ...prev };
+      if (url) next[name] = url;
       else delete next[name];
       return next;
     });
@@ -183,7 +192,7 @@ export default function AdminContentEditorPage() {
   const canPublish = dirty || !!page?.hasUnpublishedChanges;
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BackLink dirty={dirty} />
@@ -283,6 +292,12 @@ export default function AdminContentEditorPage() {
               {section.settings && (
                 <SiteSettingsEditor settings={(data.settings ?? {}) as SiteSettingsOverride} onChange={setSettings} />
               )}
+
+              {section.images?.map((field) => (
+                <ImageFieldEditor key={field.name} field={field}
+                  value={typeof data[field.name] === "string" ? (data[field.name] as string) : undefined}
+                  onChange={(url) => setImage(field.name, url)} />
+              ))}
 
               {section.texts?.map((field) => (
                 <TextFieldEditor key={field.key} field={field} override={data.strings?.[field.key]}

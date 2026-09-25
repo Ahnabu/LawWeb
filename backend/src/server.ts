@@ -1,4 +1,5 @@
 import "./config/env"; // Must be first — loads .env before any other module reads process.env
+import dns from "dns";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -18,6 +19,9 @@ import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blogs";
 import contentRoutes from "./routes/content";
 import { resendVerificationCode } from "./controllers/authController";
+
+// Use Google public DNS so mongodb+srv SRV lookups resolve reliably
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
 const PORT = process.env.PORT || 5000;

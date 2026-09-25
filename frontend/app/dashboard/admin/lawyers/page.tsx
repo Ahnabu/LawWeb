@@ -226,7 +226,7 @@ export default function AdminLawyersPage() {
                     type="button"
                     title="View details"
                     onClick={() => openDetails(lawyer._id)}
-                    className="flex items-center gap-1.5 rounded-lg border border-secondary/60 bg-secondary/10 px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-secondary hover:text-on-primary transition"
+                    className="flex items-center gap-1.5 rounded-lg border border-secondary/60 bg-secondary/10 px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-secondary hover:text-primary transition"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     View Details

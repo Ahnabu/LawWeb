@@ -8,6 +8,7 @@ import { WhatsAppCta } from '../../components/WhatsAppCta'
 import { LawyerPublicCard } from '../../components/LawyerPublicCard'
 import { SuccessStoryCard } from '../../components/SuccessStoryCard'
 import { PracticeAreaCard } from '../../components/PracticeAreaCard'
+import { useContent } from '../../components/ContentProvider'
 import { useLanguage } from '../../components/LanguageProvider'
 import { useContentList, useSiteSettings } from '../../components/contentHooks'
 import { homeStats, practiceAreas, successStories } from '../../lib/data'
@@ -27,6 +28,10 @@ export default function HomePage() {
   const stats = useContentList('home', 'stats', homeStats)
   const stories = useContentList('home', 'successStories', successStories)
   const areas = useContentList('practice-areas', 'areas', practiceAreas)
+  const { content } = useContent()
+  const heroImage = typeof content.home?.heroImage === 'string' && /^https:\/\/[^\s"'()\\]+$/i.test(content.home.heroImage)
+    ? content.home.heroImage
+    : null
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/lawyers/public`)
@@ -39,36 +44,67 @@ export default function HomePage() {
     <main className="relative overflow-hidden">
       <Navbar />
 
-      {/* Hero */}
-      <section className="bg-hero-pattern pb-16 pt-8 sm:pb-20 sm:pt-10 md:pb-24 md:pt-12 lg:pb-28 lg:pt-14 text-white">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 text-center lg:px-8">
-          <span className="inline-flex rounded-md border border-secondary/40 bg-secondary/10 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-            {t('common.established')}
-          </span>
-          <h1 className="mt-6 sm:mt-8 font-display font-bold leading-tight tracking-tight text-white">
-            {t('common.heroTitle')}
-          </h1>
-          <p className="mx-auto mt-4 sm:mt-6 max-w-3xl text-base sm:text-lg leading-7 sm:leading-8 text-slate-200">
-            {t('common.heroSubtitle')}
-          </p>
-          <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
-            <Link href="/dashboard/client/appointment" className="inline-flex rounded-md bg-secondary px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:bg-secondary/90 w-full sm:w-auto justify-center">
-              {t('common.bookAppointment')}
-            </Link>
-            <Link href={whatsappHref()} className="inline-flex items-center justify-center rounded-md border border-whatsapp/50 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm font-semibold text-white transition hover:border-whatsapp hover:bg-white/15 w-full sm:w-auto">
-              {t('common.whatsapp')}
-            </Link>
+      {/* Hero. With an uploaded photo it fills the screen below the navbar,
+          minus a strip so the top of the stats bar peeks in and hints there's
+          more below; min/max keep it sensible on very short or tall screens. */}
+      {heroImage ? (
+          <section className="hero-with-photo relative flex h-[calc(100svh-3.5rem-4.5rem)] min-h-[440px] max-h-[820px] items-center overflow-hidden bg-neutral-900 py-10 text-white sm:h-[calc(100svh-4.25rem-5rem)]">
+            <div aria-hidden className="hero-photo absolute inset-0" style={{ backgroundImage: `url("${heroImage}")` }} />
+            <div aria-hidden className="hero-overlay absolute inset-0" />
+            <div className="relative mx-auto w-full max-w-6xl px-4 text-center sm:px-6 lg:px-8">
+              <span className="hero-rise inline-flex rounded-md border border-secondary/40 bg-secondary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-secondary backdrop-blur-sm sm:px-4 sm:py-2 sm:text-xs">
+                {t('common.established')}
+              </span>
+              <h1 className="hero-rise mx-auto mt-4 max-w-4xl font-display font-bold leading-tight tracking-tight text-white [animation-delay:120ms] sm:mt-6">
+                {t('common.heroTitle')}
+              </h1>
+              <p className="hero-rise mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-100 [animation-delay:240ms] sm:mt-5 sm:text-base sm:leading-7 lg:text-lg">
+                {t('common.heroSubtitle')}
+              </p>
+              <div className="hero-rise mt-6 flex flex-col items-center justify-center gap-3 [animation-delay:360ms] sm:mt-8 sm:flex-row sm:gap-4">
+                <Link href="/dashboard/client/appointment" className="inline-flex w-full justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:w-auto sm:px-8 sm:py-3.5">
+                  {t('common.bookAppointment')}
+                </Link>
+                <Link href={whatsappHref()} className="inline-flex w-full items-center justify-center rounded-md border border-whatsapp/60 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-whatsapp hover:bg-white/15 sm:w-auto sm:px-8 sm:py-3.5">
+                  {t('common.whatsapp')}
+                </Link>
+              </div>
+            </div>
+          </section>
+      ) : (
+        <section className="bg-hero-pattern pb-16 pt-8 text-white sm:pb-20 sm:pt-10 md:pb-24 md:pt-12 lg:pb-28 lg:pt-14">
+          <div className="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
+            <span className="hero-rise inline-flex rounded-md border border-secondary/40 bg-secondary/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-secondary sm:px-4 sm:py-2">
+              {t('common.established')}
+            </span>
+            <h1 className="hero-rise mt-6 font-display font-bold leading-tight tracking-tight text-white [animation-delay:120ms] sm:mt-8">
+              {t('common.heroTitle')}
+            </h1>
+            <p className="hero-rise mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-200 [animation-delay:240ms] sm:mt-6 sm:text-lg sm:leading-8">
+              {t('common.heroSubtitle')}
+            </p>
+            <div className="hero-rise mt-8 flex flex-col items-center justify-center gap-3 [animation-delay:360ms] sm:mt-10 sm:flex-row sm:gap-4">
+              <Link href="/dashboard/client/appointment" className="inline-flex w-full justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary shadow-lg shadow-secondary/30 transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:w-auto sm:px-8 sm:py-4">
+                {t('common.bookAppointment')}
+              </Link>
+              <Link href={whatsappHref()} className="inline-flex w-full items-center justify-center rounded-md border border-whatsapp/50 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:border-whatsapp hover:bg-white/15 sm:w-auto sm:px-8 sm:py-4">
+                {t('common.whatsapp')}
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Stats */}
-      <section className="bg-primary px-4 sm:px-6 py-8 sm:py-10 lg:px-8">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Stats: light section with frosted-glass cards. A soft blurred blob
+          sits behind the cards so the glass effect is visible. */}
+      <section className="relative overflow-hidden bg-surface px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div aria-hidden className="pointer-events-none absolute -right-16 top-1/2 h-48 w-72 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl" />
+        <div className="relative mx-auto grid max-w-6xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.id} className="rounded-lg sm:rounded-xl border border-white/10 bg-white/5 p-4 sm:p-6 text-center">
+            <div key={stat.id} className="stat-glass rounded-lg p-4 text-center transition hover:-translate-y-0.5 sm:rounded-xl sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{stat.label}</p>
-              <p className="mt-3 sm:mt-4 text-lg sm:text-xl font-semibold text-white">{stat.value}</p>
+              <p className="mt-3 text-lg font-semibold text-on-surface sm:mt-4 sm:text-xl">{stat.value}</p>
             </div>
           ))}
         </div>

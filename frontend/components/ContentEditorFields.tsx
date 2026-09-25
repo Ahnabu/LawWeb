@@ -1,8 +1,12 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { ChevronDown, ChevronUp, ImagePlus, Loader2, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
+import { compressImage, formatBytes } from "../lib/imageCompression";
 import type { SiteSettingsOverride, SocialLink, StringOverride } from "../lib/content";
-import { LONG_TEXT, type ListDef, type ListItemField, type TextField } from "../lib/contentRegistry";
+import { LONG_TEXT, type ImageField, type ListDef, type ListItemField, type TextField } from "../lib/contentRegistry";
 import {
   defaultText,
   emptyListItem,
@@ -236,6 +240,73 @@ const SOCIAL_PLATFORMS: SocialLink["platform"][] = ["facebook", "linkedin", "you
 const PLATFORM_LABELS: Record<SocialLink["platform"], string> = {
   facebook: "Facebook", linkedin: "LinkedIn", youtube: "YouTube", x: "X (Twitter)", instagram: "Instagram",
 };
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // backend upload limit, checked after compression
+const MAX_SOURCE_BYTES = 25 * 1024 * 1024; // larger originals are fine: they're compressed first
+
+export function ImageFieldEditor({ field, value, onChange }: {
+  field: ImageField; value: string | undefined; onChange: (value: string | undefined) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<"compressing" | "uploading" | null>(null);
+
+  const upload = async (source: File) => {
+    if (!source.type.startsWith("image/")) return toast.error("Please choose an image file");
+    if (source.size > MAX_SOURCE_BYTES) return toast.error("Image must be 25 MB or smaller");
+    try {
+      setStatus("compressing");
+      const { file, originalSize, compressed } = await compressImage(source);
+      if (file.size > MAX_IMAGE_BYTES) throw new Error("Image is still over 8 MB after compression. Try a smaller photo.");
+
+      setStatus("uploading");
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch(`${API_BASE_URL}/api/admin/content/upload`, { method: "POST", credentials: "include", body: fd });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.url) throw new Error(body.message || "Upload failed");
+      onChange(body.url);
+      toast.success(compressed
+        ? `Image uploaded (compressed ${formatBytes(originalSize)} → ${formatBytes(file.size)}). Save or publish to apply it.`
+        : "Image uploaded. Save or publish to apply it.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setStatus(null);
+    }
+  };
+  const uploading = status !== null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-semibold text-on-surface">{field.label}</p>
+      {field.hint && <p className="text-xs text-on-surface-variant">{field.hint}</p>}
+      {value ? (
+        <div className="relative overflow-hidden rounded-lg border border-outline-variant">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="" className="aspect-[16/6] w-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex aspect-[16/6] w-full items-center justify-center rounded-lg border border-dashed border-outline bg-surface text-xs text-on-surface-variant">
+          No image — the default background is used
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+        onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} />
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className={smallButton}>
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+          {status === "compressing" ? "Compressing…" : status === "uploading" ? "Uploading…" : value ? "Replace image" : "Upload image"}
+        </button>
+        {value && (
+          <button type="button" onClick={() => onChange(undefined)} disabled={uploading} className={smallButton}>
+            <Trash2 className="h-3.5 w-3.5" /> Remove
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-on-surface-variant">JPG, PNG or WebP, up to 25 MB. Large photos are resized to 1600px wide and compressed before upload.</p>
+    </div>
+  );
+}
 
 export function SiteSettingsEditor({ settings, onChange }: {
   settings: SiteSettingsOverride; onChange: (settings: SiteSettingsOverride) => void;

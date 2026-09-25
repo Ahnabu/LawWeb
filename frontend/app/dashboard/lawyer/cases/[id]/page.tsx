@@ -507,7 +507,7 @@ export default function CaseDetailPage() {
               <button
                 type="submit"
                 disabled={isRecordingPayment}
-                className="mt-3 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-on-secondary hover:opacity-90 disabled:opacity-50 transition-opacity"
+                className="mt-3 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-primary hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {isRecordingPayment ? "Recording..." : "Record Payment"}
               </button>

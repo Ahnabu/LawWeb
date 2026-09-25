@@ -79,7 +79,7 @@ export default function BlogDetailPage() {
           <Newspaper className="mx-auto h-14 w-14 text-on-surface-variant" />
           <p className="text-lg font-semibold text-on-surface">Article not found</p>
           <p className="text-sm text-on-surface-variant">{error ?? "This article may have been removed."}</p>
-          <Link href={localePath("/blogs")} className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 transition">
+          <Link href={localePath("/blogs")} className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-primary hover:opacity-90 transition">
             <ArrowLeft className="h-4 w-4" /> Back to Blog
           </Link>
         </div>

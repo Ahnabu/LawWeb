@@ -75,6 +75,14 @@ const phone = z
   .max(30)
   .regex(/^\+?[\d\s\-()]*$/, 'Invalid phone number');
 
+// Uploaded image URL (Cloudinary). https only — it ends up in a CSS url()
+const imageUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .url('Invalid image URL')
+  .regex(/^https:\/\/[^\s"'()\\]+$/i, 'Image URL must start with https://');
+
 const siteSchema = z
   .object({
     strings: strings.optional(),
@@ -115,6 +123,7 @@ const stringsOnlySchema = z.object({ strings: strings.optional() }).strict();
 const homeSchema = z
   .object({
     strings: strings.optional(),
+    heroImage: imageUrl.optional(),
     stats: z
       .array(z.object({ value: localized(60), label: localized(60) }))
       .max(8)

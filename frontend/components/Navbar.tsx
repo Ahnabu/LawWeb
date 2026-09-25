@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ChevronDown,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -92,15 +91,14 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setIsProfileMenuOpen((open) => !open)}
-                className="inline-flex items-center gap-3 rounded-full border border-outline-variant bg-surface px-2 py-1.5 pr-3 text-left shadow-sm transition hover:border-secondary"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full ring-1 ring-outline-variant transition hover:ring-2 hover:ring-secondary"
                 aria-label={t("nav.openProfileMenu")}
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
               >
-                <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-secondary/15 text-sm font-semibold text-secondary ring-1 ring-secondary/20">
-                  {initials || <UserRound className="h-5 w-5" />}
+                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-semibold text-on-secondary">
+                  {initials || <UserRound className="h-4 w-4" />}
                 </span>
-                <ChevronDown className="h-4 w-4 text-on-surface-variant" />
               </button>
 
               {isProfileMenuOpen ? (
@@ -139,7 +137,7 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="rounded-md bg-secondary px-3 py-2 text-xs font-semibold text-on-secondary shadow-sm transition hover:bg-secondary/90 sm:px-4 sm:py-2 sm:text-sm"
+              className="rounded-md bg-secondary px-3 py-2 text-xs font-semibold text-primary shadow-sm transition hover:bg-secondary/90 sm:px-4 sm:py-2 sm:text-sm"
             >
               {t("common.login")}
             </Link>
@@ -226,7 +224,7 @@ export function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="mt-3 inline-flex items-center justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-on-secondary shadow-sm transition hover:bg-secondary/90 dark:bg-secondary dark:text-on-secondary dark:hover:bg-secondary/90"
+                className="mt-3 inline-flex items-center justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-secondary/90"
               >
                 {t("common.login")}
               </Link>

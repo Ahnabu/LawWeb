@@ -23,6 +23,9 @@ expect('unknown top-level field rejected (strict)', !ok('track-case', { stats: [
 expect('too-long text rejected', !ok('global', { strings: { 'nav.home': { en: 'x'.repeat(2001) } } }).success);
 
 // Lists
+expect('home: https hero image accepted', ok('home', { heroImage: 'https://res.cloudinary.com/x/image/upload/a.jpg' }).success);
+expect('home: non-https hero image rejected', !ok('home', { heroImage: 'javascript:alert(1)' }).success);
+expect('home: hero image with quote/paren rejected', !ok('home', { heroImage: 'https://x.com/a.jpg")' }).success);
 r = ok('home', { stats: [{ value: { en: '27+' }, label: { en: 'Experience', bn: 'অভিজ্ঞতা' } }] });
 expect('home: stats with missing bn defaults to ""', r.success && (r.data as any).stats[0].value.bn === '', r);
 expect('home: list item without en rejected', !ok('home', { stats: [{ value: { en: '' }, label: { en: 'x' } }] }).success);

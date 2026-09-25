@@ -10,6 +10,7 @@
     "predev": "node src/scripts/free-port.js",
     "dev": "nodemon",
     "clean": "rm -rf dist",
+    "seed:admin": "ts-node --transpile-only src/scripts/seed-admin.ts",
     "test:content": "ts-node --transpile-only tests/content/schema.check.ts && ts-node --transpile-only tests/content/flow.check.ts"
   },
   "dependencies": {

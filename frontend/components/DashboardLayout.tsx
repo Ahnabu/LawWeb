@@ -118,6 +118,11 @@ const getSidebarItems = (
         label: "Blogs",
         icon: <Newspaper className="h-5 w-5" />,
       },
+      {
+        href: "/dashboard/admin/content",
+        label: "Content",
+        icon: <FileText className="h-5 w-5" />,
+      },
     ],
   };
   return baseItems[role] || [];
@@ -200,7 +205,11 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
             {sidebarItems.map((item) => {
-              const isActive = pathname === item.href;
+              // Sub-pages (e.g. /dashboard/admin/content/about) keep their section active;
+              // the role home (/dashboard/admin) only matches exactly
+              const isActive =
+                pathname === item.href ||
+                (item.href.split("/").length > 3 && pathname.startsWith(`${item.href}/`));
               return (
                 <Link
                   key={item.href}

@@ -195,7 +195,7 @@ export default function BlogsPage() {
                       </div>
                       <Link
                         href={localePath(`/blogs/${blog.slug}`)}
-                        className="flex items-center gap-1.5 rounded-lg bg-secondary/10 border border-secondary/30 px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-secondary hover:text-on-primary transition"
+                        className="flex items-center gap-1.5 rounded-lg bg-secondary/10 border border-secondary/30 px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-secondary hover:text-primary transition"
                       >
                         {t("blogsPage.readMore")} <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
