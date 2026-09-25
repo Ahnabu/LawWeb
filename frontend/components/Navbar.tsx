@@ -24,7 +24,7 @@ const roleDashboardPath = {
 } as const;
 
 export function Navbar() {
-  const { t } = useLanguage();
+  const { t, localePath } = useLanguage();
   const { user, status, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -63,7 +63,7 @@ export function Navbar() {
   return (
     <header className="glass-nav fixed inset-x-0 top-0 z-50 w-full">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-17 sm:gap-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 sm:gap-3">
+        <Link href={localePath("/")} className="flex items-center gap-2 sm:gap-3">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-base sm:h-11 sm:w-11 sm:rounded-xl sm:text-lg bg-secondary/10 text-secondary ring-1 ring-secondary/20">
             ⚖️
           </span>
@@ -76,7 +76,7 @@ export function Navbar() {
           {navLinks.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              href={localePath(link.href)}
               className="text-sm font-medium text-on-surface-variant transition hover:text-secondary"
             >
               {t(link.labelKey) ?? link.fallback}
@@ -126,7 +126,7 @@ export function Navbar() {
                     onClick={async () => {
                       setIsProfileMenuOpen(false);
                       await logout();
-                      window.location.href = "/";
+                      window.location.href = localePath("/");
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
                   >
@@ -168,7 +168,7 @@ export function Navbar() {
             {navLinks.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={localePath(link.href)}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
               >
@@ -214,7 +214,7 @@ export function Navbar() {
                     onClick={async () => {
                       setIsMobileMenuOpen(false);
                       await logout();
-                      window.location.href = "/";
+                      window.location.href = localePath("/");
                     }}
                     className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
                   >

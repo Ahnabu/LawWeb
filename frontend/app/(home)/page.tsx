@@ -2,16 +2,16 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Footer } from '../components/Footer'
-import { Navbar } from '../components/Navbar'
-import { WhatsAppCta } from '../components/WhatsAppCta'
-import { LawyerPublicCard } from '../components/LawyerPublicCard'
-import { SuccessStoryCard } from '../components/SuccessStoryCard'
-import { PracticeAreaCard } from '../components/PracticeAreaCard'
-import { useLanguage } from '../components/LanguageProvider'
-import { useContentList, useSiteSettings } from '../components/contentHooks'
-import { homeStats, practiceAreas, successStories } from '../lib/data'
-import { API_BASE_URL } from '../lib/api'
+import { Footer } from '../../components/Footer'
+import { Navbar } from '../../components/Navbar'
+import { WhatsAppCta } from '../../components/WhatsAppCta'
+import { LawyerPublicCard } from '../../components/LawyerPublicCard'
+import { SuccessStoryCard } from '../../components/SuccessStoryCard'
+import { PracticeAreaCard } from '../../components/PracticeAreaCard'
+import { useLanguage } from '../../components/LanguageProvider'
+import { useContentList, useSiteSettings } from '../../components/contentHooks'
+import { homeStats, practiceAreas, successStories } from '../../lib/data'
+import { API_BASE_URL } from '../../lib/api'
 
 interface PublicLawyer {
   _id: string
@@ -21,7 +21,7 @@ interface PublicLawyer {
 }
 
 export default function HomePage() {
-  const { t } = useLanguage()
+  const { t, localePath } = useLanguage()
   const [lawyers, setLawyers] = useState<PublicLawyer[]>([])
   const { whatsappHref } = useSiteSettings()
   const stats = useContentList('home', 'stats', homeStats)
@@ -94,7 +94,7 @@ export default function HomePage() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <Link href="/practice-areas" className="text-sm font-semibold text-secondary transition hover:text-secondary/80">
+            <Link href={localePath("/practice-areas")} className="text-sm font-semibold text-secondary transition hover:text-secondary/80">
               {t('common.viewAll')}
             </Link>
           </div>

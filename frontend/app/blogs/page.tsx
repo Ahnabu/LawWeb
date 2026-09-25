@@ -30,7 +30,7 @@ const CATEGORIES = [
 ];
 
 export default function BlogsPage() {
-  const { t, locale } = useLanguage();
+  const { t, locale, localePath } = useLanguage();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [filtered, setFiltered] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,7 +194,7 @@ export default function BlogsPage() {
                         <p className="text-xs text-on-surface-variant">{fmt(blog.publishedAt ?? blog.createdAt)}</p>
                       </div>
                       <Link
-                        href={`/blogs/${blog.slug}`}
+                        href={localePath(`/blogs/${blog.slug}`)}
                         className="flex items-center gap-1.5 rounded-lg bg-secondary/10 border border-secondary/30 px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-secondary hover:text-on-primary transition"
                       >
                         {t("blogsPage.readMore")} <ArrowRight className="h-3.5 w-3.5" />

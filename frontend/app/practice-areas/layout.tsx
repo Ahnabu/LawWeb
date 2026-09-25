@@ -1,6 +1,6 @@
-import { getPageMetadata } from '../../lib/seo'
+import { pageMetadata } from '../../lib/seo'
 
-export const generateMetadata = () => getPageMetadata('practiceAreas')
+export const generateMetadata = pageMetadata('practiceAreas')
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return <>{children}</>

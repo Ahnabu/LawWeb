@@ -8,6 +8,7 @@ import { Footer } from "../../../components/Footer";
 import { Navbar } from "../../../components/Navbar";
 import { WhatsAppCta } from "../../../components/WhatsAppCta";
 import { API_BASE_URL } from "../../../lib/api";
+import { useLanguage } from "../../../components/LanguageProvider";
 import { Clock, Tag, ArrowLeft, Calendar, User, Newspaper } from "lucide-react";
 
 interface Block {
@@ -33,6 +34,7 @@ interface Blog {
 
 export default function BlogDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { localePath } = useLanguage();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +79,7 @@ export default function BlogDetailPage() {
           <Newspaper className="mx-auto h-14 w-14 text-on-surface-variant" />
           <p className="text-lg font-semibold text-on-surface">Article not found</p>
           <p className="text-sm text-on-surface-variant">{error ?? "This article may have been removed."}</p>
-          <Link href="/blogs" className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 transition">
+          <Link href={localePath("/blogs")} className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 transition">
             <ArrowLeft className="h-4 w-4" /> Back to Blog
           </Link>
         </div>
@@ -122,7 +124,7 @@ export default function BlogDetailPage() {
       {/* Article content */}
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Back link */}
-        <Link href="/blogs" className="inline-flex items-center gap-2 text-sm text-on-surface-variant hover:text-secondary transition mb-8">
+        <Link href={localePath("/blogs")} className="inline-flex items-center gap-2 text-sm text-on-surface-variant hover:text-secondary transition mb-8">
           <ArrowLeft className="h-4 w-4" /> All Articles
         </Link>
 
@@ -161,7 +163,7 @@ export default function BlogDetailPage() {
         <div className="mt-12 rounded-2xl border border-outline-variant bg-surface-container p-6 text-center">
           <p className="text-sm font-semibold text-on-surface mb-1">Read more articles</p>
           <p className="text-xs text-on-surface-variant mb-4">Explore our full collection of legal insights and news.</p>
-          <Link href="/blogs" className="inline-flex items-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-semibold text-primary hover:opacity-90 transition">
+          <Link href={localePath("/blogs")} className="inline-flex items-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-semibold text-primary hover:opacity-90 transition">
             <ArrowLeft className="h-4 w-4" /> Back to Blog
           </Link>
         </div>

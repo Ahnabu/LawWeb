@@ -42,6 +42,7 @@ This document addresses the critical connectivity issues that occurred during th
      ```
      NEXT_PUBLIC_API_URL=https://your-backend-url.com
      REVALIDATE_SECRET=<random-long-secret, same value as on the backend>
+     NEXT_PUBLIC_SITE_URL=https://your-domain.com
      ```
    - Replace `https://your-backend-url.com` with your actual backend URL (e.g., Render, Railway, etc.)
 
@@ -86,6 +87,7 @@ This document addresses the critical connectivity issues that occurred during th
 #### Frontend (.env.local for development, Vercel for production)
 - `NEXT_PUBLIC_API_URL`: URL of your backend API (e.g., `https://backend-url.com`)
 - `REVALIDATE_SECRET`: Shared secret the backend sends to `/api/revalidate` after a CMS publish
+- `NEXT_PUBLIC_SITE_URL`: Public address of the site (e.g., `https://your-domain.com`, no trailing slash). Used for canonical/`hreflang` links, `sitemap.xml` and `robots.txt`. Falls back to the Vercel production domain, then `http://localhost:3000`.
 
 #### Backend (.env file)
 - `PORT`: Server port (default: 5000)
@@ -153,4 +155,5 @@ and pick up the published content within 5 minutes of the deploy.
 | Cookies not persisting | Verify `credentials: 'include'` is set in fetch requests (already configured) |
 | 404 on health check | Ensure backend is deployed and running |
 | Published CMS content takes ~5 min to appear | Set `FRONTEND_REVALIDATE_URL` + `REVALIDATE_SECRET` on the backend and the same `REVALIDATE_SECRET` on the frontend; check backend logs for `Content revalidation failed` |
+| Canonical / `hreflang` / sitemap URLs point to the wrong domain | Set `NEXT_PUBLIC_SITE_URL` in Vercel and redeploy (it is read at build time) |
 

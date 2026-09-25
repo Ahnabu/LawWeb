@@ -44,7 +44,7 @@ interface TrackedCase {
 }
 
 export default function TrackCasePage() {
-  const { t, locale } = useLanguage();
+  const { t, locale, localePath } = useLanguage();
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<TrackedCase | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -119,7 +119,7 @@ export default function TrackCasePage() {
           {notFound && (
             <div className="mt-10 rounded-xl border border-outline-variant bg-surface p-8 text-center text-sm text-on-surface-variant">
               {t("trackCase.notFound")}{" "}
-              <Link href="/#contact" className="text-secondary underline">{t("trackCase.contactUs")}</Link>
+              <Link href={localePath("/#contact")} className="text-secondary underline">{t("trackCase.contactUs")}</Link>
             </div>
           )}
 

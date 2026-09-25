@@ -31,7 +31,7 @@ const quickLinks = [
 ]
 
 export function Footer() {
-  const { t } = useLanguage()
+  const { t, localePath } = useLanguage()
   const settings = useSiteSettings()
   const areas = useContentList('practice-areas', 'areas', practiceAreas)
 
@@ -80,7 +80,7 @@ export function Footer() {
           <ul className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
             {quickLinks.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className="text-on-surface-variant transition hover:text-secondary">
+                <Link href={localePath(item.href)} className="text-on-surface-variant transition hover:text-secondary">
                   {t(item.labelKey)}
                 </Link>
               </li>

@@ -6,9 +6,13 @@ import { AuthProvider } from '../components/AuthProvider'
 import { SonnerToaster } from '../components/SonnerToaster'
 import { getPublishedContent } from '../lib/content'
 import { getPageMetadata } from '../lib/seo'
+import { getSiteUrl } from '../lib/locale'
 
-// Home page SEO, also the default for pages without their own
-export const generateMetadata = () => getPageMetadata('home')
+// Home page SEO text as the default for pages without their own. Canonical and
+// hreflang tags are set per page (see lib/seo.ts), never here.
+export async function generateMetadata() {
+  return { metadataBase: new URL(getSiteUrl()), ...(await getPageMetadata('home')) }
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const content = await getPublishedContent()
@@ -17,10 +21,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Prevent flash of wrong theme */}
+        {/* Set lang="bn" on /bn pages before paint (the layout is shared, so the
+            server HTML says "en"), and prevent a flash of the wrong theme */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              try {
+                const p = location.pathname;
+                if (p === '/bn' || p.indexOf('/bn/') === 0) document.documentElement.lang = 'bn';
+              } catch (e) {}
               try {
                 const t = localStorage.getItem('lawweb-theme');
                 const d = window.matchMedia('(prefers-color-scheme: dark)').matches;

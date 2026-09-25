@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Eye, ExternalLink, History, Languages, Loader2, RotateCcw, Save, Send } from "lucide-react";
 import type { PageContent, SiteSettingsOverride, StringOverride, StringOverrides } from "../../../../../lib/content";
 import { getPageDef } from "../../../../../lib/contentRegistry";
+import { localizePath } from "../../../../../lib/locale";
 import {
   ContentSaveError,
   banglaStatus,
@@ -220,6 +221,12 @@ export default function AdminContentEditorPage() {
             <a href={def.publicPath} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs font-semibold text-secondary hover:underline">
               View live page <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+          {def.publicPath && (
+            <a href={localizePath(def.publicPath, "bn")} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs font-semibold text-secondary hover:underline">
+              Bangla page <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
