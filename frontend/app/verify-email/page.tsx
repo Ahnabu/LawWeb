@@ -19,6 +19,14 @@ export default function VerifyEmailPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  // The backend sends at most one code per minute per account
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -121,6 +129,7 @@ export default function VerifyEmailPage() {
     try {
       const result = await resendVerificationCode(email);
       setMessage(result.message);
+      setResendCooldown(60);
     } catch (resendError) {
       const text =
         resendError instanceof Error
@@ -269,10 +278,10 @@ export default function VerifyEmailPage() {
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={isResending || !email.trim()}
+                disabled={isResending || resendCooldown > 0 || !email.trim()}
                 className="rounded-xl border border-outline px-4 py-2.5 text-sm font-semibold text-on-surface transition-all hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isResending ? "Resending..." : "Resend Code"}
+                {isResending ? "Resending..." : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
               </button>
               <Link
                 href="/login"

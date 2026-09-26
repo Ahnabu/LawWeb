@@ -123,6 +123,11 @@ const getSidebarItems = (
         label: "Content",
         icon: <FileText className="h-5 w-5" />,
       },
+      {
+        href: "/dashboard/admin/settings",
+        label: "Settings",
+        icon: <Settings className="h-5 w-5" />,
+      },
     ],
   };
   return baseItems[role] || [];

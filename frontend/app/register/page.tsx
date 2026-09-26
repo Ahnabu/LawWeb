@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { signUp } from "../../lib/auth";
+import { safeRedirectPath, signUp } from "../../lib/auth";
 
 function RegisterPageContent() {
   const router = useRouter();
@@ -30,18 +30,7 @@ function RegisterPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const redirectPath = searchParams.get("redirect") || "/dashboard/client";
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const current = window.localStorage.getItem("postAuthRedirect");
-    if (!current && redirectPath) {
-      window.localStorage.setItem("postAuthRedirect", redirectPath);
-    }
-  }, [redirectPath]);
+  const redirectPath = safeRedirectPath(searchParams.get("redirect"));
 
   const clearFieldError = (field: keyof typeof fieldErrors) => {
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
@@ -150,10 +139,9 @@ function RegisterPageContent() {
           "pendingVerificationEmail",
           normalizedEmail,
         );
-        window.localStorage.setItem("postAuthRedirect", redirectPath);
       }
       router.push(
-        `/verify-email?email=${encodeURIComponent(normalizedEmail)}&redirect=${encodeURIComponent(redirectPath)}`,
+        `/verify-email?email=${encodeURIComponent(normalizedEmail)}${redirectPath ? `&redirect=${encodeURIComponent(redirectPath)}` : ""}`,
       );
     } catch (submitError) {
       const message =

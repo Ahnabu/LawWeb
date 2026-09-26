@@ -3,6 +3,7 @@
 import { Bell, Briefcase, CalendarClock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { API_BASE_URL } from '../lib/api'
+import { apiFetch } from '../lib/http'
 
 interface Notification {
   id: string
@@ -33,7 +34,7 @@ export function NotificationBell() {
     if (hasFetched.current) return
     hasFetched.current = true
     setLoading(true)
-    fetch(`${API_BASE_URL}/api/consultations/notifications`, { credentials: 'include' })
+    apiFetch(`${API_BASE_URL}/api/consultations/notifications`, { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
         const items: Notification[] = data.notifications || []

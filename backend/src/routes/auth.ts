@@ -1,28 +1,42 @@
 import express from 'express';
-import { register, login, logout, getProfile, refreshToken, verifyEmail, resendVerificationCode, changePassword } from '../controllers/authController';
+import {
+  register,
+  login,
+  logout,
+  getProfile,
+  refreshToken,
+  verifyEmail,
+  resendVerificationCode,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+} from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
-import { registerSchema, loginSchema, validateRequest } from '../middleware/validation';
+import {
+  registerSchema,
+  loginSchema,
+  emailOnlySchema,
+  verifyEmailSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
+  validateRequest,
+} from '../middleware/validation';
 
 const router = express.Router();
 
-// Public routes
-router.get('/login', (req, res) => {
-  res.status(405).json({ 
-    message: 'Method Not Allowed: This endpoint requires a POST request with email and password.',
-    status: 'Ready for POST requests'
-  });
-});
+// Public routes (rate limited in server.ts)
 router.post('/register', validateRequest(registerSchema), register);
 router.post('/login', validateRequest(loginSchema), login);
 router.post('/refresh', refreshToken);
-router.post('/verify-email', verifyEmail);
-router.post('/resend-verification-code', resendVerificationCode);
-router.post('/verify-code', verifyEmail);
-router.post('/resend-code', resendVerificationCode);
+// Works with an expired access token so a stale session can always sign out
+router.post('/logout', logout);
+router.post('/verify-email', validateRequest(verifyEmailSchema), verifyEmail);
+router.post('/resend-verification-code', validateRequest(emailOnlySchema), resendVerificationCode);
+router.post('/forgot-password', validateRequest(emailOnlySchema), forgotPassword);
+router.post('/reset-password', validateRequest(resetPasswordSchema), resetPassword);
 
 // Protected routes
-router.post('/logout', authenticateToken, logout);
 router.get('/profile', authenticateToken, getProfile);
-router.post('/change-password', authenticateToken, changePassword);
+router.post('/change-password', authenticateToken, validateRequest(changePasswordSchema), changePassword);
 
 export default router;

@@ -46,6 +46,7 @@ interface TrackedCase {
 export default function TrackCasePage() {
   const { t, locale, localePath } = useLanguage();
   const [query, setQuery] = useState("");
+  const [email, setEmail] = useState("");
   const [result, setResult] = useState<TrackedCase | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,13 +54,15 @@ export default function TrackCasePage() {
 
   const handleTrack = async () => {
     const q = query.trim();
-    if (!q) return;
+    const mail = email.trim();
+    if (!q || !mail) return;
     setLoading(true);
     setResult(null);
     setNotFound(false);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/track/${encodeURIComponent(q)}`);
+      const params = new URLSearchParams({ caseNumber: q, email: mail });
+      const res = await fetch(`${API_BASE_URL}/api/cases/track?${params}`);
       const data = await res.json();
       if (res.status === 404) { setNotFound(true); return; }
       if (!res.ok) throw new Error(data.message || t("trackCase.fetchError"));
@@ -93,19 +96,30 @@ export default function TrackCasePage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-[1.5fr_1fr]">
+          <div className="mt-10 grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t("trackCase.placeholder")}
+              aria-label={t("trackCase.placeholder")}
+              className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder-on-surface-variant focus:border-secondary focus:outline-none"
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t("trackCase.emailPlaceholder")}
+              aria-label={t("trackCase.emailPlaceholder")}
+              autoComplete="email"
               className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder-on-surface-variant focus:border-secondary focus:outline-none"
             />
             <button
               type="button"
               onClick={handleTrack}
-              disabled={loading || !query.trim()}
+              disabled={loading || !query.trim() || !email.trim()}
               className="rounded-lg bg-secondary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90 disabled:opacity-50"
             >
               {loading ? t("trackCase.searching") : t("trackCase.trackNow")}

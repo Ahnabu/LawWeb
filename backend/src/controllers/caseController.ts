@@ -6,6 +6,9 @@ interface AuthRequest extends Request {
   user?: any;
 }
 
+// Lawyer/firm-only fields that must never reach a client
+const CLIENT_HIDDEN_FIELDS = '-internalNotes';
+
 export const createCase = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
@@ -99,6 +102,7 @@ export const getMyCases = async (req: AuthRequest, res: Response) => {
 
     if (userRole === 'client') {
       cases = await Case.find({ clientId: userId })
+        .select(CLIENT_HIDDEN_FIELDS)
         .populate('lawyerId', 'name email barId phone')
         .sort({ createdAt: -1 });
     } else if (userRole === 'lawyer') {
@@ -139,19 +143,26 @@ export const getCaseById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
 
+    // Both refs are populated here, so compare the populated _id
+    const isClient = (caseDoc.clientId as any)?._id?.toString() === userId?.toString();
     const isOwner =
       userRole === 'admin' ||
-      caseDoc.lawyerId?._id?.toString() === userId?.toString() ||
-      caseDoc.clientId?.toString() === userId?.toString();
+      (caseDoc.lawyerId as any)?._id?.toString() === userId?.toString() ||
+      isClient;
 
     if (!isOwner) {
       return res.status(403).json({ status: 403, message: 'Access denied' });
     }
 
+    const data = caseDoc.toObject();
+    if (userRole === 'client') {
+      delete (data as { internalNotes?: string }).internalNotes;
+    }
+
     res.json({
       status: 200,
       message: 'Case retrieved successfully',
-      data: caseDoc,
+      data,
     });
   } catch (error) {
     console.error('Get case error:', error);
@@ -276,26 +287,24 @@ export const deleteCase = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Public lookup. Case numbers are sequential (CAS-2026-001), so the number alone
+// is guessable; the client's email must match too.
 export const trackCasePublic = async (req: Request, res: Response) => {
   try {
-    const query = String(req.params.query || '');
-    if (!query || query.trim().length < 3) {
-      return res.status(400).json({ status: 400, message: 'Please provide a valid case number or email' });
+    const caseNumber = typeof req.query.caseNumber === 'string' ? req.query.caseNumber.trim().toUpperCase() : '';
+    const email = typeof req.query.email === 'string' ? req.query.email.trim().toLowerCase() : '';
+
+    if (!caseNumber || !email || caseNumber.length > 40 || email.length > 254) {
+      return res.status(400).json({ status: 400, message: 'Please provide your case number and the email address on the case.' });
     }
 
-    const q = query.trim();
-    const caseDoc = await Case.findOne({
-      $or: [
-        { caseNumber: q.toUpperCase() },
-        { clientEmail: q.toLowerCase() },
-      ],
-    })
+    const caseDoc = await Case.findOne({ caseNumber, clientEmail: email })
       .populate('lawyerId', 'name barId')
       .select('caseNumber title type status stage priority courtName jurisdiction nextCourtDate filingDate notes lawyerId createdAt updatedAt')
       .lean();
 
     if (!caseDoc) {
-      return res.status(404).json({ status: 404, message: 'No case found with that case number or email.' });
+      return res.status(404).json({ status: 404, message: 'No case matches that case number and email.' });
     }
 
     res.json({ status: 200, message: 'Case found', data: caseDoc });

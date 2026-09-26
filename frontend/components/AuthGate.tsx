@@ -3,36 +3,23 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from './AuthProvider'
-import type { UserRole } from '../lib/auth'
+import { dashboardPathFor, type UserRole } from '../lib/auth'
 
 interface AuthGateProps {
   children: React.ReactNode
   allowRoles?: UserRole[]
 }
 
-const roleDashboardPath: Record<UserRole, string> = {
-  admin: '/dashboard/admin',
-  lawyer: '/dashboard/lawyer',
-  client: '/dashboard/client',
-}
-
 export function AuthGate({ children, allowRoles }: AuthGateProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, status, logout } = useAuth()
+  const { user, status } = useAuth()
 
   useEffect(() => {
-    if (status !== 'authenticated') {
-      return
+    if (status === 'authenticated' && allowRoles && user && !allowRoles.includes(user.role)) {
+      router.replace(dashboardPathFor(user.role))
     }
-
-    if (allowRoles && user && !allowRoles.includes(user.role)) {
-      void (async () => {
-        await logout()
-        router.replace(`/login?redirect=${encodeURIComponent(pathname || '/')}`)
-      })()
-    }
-  }, [allowRoles, logout, pathname, router, status, user])
+  }, [allowRoles, router, status, user])
 
   useEffect(() => {
     if (status === 'unauthenticated') {

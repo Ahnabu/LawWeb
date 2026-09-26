@@ -13,6 +13,7 @@ import {
   updateConsultationStatus,
 } from "../../../../lib/dashboard";
 import { API_BASE_URL } from "../../../../lib/api";
+import { apiFetch } from "../../../../lib/http";
 
 const isActive = (status: ConsultationStatus) =>
   status === "scheduled" || status === "rescheduled";
@@ -58,7 +59,7 @@ export default function LawyerAppointmentsPage() {
     setConfirmingId(id);
     const toastId = toast.loading("Confirming appointment...");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/consultations/${id}/confirm`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/consultations/${id}/confirm`, {
         method: "PUT",
         credentials: "include",
       });

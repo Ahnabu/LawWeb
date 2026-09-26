@@ -7,6 +7,11 @@ import User from '../models/User';
 // Override the defaults with SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME.
 const email = (process.env.SEED_ADMIN_EMAIL || 'admin@lawweb.com').toLowerCase();
 const password = process.env.SEED_ADMIN_PASSWORD || 'Admin@12345';
+
+if (process.env.NODE_ENV === 'production' && !process.env.SEED_ADMIN_PASSWORD) {
+  console.error('Refusing to seed the admin with the default password in production. Set SEED_ADMIN_PASSWORD.');
+  process.exit(1);
+}
 const name = process.env.SEED_ADMIN_NAME || 'Admin';
 
 // Same resolver workaround as server.ts: local DNS refuses the Atlas SRV lookup.
@@ -23,6 +28,8 @@ async function seedAdmin() {
   user.isVerified = true;
   user.passwordNeedsChange = false;
   user.password = password; // hashed by the pre-save hook
+  // Existing sessions of this account die with the old password
+  user.tokenVersion = (user.tokenVersion ?? 0) + 1;
   await user.save();
 
   console.log(`${created ? 'Created' : 'Updated'} admin: ${email}`);

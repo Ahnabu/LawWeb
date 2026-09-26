@@ -193,7 +193,7 @@ const flows = [
     color: NAVY,
     steps: [
       { title: "Dashboard", desc: "Stats: cases, clients, today's bookings" },
-      { title: "Add Lawyer", desc: "Creates account — default password 123456" },
+      { title: "Add Lawyer", desc: "Creates account — lawyer sets a password via emailed link" },
       { title: "Verify Lawyer", desc: "Toggle isVerified — lawyer goes public" },
       { title: "Manage Cases", desc: "Filter by status, update, reassign" },
       { title: "Publish Blog", desc: "Draft → review → publish article" },

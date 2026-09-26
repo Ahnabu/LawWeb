@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './api'
+import { apiFetch } from './http'
 
 // ─── Consultation types ───────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ export interface LawyerAvailability {
 // ─── Consultation API ─────────────────────────────────────────────────────────
 
 export async function getMyConsultations(): Promise<Consultation[]> {
-  const res = await fetch(`${API_BASE_URL}/api/consultations/my-consultations`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/consultations/my-consultations`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -91,7 +92,7 @@ export async function getMyConsultations(): Promise<Consultation[]> {
 }
 
 export async function cancelConsultation(consultationId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/consultations/${consultationId}/cancel`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/consultations/${consultationId}/cancel`, {
     method: 'POST',
     credentials: 'include',
   })
@@ -104,7 +105,7 @@ export async function updateConsultationStatus(
   status: ConsultationStatus,
   notes?: string
 ): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/consultations/${consultationId}/status`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/consultations/${consultationId}/status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -117,7 +118,7 @@ export async function updateConsultationStatus(
 // ─── Availability API ─────────────────────────────────────────────────────────
 
 export async function getMyAvailability(): Promise<LawyerAvailability> {
-  const res = await fetch(`${API_BASE_URL}/api/lawyers/me/availability`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/availability`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -129,7 +130,7 @@ export async function getMyAvailability(): Promise<LawyerAvailability> {
 export async function updateMyAvailability(
   payload: Partial<Pick<LawyerAvailability, 'schedule' | 'isAcceptingNewClients'>>
 ): Promise<LawyerAvailability> {
-  const res = await fetch(`${API_BASE_URL}/api/lawyers/me/availability`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/availability`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -143,7 +144,7 @@ export async function updateMyAvailability(
 // ─── Admin API ────────────────────────────────────────────────────────────────
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/stats`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -160,7 +161,7 @@ export async function getAdminCases(params?: { status?: string; page?: number })
   if (params?.status) qs.set('status', params.status)
   if (params?.page) qs.set('page', String(params.page))
 
-  const res = await fetch(`${API_BASE_URL}/api/admin/cases?${qs}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/cases?${qs}`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -177,7 +178,7 @@ export async function getAdminConsultations(params?: { status?: string; page?: n
   if (params?.status) qs.set('status', params.status)
   if (params?.page) qs.set('page', String(params.page))
 
-  const res = await fetch(`${API_BASE_URL}/api/admin/consultations?${qs}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/consultations?${qs}`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -187,7 +188,7 @@ export async function getAdminConsultations(params?: { status?: string; page?: n
 }
 
 export async function getAdminLawyers(): Promise<AdminUser[]> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/lawyers`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -203,7 +204,7 @@ export async function getAdminClients(params?: { page?: number }): Promise<{
   const qs = new URLSearchParams()
   if (params?.page) qs.set('page', String(params.page))
 
-  const res = await fetch(`${API_BASE_URL}/api/admin/clients?${qs}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/clients?${qs}`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -213,7 +214,7 @@ export async function getAdminClients(params?: { page?: number }): Promise<{
 }
 
 export async function toggleLawyerVerification(lawyerId: string): Promise<{ isVerified: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/lawyers/${lawyerId}/toggle-verification`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers/${lawyerId}/toggle-verification`, {
     method: 'PATCH',
     credentials: 'include',
   })
@@ -266,7 +267,7 @@ export interface LawyerProfileData {
 }
 
 export async function getMyLawyerProfile(): Promise<LawyerProfileData> {
-  const res = await fetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -276,7 +277,7 @@ export async function getMyLawyerProfile(): Promise<LawyerProfileData> {
 }
 
 export async function updateMyLawyerProfile(payload: Partial<LawyerProfileData>): Promise<LawyerProfileData> {
-  const res = await fetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

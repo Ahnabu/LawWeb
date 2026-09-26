@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import User from '../models/User';
 import Case from '../models/Case';
 import Consultation from '../models/Consultation';
+import { sendAccountSetupLink, ACCOUNT_SETUP_EXPIRY_HOURS } from './authController';
+import { revokeAllSessions } from '../utils/session';
 import { ACTIVE_STATUSES, businessNow, parseDateOnly } from '../utils/schedule';
 
 interface AuthRequest extends Request {
@@ -120,10 +122,22 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
   }
 };
 
+const ADMIN_CASE_UPDATABLE_FIELDS = [
+  'status', 'stage', 'priority', 'type', 'title', 'description', 'lawyerId', 'clientId',
+  'clientEmail', 'clientName', 'clientPhone', 'clientWhatsapp', 'isOnline', 'isFeatured',
+  'courtName', 'jurisdiction', 'opposingParty', 'opposingCounsel', 'filingDate', 'nextCourtDate',
+  'statute', 'caseValue', 'retainerAmount', 'estimatedFee', 'retainerPaid', 'referredBy',
+  'caseOrigin', 'witnessNames', 'evidenceSummary', 'internalNotes', 'notes', 'totalPayment',
+] as const;
+
 export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
   try {
     const { caseId } = req.params;
-    const updates = req.body;
+    // Only whitelisted fields; never caseNumber, payments history or ids
+    const updates: Record<string, unknown> = {};
+    for (const key of ADMIN_CASE_UPDATABLE_FIELDS) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
 
     const updatedCase = await Case.findByIdAndUpdate(
       caseId,
@@ -264,30 +278,39 @@ export const addLawyerAdmin = async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ status: 409, message: 'A user with this email already exists' });
     }
 
-    // Hash password manually and use collection.insertOne to bypass the pre-save re-hash hook
-    const hashedPassword = await bcrypt.hash('123456', 12);
-    const now = new Date();
-
-    await User.collection.insertOne({
+    // Random password nobody knows; the lawyer sets their own through the emailed
+    // setup link (or "Forgot password"). A shared default password would let
+    // anyone who knows a lawyer's email log in before they change it.
+    const lawyer = new User({
       name: name.trim(),
       email: normalizedEmail,
-      password: hashedPassword,
+      password: crypto.randomBytes(32).toString('hex'),
       role: 'lawyer',
       phone: phone.trim(),
       barId: barId.trim(),
       specialization: specialization?.trim() || undefined,
       isVerified: true,
-      passwordNeedsChange: true,
-      createdAt: now,
-      updatedAt: now,
+      passwordNeedsChange: false,
     });
+    await lawyer.save();
 
-    const savedLawyer = await User.findOne({ email: normalizedEmail }).select('-password');
+    let emailSent = true;
+    try {
+      await sendAccountSetupLink(lawyer);
+    } catch (error) {
+      emailSent = false;
+      console.error('Lawyer setup email failed:', error);
+    }
+
+    const savedLawyer = await User.findById(lawyer._id).select('-password');
 
     res.status(201).json({
       status: 201,
-      message: 'Lawyer account created successfully. Default password is 123456.',
+      message: emailSent
+        ? `Lawyer account created. A link to set their password was emailed to ${normalizedEmail} (valid ${ACCOUNT_SETUP_EXPIRY_HOURS} hours).`
+        : 'Lawyer account created, but the setup email could not be sent. Ask the lawyer to use "Forgot password" on the login page.',
       data: savedLawyer,
+      emailSent,
     });
   } catch (error) {
     console.error('Admin add lawyer error:', error);
@@ -305,6 +328,7 @@ export const deleteLawyerAdmin = async (req: AuthRequest, res: Response) => {
     }
 
     await User.findByIdAndDelete(lawyerId);
+    await revokeAllSessions(String(lawyerId));
 
     res.json({ status: 200, message: 'Lawyer removed successfully' });
   } catch (error) {

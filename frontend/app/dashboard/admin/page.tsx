@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../../../lib/api";
+import { apiFetch } from "../../../lib/http";
 
 interface AdminStats {
   totalCases: number;
@@ -19,7 +20,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/admin/stats`, {
           credentials: "include",
         });
         if (!response.ok) throw new Error("Failed to fetch stats");

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Star, StarOff } from "lucide-react";
 import { API_BASE_URL } from "../../../../../lib/api";
+import { apiFetch } from "../../../../../lib/http";
 
 type CaseStatus =
   | "active"
@@ -145,7 +146,7 @@ export default function CaseDetailPage() {
     }
     setIsSavingTotalPayment(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -173,7 +174,7 @@ export default function CaseDetailPage() {
     setIsRecordingPayment(true);
     setPaymentError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -201,7 +202,7 @@ export default function CaseDetailPage() {
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
+        const res = await apiFetch(`${API_BASE_URL}/api/cases/${id}`, {
           credentials: "include",
         });
         const data = await res.json();
@@ -226,7 +227,7 @@ export default function CaseDetailPage() {
     setIsSaving(true);
     setSaveMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -253,7 +254,7 @@ export default function CaseDetailPage() {
     if (!caseData) return;
     setIsToggling(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${id}/toggle-featured`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${id}/toggle-featured`, {
         method: "PATCH",
         credentials: "include",
       });

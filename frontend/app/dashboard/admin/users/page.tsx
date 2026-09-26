@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import { Users, Mail, Phone } from "lucide-react";
+import { apiFetch } from "../../../../lib/http";
 
 interface ClientItem {
   _id: string;
@@ -25,7 +26,7 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${API_BASE_URL}/api/admin/clients?page=${page}&limit=${LIMIT}`,
         { credentials: "include" },
       );

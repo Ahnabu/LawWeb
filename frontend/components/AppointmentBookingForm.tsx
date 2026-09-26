@@ -17,6 +17,7 @@ import {
   type BookableLawyer,
 } from '../lib/booking'
 import { useAuth } from './AuthProvider'
+import { apiFetch } from '../lib/http'
 
 // In-progress form kept across the login round trip
 const DRAFT_KEY = 'appointmentDraft'
@@ -102,7 +103,7 @@ export function AppointmentBookingForm() {
   }, [preselectedLawyerId])
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/lawyers/public`)
+    apiFetch(`${API_BASE_URL}/api/lawyers/public`)
       .then((r) => r.json())
       .then((d) => setLawyers(d.lawyers || []))
       .catch(() => toast.error('Unable to load lawyers. Please try again.'))
@@ -179,7 +180,7 @@ export function AppointmentBookingForm() {
     setSubmitting(true)
     const toastId = toast.loading('Booking consultation...')
     try {
-      const res = await fetch(`${API_BASE_URL}/api/consultations/book`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/consultations/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

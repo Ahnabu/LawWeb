@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { API_BASE_URL } from "../../../../lib/api";
+import { apiFetch } from "../../../../lib/http";
 
 type CaseStatus =
   | "active"
@@ -62,7 +63,7 @@ export default function TrackCasePage() {
     const fetchCases = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/cases/my-cases`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
           credentials: "include",
         });
         if (!response.ok) throw new Error("Failed to fetch cases");

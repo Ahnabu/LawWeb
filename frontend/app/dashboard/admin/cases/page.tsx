@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import { Plus, X, Briefcase, ChevronDown } from "lucide-react";
+import { apiFetch } from "../../../../lib/http";
 
 interface LawyerOption {
   _id: string;
@@ -120,7 +121,7 @@ export default function AdminCasesPage() {
   const handleUpdateTotalPayment = async (caseId: string, amountVal: number) => {
     setIsSavingTotalPayment(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -150,7 +151,7 @@ export default function AdminCasesPage() {
     setIsRecordingPayment(true);
     setPaymentError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -181,7 +182,7 @@ export default function AdminCasesPage() {
   const handleDeletePayment = async (caseId: string, paymentId: string) => {
     if (!confirm("Are you sure you want to delete this payment entry?")) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -203,7 +204,7 @@ export default function AdminCasesPage() {
     setError(null);
     try {
       const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const res = await fetch(`${API_BASE_URL}/api/admin/cases${params}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/cases${params}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch cases");
@@ -218,7 +219,7 @@ export default function AdminCasesPage() {
 
   const fetchLawyers = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/lawyers`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, {
         credentials: "include",
       });
       if (!res.ok) return;
@@ -240,7 +241,7 @@ export default function AdminCasesPage() {
   const updateCaseStatus = async (id: string, newStatus: string) => {
     setUpdatingId(id);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/cases/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/cases/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -266,7 +267,7 @@ export default function AdminCasesPage() {
     }
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/cases`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/cases`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

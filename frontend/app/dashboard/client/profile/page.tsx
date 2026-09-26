@@ -6,6 +6,8 @@ import { Camera, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../../../components/AuthProvider";
 import { API_BASE_URL } from "../../../../lib/api";
+import { SecuritySettingsCard } from "../../../../components/SecuritySettingsCard";
+import { apiFetch } from "../../../../lib/http";
 
 export default function ClientProfilePage() {
   const { user, refreshSession } = useAuth();
@@ -30,7 +32,7 @@ export default function ClientProfilePage() {
     setIsSaving(true);
     const toastId = toast.loading("Saving profile...");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/users/me`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -68,7 +70,7 @@ export default function ClientProfilePage() {
     try {
       const formData = new FormData();
       formData.append("image", file);
-      const res = await fetch(`${API_BASE_URL}/api/users/me/profile-image`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/users/me/profile-image`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -247,20 +249,7 @@ export default function ClientProfilePage() {
         </section>
       </div>
 
-      {/* Security section */}
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-6">
-        <h3 className="text-sm font-semibold text-on-surface">Security</h3>
-        <p className="mt-2 text-sm text-on-surface-variant">
-          Password management will be available in an upcoming update.
-        </p>
-        <button
-          type="button"
-          disabled
-          className="mt-4 rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant opacity-50 cursor-not-allowed"
-        >
-          Change Password (coming soon)
-        </button>
-      </section>
+      <SecuritySettingsCard />
     </div>
   );
 }

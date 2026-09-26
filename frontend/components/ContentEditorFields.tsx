@@ -17,6 +17,7 @@ import {
   type LocalizedValue,
 } from "../lib/adminContent";
 import { siteConfig } from "../lib/siteConfig";
+import { apiFetch } from "../lib/http";
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputBase =
@@ -261,7 +262,7 @@ export function ImageFieldEditor({ field, value, onChange }: {
       setStatus("uploading");
       const fd = new FormData();
       fd.append("image", file);
-      const res = await fetch(`${API_BASE_URL}/api/admin/content/upload`, { method: "POST", credentials: "include", body: fd });
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/content/upload`, { method: "POST", credentials: "include", body: fd });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.url) throw new Error(body.message || "Upload failed");
       onChange(body.url);

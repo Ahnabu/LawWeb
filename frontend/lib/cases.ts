@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './api'
+import { apiFetch } from './http'
 
 export type CaseType =
   | 'immigration'
@@ -65,7 +66,7 @@ export interface CreateCasePayload {
 }
 
 export async function getMyCases(): Promise<Case[]> {
-  const res = await fetch(`${API_BASE_URL}/api/cases/my-cases`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -75,7 +76,7 @@ export async function getMyCases(): Promise<Case[]> {
 }
 
 export async function getCaseById(caseId: string): Promise<Case> {
-  const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
     credentials: 'include',
   })
   const data = await res.json()
@@ -84,7 +85,7 @@ export async function getCaseById(caseId: string): Promise<Case> {
 }
 
 export async function createCase(payload: CreateCasePayload): Promise<Case> {
-  const res = await fetch(`${API_BASE_URL}/api/cases`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/cases`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -99,7 +100,7 @@ export async function updateCase(
   caseId: string,
   updates: { status?: CaseStatus; notes?: string; nextCourtDate?: string }
 ): Promise<Case> {
-  const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -111,7 +112,7 @@ export async function updateCase(
 }
 
 export async function deleteCase(caseId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
     method: 'DELETE',
     credentials: 'include',
   })

@@ -11,6 +11,7 @@
     "dev": "nodemon",
     "clean": "rm -rf dist",
     "seed:admin": "ts-node --transpile-only src/scripts/seed-admin.ts",
+    "migrate:temp-passwords": "ts-node --transpile-only src/scripts/replace-temp-passwords.ts",
     "test:content": "ts-node --transpile-only tests/content/schema.check.ts && ts-node --transpile-only tests/content/flow.check.ts"
   },
   "dependencies": {

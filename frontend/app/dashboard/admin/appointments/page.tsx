@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import { Calendar, Clock, User, Scale, ChevronDown } from "lucide-react";
+import { apiFetch } from "../../../../lib/http";
 
 interface ConsultationItem {
   _id: string;
@@ -46,7 +47,7 @@ export default function AdminAppointmentsPage() {
     setError(null);
     try {
       const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const response = await fetch(`${API_BASE_URL}/api/admin/consultations${params}`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/admin/consultations${params}`, {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch appointments");
@@ -66,7 +67,7 @@ export default function AdminAppointmentsPage() {
   const updateStatus = async (id: string, newStatus: string) => {
     setUpdatingId(id);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/api/admin/consultations/${id}/status`,
         {
           method: "PATCH",

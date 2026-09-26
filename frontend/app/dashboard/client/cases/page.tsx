@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
+import { apiFetch } from "../../../../lib/http";
 
 type CaseStatus =
   | "active"
@@ -78,7 +79,7 @@ export default function ClientCasesPage() {
   const [selected, setSelected] = useState<CaseItem | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/cases/my-cases`, { credentials: "include" })
+    apiFetch(`${API_BASE_URL}/api/cases/my-cases`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         if (!data.data) throw new Error(data.message || "Failed to fetch cases");

@@ -2,6 +2,7 @@ import { API_BASE_URL } from './api'
 import type { ContentPageKey, PageContent, SiteSettingsOverride, StringOverride } from './content'
 import type { ContentPageDef, ListDef } from './contentRegistry'
 import { lookupTranslation } from './i18n'
+import { apiFetch } from './http'
 
 // ── Admin CMS API (/api/admin/content) ────────────────────────────────────────
 
@@ -34,7 +35,7 @@ export class ContentSaveError extends Error {
 const contentUrl = (path = '') => `${API_BASE_URL}/api/admin/content${path}`
 
 async function request<T>(url: string, init: RequestInit, fallbackMessage: string): Promise<T> {
-  const res = await fetch(url, { credentials: 'include', ...init })
+  const res = await apiFetch(url, { credentials: 'include', ...init })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ContentSaveError(data.message || fallbackMessage, data.errors ?? [])
   return data.data as T

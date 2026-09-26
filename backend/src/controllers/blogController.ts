@@ -10,8 +10,11 @@ export const listBlogs = async (req: Request, res: Response) => {
   try {
     const { status, category, page = '1', limit = '20' } = req.query;
     const filter: Record<string, any> = {};
-    if (status) filter.status = status;
-    if (category) filter.category = category;
+    // The public route has no req.user; only admins may list drafts
+    const isAdmin = (req as Request & { user?: { role?: string } }).user?.role === 'admin';
+    if (!isAdmin) filter.status = 'published';
+    else if (typeof status === 'string') filter.status = status;
+    if (typeof category === 'string') filter.category = category;
 
     const skip = (Number(page) - 1) * Number(limit);
     const [blogs, total] = await Promise.all([

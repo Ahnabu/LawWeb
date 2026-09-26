@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Star, StarOff, Plus, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
+import { apiFetch } from "../../../../lib/http";
 
 type CaseStatus =
   | "active"
@@ -121,7 +122,7 @@ export default function LawyerCasesPage() {
 
   const fetchCases = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cases/my-cases`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -173,7 +174,7 @@ export default function LawyerCasesPage() {
         clientPhone: form.clientPhone || undefined,
         clientWhatsapp: form.clientWhatsapp || undefined,
       };
-      const res = await fetch(`${API_BASE_URL}/api/cases`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/cases`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -195,7 +196,7 @@ export default function LawyerCasesPage() {
   const toggleFeatured = async (caseId: string) => {
     setTogglingId(caseId);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${API_BASE_URL}/api/cases/${caseId}/toggle-featured`,
         { method: "PATCH", credentials: "include" },
       );

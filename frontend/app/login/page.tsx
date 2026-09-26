@@ -1,34 +1,28 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { signIn } from "../../lib/auth";
+import { postLoginPath, safeRedirectPath, signIn } from "../../lib/auth";
 import { useAuth } from "../../components/AuthProvider";
 
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, consumePostAuthRedirect } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const redirectPath = searchParams.get("redirect") || "/dashboard/client";
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const current = window.localStorage.getItem("postAuthRedirect");
-    if (!current && redirectPath) {
-      window.localStorage.setItem("postAuthRedirect", redirectPath);
-    }
-  }, [redirectPath]);
+  // No default here: without an explicit ?redirect= the user goes to their own
+  // role's dashboard. The old "/dashboard/client" default was saved to
+  // localStorage on every visit, so admins were sent to the client dashboard,
+  // whose role guard then logged them out.
+  const redirectParam = safeRedirectPath(searchParams.get("redirect"));
+  const resetDone = searchParams.get("reset") === "1";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,21 +32,14 @@ function LoginPageContent() {
     try {
       const data = await signIn(email, password);
       login(data.user);
-      const nextRedirect =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("postAuthRedirect")
-          : null;
-      if (nextRedirect) {
-        window.localStorage.removeItem("postAuthRedirect");
-        router.push(nextRedirect);
-        return;
-      }
-
-      router.push(`/dashboard/${data.user.role}`);
+      // ?redirect= wins over a redirect saved earlier (e.g. by the booking form)
+      const saved = consumePostAuthRedirect();
+      router.replace(postLoginPath(data.user.role, redirectParam ?? saved));
     } catch (submitError: unknown) {
       const err = submitError as { verificationRequired?: boolean; email?: string; message?: string };
       if (err.verificationRequired && err.email) {
-        router.push(`/verify-email?email=${encodeURIComponent(err.email)}&redirect=${encodeURIComponent(redirectPath)}`);
+        const next = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : "";
+        router.push(`/verify-email?email=${encodeURIComponent(err.email)}${next}`);
         return;
       }
       const message =
@@ -148,6 +135,11 @@ function LoginPageContent() {
                   </button>
                 </div>
               </label>
+              {resetDone && !error && (
+                <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success leading-6">
+                  Your password was updated. Log in with your new password.
+                </p>
+              )}
               {error && (
                 <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger leading-6">
                   {error}
@@ -155,7 +147,8 @@ function LoginPageContent() {
               )}
               <button
                 type="submit"
-                className="w-full rounded-xl bg-secondary px-6 py-3.5 text-sm font-semibold text-primary transition hover:bg-secondary/90"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-secondary px-6 py-3.5 text-sm font-semibold text-primary transition hover:bg-secondary/90 disabled:opacity-60"
               >
                 {isSubmitting ? "Signing in..." : "Login"}
               </button>
@@ -163,7 +156,7 @@ function LoginPageContent() {
             <div className="flex flex-col gap-4 text-sm text-on-surface-variant">
               <div className="flex items-center justify-between gap-4">
                 <Link
-                  href="#"
+                  href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
                   className="text-secondary hover:text-secondary/80"
                 >
                   Forgot Password?
@@ -174,7 +167,7 @@ function LoginPageContent() {
                 <p className="text-center leading-6">
                   Don&apos;t have an account?{" "}
                   <Link
-                    href={`/register?redirect=${encodeURIComponent(redirectPath)}`}
+                    href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : "/register"}
                     className="font-semibold text-secondary underline decoration-2 underline-offset-4 hover:text-primary"
                   >
                     Sign up here

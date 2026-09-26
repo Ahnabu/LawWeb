@@ -8,6 +8,8 @@ import {
   Mail, Phone, BadgeCheck, Calendar, User, Briefcase,
   FileText, Clock, CheckCircle,
 } from "lucide-react";
+import { toast } from "sonner";
+import { apiFetch } from "../../../../lib/http";
 
 interface LawyerItem {
   _id: string;
@@ -54,7 +56,7 @@ export default function AdminLawyersPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/lawyers`, { credentials: "include" });
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch lawyers");
       const data = await res.json();
       setLawyers(data.data ?? []);
@@ -72,7 +74,7 @@ export default function AdminLawyersPage() {
     setDetailsError(null);
     setDetailsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/lawyers/${id}`, { credentials: "include" });
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers/${id}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch lawyer details");
       const data = await res.json();
       setDetailsLawyer(data.data);
@@ -86,7 +88,7 @@ export default function AdminLawyersPage() {
   const toggleVerification = async (id: string) => {
     setTogglingId(id);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/lawyers/${id}/toggle-verification`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers/${id}/toggle-verification`, {
         method: "PATCH", credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update verification");
@@ -107,7 +109,7 @@ export default function AdminLawyersPage() {
     if (!confirm(`Remove lawyer "${name}"? This cannot be undone.`)) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/lawyers/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers/${id}`, {
         method: "DELETE", credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to remove lawyer");
@@ -129,7 +131,7 @@ export default function AdminLawyersPage() {
     }
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/lawyers`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -137,6 +139,8 @@ export default function AdminLawyersPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to add lawyer");
+      if (data.emailSent === false) toast.warning(data.message);
+      else toast.success(data.message);
       setShowModal(false);
       setForm(EMPTY_FORM);
       void fetchLawyers();
@@ -403,9 +407,8 @@ export default function AdminLawyersPage() {
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="rounded-lg border border-secondary/30 bg-secondary/5 px-3 py-2 text-xs text-on-surface-variant">
-                A lawyer account will be created with default password{" "}
-                <span className="font-mono font-semibold text-on-surface">123456</span>.
-                The lawyer must change it on first login.
+                The lawyer will get an email with a link to set their own password
+                (valid 72 hours). If it expires they can use &ldquo;Forgot Password&rdquo; on the login page.
               </div>
 
               {formError && (

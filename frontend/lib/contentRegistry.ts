@@ -390,6 +390,7 @@ export const contentRegistry: ContentPageDef[] = [
           text('trackCase.title', 'Title'),
           text('trackCase.subtitle', 'Subtitle', true),
           text('trackCase.placeholder', 'Search placeholder'),
+          text('trackCase.emailPlaceholder', 'Email placeholder'),
           text('trackCase.trackNow', 'Search button'),
           text('trackCase.searching', 'Searching label'),
           text('trackCase.emptyHint', 'Empty state hint'),

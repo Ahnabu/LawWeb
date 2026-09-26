@@ -8,6 +8,7 @@ import {
   ArrowLeft, ChevronUp, ChevronDown, ImagePlus, Loader2,
   Heading1, Heading2, Heading3, AlignLeft, Quote, Zap, Minus, List,
 } from "lucide-react";
+import { apiFetch } from "../../../../lib/http";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type BlockType = "h1" | "h2" | "h3" | "paragraph" | "quote" | "callout" | "divider" | "list";
@@ -61,7 +62,7 @@ export default function AdminBlogsPage() {
   const fetchBlogs = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/blogs/admin/all`, { credentials:"include" });
+      const r = await apiFetch(`${API_BASE_URL}/api/blogs/admin/all`, { credentials:"include" });
       if (!r.ok) throw new Error("Failed to fetch blogs");
       const d = await r.json();
       setBlogs(d.data ?? []);
@@ -80,7 +81,7 @@ export default function AdminBlogsPage() {
   const openEdit = async (id: string) => {
     setSaveErr(null);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/blogs/admin/${id}`, { credentials:"include" });
+      const r = await apiFetch(`${API_BASE_URL}/api/blogs/admin/${id}`, { credentials:"include" });
       if (!r.ok) throw new Error("Failed to load blog");
       const { data }: { data: BlogFull } = await r.json();
       setForm({ title:data.title, excerpt:data.excerpt, category:data.category,
@@ -94,7 +95,7 @@ export default function AdminBlogsPage() {
   const doDelete = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"?`)) return;
     try {
-      const r = await fetch(`${API_BASE_URL}/api/blogs/${id}`, { method:"DELETE", credentials:"include" });
+      const r = await apiFetch(`${API_BASE_URL}/api/blogs/${id}`, { method:"DELETE", credentials:"include" });
       if (!r.ok) throw new Error("Delete failed");
       setBlogs(p => p.filter(b => b._id !== id));
     } catch(e) { alert(e instanceof Error ? e.message : "Delete failed"); }
@@ -122,7 +123,7 @@ export default function AdminBlogsPage() {
     setUploading(true);
     try {
       const fd = new FormData(); fd.append("cover", file);
-      const r = await fetch(`${API_BASE_URL}/api/blogs/upload/cover`, { method:"POST", credentials:"include", body:fd });
+      const r = await apiFetch(`${API_BASE_URL}/api/blogs/upload/cover`, { method:"POST", credentials:"include", body:fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.message);
       setForm(f => ({ ...f, coverImageUrl: d.url }));
@@ -148,7 +149,7 @@ export default function AdminBlogsPage() {
         }),
       };
       const url = editId ? `${API_BASE_URL}/api/blogs/${editId}` : `${API_BASE_URL}/api/blogs`;
-      const r = await fetch(url, {
+      const r = await apiFetch(url, {
         method: editId?"PATCH":"POST",
         headers:{"Content-Type":"application/json"},
         credentials:"include", body:JSON.stringify(payload),

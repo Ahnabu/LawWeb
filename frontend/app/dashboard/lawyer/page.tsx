@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../../../lib/api";
 import { DashboardStats } from "../../../types/dashboard";
+import { apiFetch } from "../../../lib/http";
 
 type ConsultationStatus =
   | "scheduled"
@@ -29,10 +30,10 @@ export default function LawyerDashboardPage() {
     const fetchStats = async () => {
       try {
         const [consultationsResponse, casesResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/consultations/my-consultations`, {
+          apiFetch(`${API_BASE_URL}/api/consultations/my-consultations`, {
             credentials: "include",
           }),
-          fetch(`${API_BASE_URL}/api/cases/my-cases`, {
+          apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
             credentials: "include",
           }),
         ]);

@@ -60,12 +60,17 @@ This document addresses the critical connectivity issues that occurred during th
    - `NODE_ENV=production`
    - `CLIENT_URL=https://your-frontend-domain.com`
    - `MONGODB_URI=<your-mongodb-connection-string>`
+   - `FRONTEND_URL=https://your-frontend-domain.com` (origin used in password-reset emails)
    - `RESEND_API_KEY=<your-resend-api-key>`
    - `RESEND_FROM_EMAIL=<verified-sender@your-domain.com>`
-   - `RESEND_TEST_EMAIL=<your-verified-test-email>`
-   - `JWT_SECRET=<random-long-secret>`
-   - `JWT_REFRESH_SECRET=<random-long-secret>`
-   - `COOKIE_DOMAIN=<your-cookie-domain>`
+   - `JWT_SECRET=<random secret, 32+ chars>`
+   - `JWT_REFRESH_SECRET=<different random secret, 32+ chars>`
+   - `TRUST_PROXY=1` (Render/Railway/Heroku)
+   - `COOKIE_SAMESITE` / `COOKIE_DOMAIN`: see [docs/auth-production.md](docs/auth-production.md#cross-site-cookies-recommended-upgrade)
+
+   Auth, email (Resend domain setup) and the one-off password migration are covered in
+   [docs/auth-production.md](docs/auth-production.md). The server refuses to start in production
+   when the JWT secrets or `RESEND_API_KEY` are missing.
 
    Optional (CMS instant publish, see below):
    - `FRONTEND_REVALIDATE_URL=https://your-frontend-domain.com/api/revalidate`
@@ -94,9 +99,13 @@ This document addresses the critical connectivity issues that occurred during th
 - `NODE_ENV`: Environment mode (development/production)
 - `CLIENT_URL`: Frontend URL(s) for CORS (comma-separated for multiple origins)
 - `MONGODB_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT signing
-- `JWT_REFRESH_SECRET`: Secret key for refresh tokens
-- `COOKIE_DOMAIN`: Cookie domain for credentials
+- `FRONTEND_URL`: Origin used in email links (defaults to the first `CLIENT_URL`)
+- `JWT_SECRET`: Secret key for access tokens (32+ chars in production)
+- `JWT_REFRESH_SECRET`: Different secret for refresh tokens (32+ chars in production)
+- `RESEND_API_KEY` / `RESEND_FROM_EMAIL`: Email delivery; `RESEND_TEST_EMAIL` is development only
+- `TRUST_PROXY`: Proxy hops in front of Express (`1` on Render/Railway/Heroku)
+- `COOKIE_SAMESITE` (optional): `none` (default, cross-site) or `lax` (same-site deployment)
+- `COOKIE_DOMAIN` (optional): Production only, for a shared parent domain
 - `FRONTEND_REVALIDATE_URL` (optional): `https://<frontend>/api/revalidate`
 - `REVALIDATE_SECRET` (optional): Same value as the frontend's
 
@@ -130,7 +139,7 @@ and pick up the published content within 5 minutes of the deploy.
    - If you see CORS errors, check:
      - Is `CLIENT_URL` set correctly in backend?
      - Does it match your Vercel frontend URL?
-     - Try removing the `https://` prefix in `CLIENT_URL` if having issues
+     - Each entry needs the scheme and no trailing slash (`https://app.example.com`)
 
 ---
 
@@ -152,6 +161,8 @@ and pick up the published content within 5 minutes of the deploy.
 | Frontend can't reach backend | Verify `NEXT_PUBLIC_API_URL` is set in Vercel environment variables |
 | CORS errors | Check that `CLIENT_URL` on backend matches frontend URL exactly |
 | Login fails | Clear cookies and try again; check network tab for actual error |
+| `403 Request origin not allowed` on POST/PUT/DELETE | The page's origin is missing from `CLIENT_URL` (CSRF check) |
+| Users logged out often on iPhone/Safari | Cross-site cookies are being blocked; serve the API from a subdomain of the site (see docs/auth-production.md) |
 | Cookies not persisting | Verify `credentials: 'include'` is set in fetch requests (already configured) |
 | 404 on health check | Ensure backend is deployed and running |
 | Published CMS content takes ~5 min to appear | Set `FRONTEND_REVALIDATE_URL` + `REVALIDATE_SECRET` on the backend and the same `REVALIDATE_SECRET` on the frontend; check backend logs for `Content revalidation failed` |

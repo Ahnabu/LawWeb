@@ -12,6 +12,8 @@ import {
   updateMyLawyerProfile,
 } from "../../../../lib/dashboard";
 import { API_BASE_URL } from "../../../../lib/api";
+import { SecuritySettingsCard } from "../../../../components/SecuritySettingsCard";
+import { apiFetch } from "../../../../lib/http";
 
 const PRACTICE_AREA_OPTIONS = [
   "Civil Law", "Criminal Law", "Corporate Law", "Family Law",
@@ -97,7 +99,7 @@ export default function LawyerProfilePage() {
       const formData = new FormData();
       formData.append("image", file);
 
-      const res = await fetch(`${API_BASE_URL}/api/lawyers/me/profile/image`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/profile/image`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -678,6 +680,8 @@ export default function LawyerProfilePage() {
           />
         </div>
       </CollapsibleSection>
+
+      <SecuritySettingsCard />
     </div>
   );
 }
