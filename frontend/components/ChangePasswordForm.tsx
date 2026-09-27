@@ -10,7 +10,10 @@ interface ChangePasswordFormProps {
 }
 
 // Used by the forced first-login modal and the account settings pages
-export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" }: ChangePasswordFormProps) {
+export function ChangePasswordForm({
+  onSuccess,
+  submitLabel = "Update Password",
+}: ChangePasswordFormProps) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -46,7 +49,9 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" 
       setConfirmPassword("");
       onSuccess(result.message);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to change password");
+      setError(
+        err instanceof Error ? err.message : "Failed to change password",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -78,7 +83,11 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" 
             onClick={() => setShowCurrent((v) => !v)}
             className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
           >
-            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showCurrent ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
       </label>
@@ -101,7 +110,11 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" 
             onClick={() => setShowNew((v) => !v)}
             className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
           >
-            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showNew ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
       </label>
@@ -124,7 +137,11 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" 
             onClick={() => setShowConfirm((v) => !v)}
             className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
           >
-            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showConfirm ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
       </label>

@@ -54,7 +54,11 @@ function ResetPasswordContent() {
       if (status === "authenticated") await logout();
       router.replace("/login?reset=1");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to reset the password");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to reset the password",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -77,18 +81,25 @@ function ResetPasswordContent() {
         <section className="card-elevated rounded-3xl backdrop-blur-xl p-4">
           <div className="grid gap-6 rounded-2xl border border-outline-variant bg-surface-container p-4 sm:p-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Password Reset</p>
-              <h1 className="mt-2 font-display text-2xl text-on-surface sm:text-3xl">Choose a new password</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+                Password Reset
+              </p>
+              <h1 className="mt-2 font-display text-2xl text-on-surface sm:text-3xl">
+                Choose a new password
+              </h1>
               <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-                Use at least 8 characters with uppercase, lowercase, a number and a symbol.
-                You will be signed out on all devices.
+                Use at least 8 characters with uppercase, lowercase, a number
+                and a symbol. You will be signed out on all devices.
               </p>
             </div>
 
             {!token ? (
               <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm leading-6 text-danger">
                 This reset link is missing or incomplete.{" "}
-                <Link href="/forgot-password" className="font-semibold underline underline-offset-4">
+                <Link
+                  href="/forgot-password"
+                  className="font-semibold underline underline-offset-4"
+                >
                   Request a new link
                 </Link>
                 .
@@ -110,9 +121,15 @@ function ResetPasswordContent() {
                       type="button"
                       onClick={() => setShowPassword((current) => !current)}
                       className="absolute inset-y-0 right-3 top-2 flex items-center text-on-surface-variant transition hover:text-primary"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </label>
@@ -123,17 +140,27 @@ function ResetPasswordContent() {
                       type={showConfirmPassword ? "text" : "password"}
                       className={`${inputClass} pr-12`}
                       value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      onChange={(event) =>
+                        setConfirmPassword(event.target.value)
+                      }
                       required
                       autoComplete="new-password"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword((current) => !current)}
+                      onClick={() =>
+                        setShowConfirmPassword((current) => !current)
+                      }
                       className="absolute inset-y-0 right-3 top-2 flex items-center text-on-surface-variant transition hover:text-primary"
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </label>
@@ -141,7 +168,10 @@ function ResetPasswordContent() {
                   <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm leading-6 text-danger">
                     {error}{" "}
                     {linkProblem && (
-                      <Link href="/forgot-password" className="font-semibold underline underline-offset-4">
+                      <Link
+                        href="/forgot-password"
+                        className="font-semibold underline underline-offset-4"
+                      >
                         Request a new link
                       </Link>
                     )}
