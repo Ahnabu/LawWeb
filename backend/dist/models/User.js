@@ -36,6 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.hashPassword = exports.PASSWORD_HASH_ROUNDS = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const UserSchema = new mongoose_1.Schema({
@@ -52,20 +53,23 @@ const UserSchema = new mongoose_1.Schema({
     emailVerificationCodeHash: { type: String, select: false },
     emailVerificationExpiresAt: { type: Date, select: false },
     emailVerificationSentAt: { type: Date },
+    emailVerificationAttempts: { type: Number, default: 0, select: false },
+    passwordResetTokenHash: { type: String, select: false, index: true, sparse: true },
+    passwordResetExpiresAt: { type: Date, select: false },
+    passwordResetSentAt: { type: Date, select: false },
+    passwordChangedAt: { type: Date },
+    tokenVersion: { type: Number, default: 0 },
 }, { timestamps: true });
+exports.PASSWORD_HASH_ROUNDS = 12;
+// For atomic updateOne() writes, which skip the save hook below
+const hashPassword = (password) => bcryptjs_1.default.hash(password, exports.PASSWORD_HASH_ROUNDS);
+exports.hashPassword = hashPassword;
 // Hash password before saving
 UserSchema.pre('save', async function () {
     // Only run this function if password was modified
     if (!this.isModified('password'))
         return;
-    try {
-        // Hash password with cost of 12
-        const salt = await bcryptjs_1.default.genSalt(12);
-        this.password = await bcryptjs_1.default.hash(this.password, salt);
-    }
-    catch (error) {
-        throw error;
-    }
+    this.password = await (0, exports.hashPassword)(this.password);
 });
 // Compare password method
 UserSchema.methods.comparePassword = async function (password) {

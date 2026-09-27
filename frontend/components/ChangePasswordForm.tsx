@@ -16,6 +16,7 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" 
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -107,15 +108,25 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Update Password" 
 
       <label className="block text-xs font-medium text-on-surface-variant">
         Confirm New Password
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          autoComplete="new-password"
-          placeholder="Re-enter new password"
-          className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2.5 text-sm text-on-surface outline-none focus:border-primary"
-        />
+        <div className="relative mt-1">
+          <input
+            type={showConfirm ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+            placeholder="Re-enter new password"
+            className="block w-full rounded-lg border border-outline bg-surface px-3 py-2.5 pr-10 text-sm text-on-surface outline-none focus:border-primary"
+          />
+          <button
+            type="button"
+            aria-label={showConfirm ? "Hide password" : "Show password"}
+            onClick={() => setShowConfirm((v) => !v)}
+            className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
+          >
+            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </label>
 
       <p className="text-[11px] leading-5 text-on-surface-variant">

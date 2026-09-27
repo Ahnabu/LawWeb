@@ -49,22 +49,11 @@ async function sendEmail({ to, subject, text, html, devPreview }: SendEmailInput
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
     });
   } catch (error) {
-    if (!isProduction()) {
-      console.error(`[email-dev] Resend request failed for ${to}:`, error);
-      console.info(`[email-dev] ${subject} -> ${to}: ${devPreview}`);
-      return;
-    }
     throw error;
   }
 
   if (!response.ok) {
     const payload = await response.text().catch(() => 'Unable to read error body');
-
-    if (!isProduction()) {
-      console.error(`[email-dev] Resend failed for ${to}: ${payload}`);
-      console.info(`[email-dev] ${subject} -> ${to}: ${devPreview}`);
-      return;
-    }
 
     throw new Error(`Failed to send email (${response.status}): ${payload}`);
   }

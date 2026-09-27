@@ -8,23 +8,18 @@ const authController_1 = require("../controllers/authController");
 const auth_1 = require("../middleware/auth");
 const validation_1 = require("../middleware/validation");
 const router = express_1.default.Router();
-// Public routes
-router.get('/login', (req, res) => {
-    res.status(405).json({
-        message: 'Method Not Allowed: This endpoint requires a POST request with email and password.',
-        status: 'Ready for POST requests'
-    });
-});
+// Public routes (rate limited in server.ts)
 router.post('/register', (0, validation_1.validateRequest)(validation_1.registerSchema), authController_1.register);
 router.post('/login', (0, validation_1.validateRequest)(validation_1.loginSchema), authController_1.login);
 router.post('/refresh', authController_1.refreshToken);
-router.post('/verify-email', authController_1.verifyEmail);
-router.post('/resend-verification-code', authController_1.resendVerificationCode);
-router.post('/verify-code', authController_1.verifyEmail);
-router.post('/resend-code', authController_1.resendVerificationCode);
+// Works with an expired access token so a stale session can always sign out
+router.post('/logout', authController_1.logout);
+router.post('/verify-email', (0, validation_1.validateRequest)(validation_1.verifyEmailSchema), authController_1.verifyEmail);
+router.post('/resend-verification-code', (0, validation_1.validateRequest)(validation_1.emailOnlySchema), authController_1.resendVerificationCode);
+router.post('/forgot-password', (0, validation_1.validateRequest)(validation_1.emailOnlySchema), authController_1.forgotPassword);
+router.post('/reset-password', (0, validation_1.validateRequest)(validation_1.resetPasswordSchema), authController_1.resetPassword);
 // Protected routes
-router.post('/logout', auth_1.authenticateToken, authController_1.logout);
 router.get('/profile', auth_1.authenticateToken, authController_1.getProfile);
-router.post('/change-password', auth_1.authenticateToken, authController_1.changePassword);
+router.post('/change-password', auth_1.authenticateToken, (0, validation_1.validateRequest)(validation_1.changePasswordSchema), authController_1.changePassword);
 exports.default = router;
 //# sourceMappingURL=auth.js.map

@@ -413,17 +413,23 @@ export const resendVerificationCode = async (req: Request, res: Response) => {
 };
 
 export const forgotPassword = async (req: Request, res: Response) => {
-  const email = normalizeEmail((req.body as { email: string }).email);
+  let userId: mongoose.Types.ObjectId | undefined;
+  let resetTokenHash: string | undefined;
 
-  res.json({ message: 'If an account exists for that email, a password reset link has been sent.' });
-
-  inBackground('Forgot password failed', async () => {
+  try {
+    const email = normalizeEmail((req.body as { email: string }).email);
     const user = await User.findOne({ email }).select('name email').lean();
-    if (!user) return;
+    if (!user) {
+      return res.status(404).json({ message: 'No account was found for that email address.' });
+    }
 
     const { token, fields } = newResetToken(PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000);
+  userId = user._id;
+    resetTokenHash = fields.passwordResetTokenHash;
     const claimed = await User.updateOne({ _id: user._id, ...cooldownElapsed('passwordResetSentAt') }, { $set: fields });
-    if (claimed.modifiedCount !== 1) return;
+    if (claimed.modifiedCount !== 1) {
+      return res.status(429).json({ message: 'Please wait a minute before requesting another reset email.' });
+    }
 
     await sendPasswordResetEmail({
       email: user.email,
@@ -431,7 +437,18 @@ export const forgotPassword = async (req: Request, res: Response) => {
       resetUrl: resetUrlFor(token),
       expiresMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
     });
-  });
+
+    return res.json({ message: 'A password reset link has been sent to your email address.' });
+  } catch (error) {
+    if (userId && resetTokenHash) {
+      await User.updateOne(
+        { _id: userId, passwordResetTokenHash: resetTokenHash },
+        { $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1, passwordResetSentAt: 1 } }
+      ).catch((cleanupError) => console.error('Forgot password cleanup error:', cleanupError));
+    }
+    console.error('Forgot password error:', error);
+    return res.status(502).json({ message: 'We could not send the reset email right now. Please try again.' });
+  }
 };
 
 export const resetPassword = async (req: Request, res: Response) => {
