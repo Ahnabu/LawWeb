@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import { IUser } from '../models/User';
-type UserSummary = Pick<IUser, 'name' | 'email' | 'role' | 'barId' | 'phone' | 'profileImageUrl' | 'isVerified' | 'passwordNeedsChange'> & {
+import { Request, Response } from "express";
+import mongoose from "mongoose";
+import { IUser } from "../models/User";
+type UserSummary = Pick<IUser, "name" | "email" | "role" | "barId" | "phone" | "profileImageUrl" | "isVerified" | "passwordNeedsChange"> & {
     _id: mongoose.Types.ObjectId;
     tokenVersion?: number;
 };

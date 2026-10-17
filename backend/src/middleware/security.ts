@@ -25,7 +25,10 @@ export const requireTrustedOrigin = (allowedOrigins: string[]) => {
       }
     }
 
-    if (origin && !allowed.has(origin)) {
+    const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
+    const isVercelPreview = Boolean(allowVercelPreviews && origin && origin.endsWith('.vercel.app'));
+
+    if (origin && !allowed.has(origin) && !isVercelPreview) {
       return res.status(403).json({ message: 'Request origin not allowed' });
     }
 

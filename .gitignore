@@ -13,8 +13,11 @@ backend_cookies.txt
 **/backend_cookies.txt
 # local env files
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
+*env.lawweb*
+*.lawweb
+!.env.example
 
 DEPLOYMENT_GUIDE.md
 REGISTRATION_GUIDE.md

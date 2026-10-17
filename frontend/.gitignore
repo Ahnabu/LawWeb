@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+.env*
+*.env
+*env.lawweb*
+*.lawweb
+!.env.example
 .next
 /build
 # Editor directories and files

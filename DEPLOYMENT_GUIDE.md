@@ -50,8 +50,19 @@ This document addresses the critical connectivity issues that occurred during th
    - Vercel will automatically build and deploy your Next.js application
    - Your application will have a URL like `law-web-xxx.vercel.app`
 
-### For Backend Deployment (Example: Render, Railway, Heroku)
+### For Backend Deployment
 
+The backend can be deployed directly to **Vercel as a Serverless API** (recommended for an all-Vercel stack) or to cloud platforms like Render, Railway, or a VPS.
+
+#### Option A: Deploy Backend to Vercel (All-in-one Vercel)
+1. In Vercel, click **Add New...** → **Project** → select the `LawWeb` repository.
+2. Set **Root Directory** to `backend`.
+3. Set **Framework Preset** to `Other`.
+4. The backend already includes `backend/vercel.json` and `backend/api/index.ts` to route all endpoints into Express serverless functions.
+5. Add the required environment variables (see below).
+6. Click **Deploy**. Test via `https://your-backend.vercel.app/api/health`.
+
+#### Option B: Deploy Backend to Render, Railway, or Heroku
 1. **Configure Environment Variables on Your Hosting Platform**
    Use [backend/.env.example](backend/.env.example) as the template in your hosting dashboard. Do not paste real secrets into docs or commits.
 

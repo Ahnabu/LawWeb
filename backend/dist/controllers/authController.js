@@ -52,7 +52,7 @@ exports.ACCOUNT_SETUP_EXPIRY_HOURS = 72;
 // Minimum gap between two emails of the same kind to one account
 const EMAIL_RESEND_COOLDOWN_MS = 60 * 1000;
 const normalizeEmail = (email) => email.trim().toLowerCase();
-const sha256 = (value) => crypto_1.default.createHash('sha256').update(value).digest('hex');
+const sha256 = (value) => crypto_1.default.createHash("sha256").update(value).digest("hex");
 const safeEqual = (a, b) => {
     const left = Buffer.from(a);
     const right = Buffer.from(b);
@@ -61,7 +61,7 @@ const safeEqual = (a, b) => {
 const isDuplicateKeyError = (error) => error?.code === 11000;
 // Compared against for unknown emails so a login costs the same bcrypt time
 // whether or not the account exists (no timing oracle for registered emails).
-const DUMMY_PASSWORD_HASH = bcryptjs_1.default.hashSync(crypto_1.default.randomBytes(16).toString('hex'), User_1.PASSWORD_HASH_ROUNDS);
+const DUMMY_PASSWORD_HASH = bcryptjs_1.default.hashSync(crypto_1.default.randomBytes(16).toString("hex"), User_1.PASSWORD_HASH_ROUNDS);
 const toUserResponse = (user) => ({
     _id: user._id,
     name: user.name,
@@ -84,7 +84,10 @@ const inBackground = (label, task) => {
 // the cooldown. Putting it in the update itself makes the claim atomic: of two
 // parallel requests only one modifies the document and sends.
 const cooldownElapsed = (field) => ({
-    $or: [{ [field]: null }, { [field]: { $lte: new Date(Date.now() - EMAIL_RESEND_COOLDOWN_MS) } }],
+    $or: [
+        { [field]: null },
+        { [field]: { $lte: new Date(Date.now() - EMAIL_RESEND_COOLDOWN_MS) } },
+    ],
 });
 const newVerificationCode = () => {
     const code = crypto_1.default.randomInt(100000, 1000000).toString();
@@ -101,15 +104,24 @@ const newVerificationCode = () => {
 // Replaces the code and emails it, unless one went out less than a minute ago
 const issueVerificationCode = async (user) => {
     const { code, fields } = newVerificationCode();
-    const claimed = await User_1.default.updateOne({ _id: user._id, isVerified: false, ...cooldownElapsed('emailVerificationSentAt') }, { $set: fields });
+    const claimed = await User_1.default.updateOne({
+        _id: user._id,
+        isVerified: false,
+        ...cooldownElapsed("emailVerificationSentAt"),
+    }, { $set: fields });
     if (claimed.modifiedCount !== 1)
         return false;
-    await (0, email_1.sendVerificationCodeEmail)({ email: user.email, name: user.name, code, expiresMinutes: VERIFICATION_CODE_EXPIRY_MINUTES });
+    await (0, email_1.sendVerificationCodeEmail)({
+        email: user.email,
+        name: user.name,
+        code,
+        expiresMinutes: VERIFICATION_CODE_EXPIRY_MINUTES,
+    });
     return true;
 };
 const resetUrlFor = (token) => `${(0, env_1.getFrontendUrl)()}/reset-password?token=${token}`;
 const newResetToken = (ttlMs) => {
-    const token = crypto_1.default.randomBytes(32).toString('hex');
+    const token = crypto_1.default.randomBytes(32).toString("hex");
     return {
         token,
         fields: {
@@ -135,23 +147,25 @@ const sendAccountSetupLink = async (user) => {
 exports.sendAccountSetupLink = sendAccountSetupLink;
 const notifyPasswordChanged = (user) => 
 // A failed notice must not undo a successful password change
-inBackground('Password changed notice failed', () => (0, email_1.sendPasswordChangedEmail)({ email: user.email, name: user.name }));
+inBackground("Password changed notice failed", () => (0, email_1.sendPasswordChangedEmail)({ email: user.email, name: user.name }));
 const register = async (req, res) => {
     try {
         const { name, email, password, role, barId, phone } = req.body;
         const normalizedEmail = normalizeEmail(email);
-        const selectedRole = role === 'lawyer' ? 'lawyer' : 'client';
-        const existingUser = await User_1.default.findOne({ email: normalizedEmail }).select('name email isVerified').lean();
+        const selectedRole = role === "lawyer" ? "lawyer" : "client";
+        const existingUser = await User_1.default.findOne({ email: normalizedEmail })
+            .select("name email isVerified")
+            .lean();
         if (existingUser) {
             if (!existingUser.isVerified) {
-                inBackground('Verification email failed', () => issueVerificationCode(existingUser));
+                inBackground("Verification email failed", () => issueVerificationCode(existingUser));
                 return res.status(200).json({
-                    message: 'This email is waiting for verification. Enter the code we emailed you, or resend it.',
+                    message: "This email is waiting for verification. Enter the code we emailed you, or resend it.",
                     verificationRequired: true,
                     email: existingUser.email,
                 });
             }
-            return res.status(409).json({ message: 'User already exists' });
+            return res.status(409).json({ message: "User already exists" });
         }
         // Account and first code in one write
         const { code, fields } = newVerificationCode();
@@ -171,29 +185,34 @@ const register = async (req, res) => {
         catch (error) {
             // Two sign-ups for the same email raced past the lookup above
             if (isDuplicateKeyError(error))
-                return res.status(409).json({ message: 'User already exists' });
+                return res.status(409).json({ message: "User already exists" });
             throw error;
         }
         let emailSent = true;
         try {
-            await (0, email_1.sendVerificationCodeEmail)({ email: user.email, name: user.name, code, expiresMinutes: VERIFICATION_CODE_EXPIRY_MINUTES });
+            await (0, email_1.sendVerificationCodeEmail)({
+                email: user.email,
+                name: user.name,
+                code,
+                expiresMinutes: VERIFICATION_CODE_EXPIRY_MINUTES,
+            });
         }
         catch (error) {
             // The account exists; the user can use "Resend code" on the verify page
             emailSent = false;
-            console.error('Verification email failed:', error);
+            console.error("Verification email failed:", error);
         }
         res.status(201).json({
             message: emailSent
-                ? 'Registration successful. Check your email for a verification code.'
+                ? "Registration successful. Check your email for a verification code."
                 : 'Registration successful, but we could not send the verification email. Use "Resend code" to try again.',
             verificationRequired: true,
             email: user.email,
         });
     }
     catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Registration error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.register = register;
@@ -207,26 +226,26 @@ const login = async (req, res) => {
         // whether it is verified), and before sending any email.
         const isPasswordValid = await bcryptjs_1.default.compare(password, user?.password ?? DUMMY_PASSWORD_HASH);
         if (!user || !isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: "Invalid credentials" });
         }
         if (!user.isVerified) {
-            inBackground('Verification email failed', () => issueVerificationCode(user));
+            inBackground("Verification email failed", () => issueVerificationCode(user));
             return res.status(403).json({
-                message: 'Please verify your email address before logging in.',
+                message: "Please verify your email address before logging in.",
                 verificationRequired: true,
                 email: user.email,
             });
         }
         const accessTokenExpiresAt = await (0, session_1.issueSession)(req, res, user);
         res.json({
-            message: 'Login successful',
+            message: "Login successful",
             user: toUserResponse(user),
             accessTokenExpiresAt,
         });
     }
     catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.login = login;
@@ -239,17 +258,17 @@ const logout = async (req, res) => {
         }
     }
     catch (error) {
-        console.error('Logout error:', error);
+        console.error("Logout error:", error);
     }
     finally {
         (0, session_1.clearAuthCookies)(res);
     }
-    res.json({ message: 'Logout successful' });
+    res.json({ message: "Logout successful" });
 };
 exports.logout = logout;
 const getProfile = async (req, res) => {
     if (!req.user) {
-        return res.status(401).json({ message: 'Not authenticated' });
+        return res.status(401).json({ message: "Not authenticated" });
     }
     res.json({ user: toUserResponse(req.user) });
 };
@@ -261,10 +280,12 @@ const refreshToken = async (req, res) => {
     const token = req.cookies.refreshToken;
     const reject = (message) => {
         (0, session_1.clearAuthCookies)(res);
-        return res.status(401).json({ message, code: 'REFRESH_FAILED' });
+        return res.status(401).json({ message, code: "REFRESH_FAILED" });
     };
     if (!token) {
-        return res.status(401).json({ message: 'Refresh token required', code: 'REFRESH_FAILED' });
+        return res
+            .status(401)
+            .json({ message: "Refresh token required", code: "REFRESH_FAILED" });
     }
     try {
         let decoded;
@@ -272,35 +293,37 @@ const refreshToken = async (req, res) => {
             decoded = (0, jwt_1.verifyRefreshToken)(token);
         }
         catch {
-            return reject('Invalid refresh token');
+            return reject("Invalid refresh token");
         }
         // Tokens from before session versioning lack these claims
-        if (typeof decoded.tv !== 'number' || typeof decoded.sae !== 'number') {
-            return reject('Session format is outdated');
+        if (typeof decoded.tv !== "number" || typeof decoded.sae !== "number") {
+            return reject("Session format is outdated");
         }
-        const user = await User_1.default.findById(decoded.userId).select(auth_1.AUTH_USER_FIELDS).lean();
+        const user = await User_1.default.findById(decoded.userId)
+            .select(auth_1.AUTH_USER_FIELDS)
+            .lean();
         if (!user || (user.tokenVersion ?? 0) !== decoded.tv) {
             await (0, session_1.revokeSession)(token);
-            return reject('Session is no longer valid');
+            return reject("Session is no longer valid");
         }
         const result = await (0, session_1.rotateSession)(req, res, user, token, decoded.sae);
-        if (result.status === 'unknown') {
-            return reject('Session not found');
+        if (result.status === "unknown") {
+            return reject("Session not found");
         }
-        if (result.status === 'reused') {
+        if (result.status === "reused") {
             console.warn(`[auth] Refresh token reuse detected for user ${user._id}; revoking all sessions`);
             await (0, session_1.revokeAllSessions)(user._id);
-            return reject('Session revoked');
+            return reject("Session revoked");
         }
         res.json({
-            message: 'Token refreshed successfully',
+            message: "Token refreshed successfully",
             user: toUserResponse(user),
             accessTokenExpiresAt: result.accessTokenExpiresAt,
         });
     }
     catch (error) {
-        console.error('Refresh token error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Refresh token error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.refreshToken = refreshToken;
@@ -314,55 +337,87 @@ const verifyEmail = async (req, res) => {
             email: normalizedEmail,
             isVerified: false,
             emailVerificationExpiresAt: { $gt: new Date() },
-            emailVerificationAttempts: { $not: { $gte: VERIFICATION_MAX_ATTEMPTS } },
-        }, { $inc: { emailVerificationAttempts: 1 } }, { returnDocument: 'after' })
-            .select('+emailVerificationCodeHash +emailVerificationAttempts')
+            emailVerificationAttempts: {
+                $not: { $gte: VERIFICATION_MAX_ATTEMPTS },
+            },
+        }, { $inc: { emailVerificationAttempts: 1 } }, { returnDocument: "after" })
+            .select("+emailVerificationCodeHash +emailVerificationAttempts")
             .lean();
         if (!candidate) {
             // Slow path only: explain why nothing matched
             const state = await User_1.default.findOne({ email: normalizedEmail })
-                .select('isVerified +emailVerificationAttempts')
+                .select("isVerified +emailVerificationAttempts")
                 .lean();
             if (state?.isVerified) {
                 // No user data here: this endpoint is unauthenticated
-                return res.status(409).json({ message: 'This email is already verified. Please log in.' });
+                return res
+                    .status(409)
+                    .json({ message: "This email is already verified. Please log in." });
             }
-            if (state && (state.emailVerificationAttempts ?? 0) >= VERIFICATION_MAX_ATTEMPTS) {
-                return res.status(429).json({ message: 'Too many incorrect attempts. Please resend a new code.' });
+            if (state &&
+                (state.emailVerificationAttempts ?? 0) >= VERIFICATION_MAX_ATTEMPTS) {
+                return res
+                    .status(429)
+                    .json({
+                    message: "Too many incorrect attempts. Please resend a new code.",
+                });
             }
             if (state) {
-                return res.status(400).json({ message: 'Verification code expired. Please resend the code.' });
+                return res
+                    .status(400)
+                    .json({
+                    message: "Verification code expired. Please resend the code.",
+                });
             }
-            return res.status(400).json({ message: 'Invalid or expired verification code.' });
+            return res
+                .status(400)
+                .json({ message: "Invalid or expired verification code." });
         }
         const codeHash = candidate.emailVerificationCodeHash;
         if (!codeHash || !safeEqual(sha256(code.trim()), codeHash)) {
             if ((candidate.emailVerificationAttempts ?? 0) >= VERIFICATION_MAX_ATTEMPTS) {
-                await User_1.default.updateOne({ _id: candidate._id }, { $unset: { emailVerificationCodeHash: 1, emailVerificationExpiresAt: 1 } });
-                return res.status(429).json({ message: 'Too many incorrect attempts. Please resend a new code.' });
+                await User_1.default.updateOne({ _id: candidate._id }, {
+                    $unset: {
+                        emailVerificationCodeHash: 1,
+                        emailVerificationExpiresAt: 1,
+                    },
+                });
+                return res
+                    .status(429)
+                    .json({
+                    message: "Too many incorrect attempts. Please resend a new code.",
+                });
             }
-            return res.status(400).json({ message: 'Invalid or expired verification code.' });
+            return res
+                .status(400)
+                .json({ message: "Invalid or expired verification code." });
         }
         // Conditional on the same code so a code replaced meanwhile cannot verify
-        const user = await User_1.default.findOneAndUpdate({ _id: candidate._id, isVerified: false, emailVerificationCodeHash: codeHash }, {
+        const user = await User_1.default.findOneAndUpdate({
+            _id: candidate._id,
+            isVerified: false,
+            emailVerificationCodeHash: codeHash,
+        }, {
             $set: { isVerified: true, emailVerificationAttempts: 0 },
             $unset: { emailVerificationCodeHash: 1, emailVerificationExpiresAt: 1 },
-        }, { returnDocument: 'after' })
+        }, { returnDocument: "after" })
             .select(auth_1.AUTH_USER_FIELDS)
             .lean();
         if (!user) {
-            return res.status(400).json({ message: 'Invalid or expired verification code.' });
+            return res
+                .status(400)
+                .json({ message: "Invalid or expired verification code." });
         }
         const accessTokenExpiresAt = await (0, session_1.issueSession)(req, res, user);
         res.json({
-            message: 'Email verified successfully.',
+            message: "Email verified successfully.",
             user: toUserResponse(user),
             accessTokenExpiresAt,
         });
     }
     catch (error) {
-        console.error('Email verification error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Email verification error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.verifyEmail = verifyEmail;
@@ -370,9 +425,13 @@ exports.verifyEmail = verifyEmail;
 // account exists or the cooldown applies (no enumeration, no timing signal).
 const resendVerificationCode = async (req, res) => {
     const email = normalizeEmail(req.body.email);
-    res.json({ message: 'If that account is waiting for verification, a new code has been sent.' });
-    inBackground('Resend verification code failed', async () => {
-        const user = await User_1.default.findOne({ email, isVerified: false }).select('name email').lean();
+    res.json({
+        message: "If that account is waiting for verification, a new code has been sent.",
+    });
+    inBackground("Resend verification code failed", async () => {
+        const user = await User_1.default.findOne({ email, isVerified: false })
+            .select("name email")
+            .lean();
         if (user)
             await issueVerificationCode(user);
     });
@@ -383,16 +442,22 @@ const forgotPassword = async (req, res) => {
     let resetTokenHash;
     try {
         const email = normalizeEmail(req.body.email);
-        const user = await User_1.default.findOne({ email }).select('name email').lean();
+        const user = await User_1.default.findOne({ email }).select("name email").lean();
         if (!user) {
-            return res.status(404).json({ message: 'No account was found for that email address.' });
+            return res
+                .status(404)
+                .json({ message: "No account was found for that email address." });
         }
         const { token, fields } = newResetToken(PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000);
         userId = user._id;
         resetTokenHash = fields.passwordResetTokenHash;
-        const claimed = await User_1.default.updateOne({ _id: user._id, ...cooldownElapsed('passwordResetSentAt') }, { $set: fields });
+        const claimed = await User_1.default.updateOne({ _id: user._id, ...cooldownElapsed("passwordResetSentAt") }, { $set: fields });
         if (claimed.modifiedCount !== 1) {
-            return res.status(429).json({ message: 'Please wait a minute before requesting another reset email.' });
+            return res
+                .status(429)
+                .json({
+                message: "Please wait a minute before requesting another reset email.",
+            });
         }
         await (0, email_1.sendPasswordResetEmail)({
             email: user.email,
@@ -400,22 +465,41 @@ const forgotPassword = async (req, res) => {
             resetUrl: resetUrlFor(token),
             expiresMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
         });
-        return res.json({ message: 'A password reset link has been sent to your email address.' });
+        return res.json({
+            message: "A password reset link has been sent to your email address.",
+        });
     }
     catch (error) {
         if (userId && resetTokenHash) {
-            await User_1.default.updateOne({ _id: userId, passwordResetTokenHash: resetTokenHash }, { $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1, passwordResetSentAt: 1 } }).catch((cleanupError) => console.error('Forgot password cleanup error:', cleanupError));
+            await User_1.default.updateOne({ _id: userId, passwordResetTokenHash: resetTokenHash }, {
+                $unset: {
+                    passwordResetTokenHash: 1,
+                    passwordResetExpiresAt: 1,
+                    passwordResetSentAt: 1,
+                },
+            }).catch((cleanupError) => console.error("Forgot password cleanup error:", cleanupError));
         }
-        console.error('Forgot password error:', error);
-        return res.status(502).json({ message: 'We could not send the reset email right now. Please try again.' });
+        console.error("Forgot password error:", error);
+        return res
+            .status(502)
+            .json({
+            message: "We could not send the reset email right now. Please try again.",
+        });
     }
 };
 exports.forgotPassword = forgotPassword;
 const resetPassword = async (req, res) => {
     try {
         const { token, password } = req.body;
-        const tokenFilter = { passwordResetTokenHash: (0, session_1.hashToken)(token), passwordResetExpiresAt: { $gt: new Date() } };
-        const invalidLink = () => res.status(400).json({ message: 'This reset link is invalid or has expired. Request a new one.' });
+        const tokenFilter = {
+            passwordResetTokenHash: (0, session_1.hashToken)(token),
+            passwordResetExpiresAt: { $gt: new Date() },
+        };
+        const invalidLink = () => res
+            .status(400)
+            .json({
+            message: "This reset link is invalid or has expired. Request a new one.",
+        });
         // Cheap indexed check first so bogus tokens never cost a bcrypt hash
         if (!(await User_1.default.exists(tokenFilter))) {
             return invalidLink();
@@ -438,8 +522,8 @@ const resetPassword = async (req, res) => {
                 emailVerificationExpiresAt: 1,
             },
             $inc: { tokenVersion: 1 },
-        }, { returnDocument: 'after' })
-            .select('name email')
+        }, { returnDocument: "after" })
+            .select("name email")
             .lean();
         if (!user) {
             return invalidLink();
@@ -447,51 +531,73 @@ const resetPassword = async (req, res) => {
         await (0, session_1.revokeAllSessions)(user._id);
         (0, session_1.clearAuthCookies)(res);
         notifyPasswordChanged(user);
-        res.json({ message: 'Your password has been reset. You can now log in with the new password.' });
+        res.json({
+            message: "Your password has been reset. You can now log in with the new password.",
+        });
     }
     catch (error) {
-        console.error('Reset password error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Reset password error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.resetPassword = resetPassword;
 const changePassword = async (req, res) => {
     try {
         if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
+            return res.status(401).json({ message: "Not authenticated" });
         }
         const { currentPassword, newPassword } = req.body;
         if (currentPassword === newPassword) {
-            return res.status(400).json({ message: 'New password must be different from the current password.' });
+            return res
+                .status(400)
+                .json({
+                message: "New password must be different from the current password.",
+            });
         }
-        const current = await User_1.default.findById(req.user._id).select('+password').lean();
+        const current = await User_1.default.findById(req.user._id)
+            .select("+password")
+            .lean();
         if (!current?.password) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: "User not found" });
         }
         if (!(await bcryptjs_1.default.compare(currentPassword, current.password))) {
-            return res.status(400).json({ message: 'Current password is incorrect.' });
+            return res
+                .status(400)
+                .json({ message: "Current password is incorrect." });
         }
         const passwordHash = await (0, User_1.hashPassword)(newPassword);
         // Conditional on the hash we verified against, so two parallel changes
         // cannot both succeed, and tokenVersion moves in the same write.
         const user = await User_1.default.findOneAndUpdate({ _id: current._id, password: current.password }, {
-            $set: { password: passwordHash, passwordNeedsChange: false, passwordChangedAt: new Date() },
+            $set: {
+                password: passwordHash,
+                passwordNeedsChange: false,
+                passwordChangedAt: new Date(),
+            },
             $inc: { tokenVersion: 1 },
-        }, { returnDocument: 'after' })
+        }, { returnDocument: "after" })
             .select(auth_1.AUTH_USER_FIELDS)
             .lean();
         if (!user) {
-            return res.status(409).json({ message: 'Your password was changed from another session. Please sign in again.' });
+            return res
+                .status(409)
+                .json({
+                message: "Your password was changed from another session. Please sign in again.",
+            });
         }
         // Sign out every other device, keep this one signed in with fresh tokens
         await (0, session_1.revokeAllSessions)(user._id);
         const accessTokenExpiresAt = await (0, session_1.issueSession)(req, res, user);
         notifyPasswordChanged(user);
-        res.json({ message: 'Password changed successfully.', user: toUserResponse(user), accessTokenExpiresAt });
+        res.json({
+            message: "Password changed successfully.",
+            user: toUserResponse(user),
+            accessTokenExpiresAt,
+        });
     }
     catch (error) {
-        console.error('Change password error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Change password error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.changePassword = changePassword;

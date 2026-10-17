@@ -20,20 +20,25 @@ import blogRoutes from "./routes/blogs";
 import contentRoutes from "./routes/content";
 import { requireTrustedOrigin, sanitizeInput } from "./middleware/security";
 
-// Use Google public DNS so mongodb+srv SRV lookups resolve reliably
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// Use Google public DNS so mongodb+srv SRV lookups resolve reliably in local/cloud environments
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+} catch {
+  // Ignore in sandboxed serverless environments
+}
 
 assertServerEnv();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Behind Render/Railway/Nginx the client IP is in X-Forwarded-For. Without this
-// every visitor shares the proxy's IP and one abuser rate-limits everyone.
-// TRUST_PROXY = number of proxy hops (1 on Render/Railway/Heroku).
+// Behind Render/Railway/Vercel/Nginx the client IP is in X-Forwarded-For.
 if (process.env.TRUST_PROXY) {
   const hops = Number(process.env.TRUST_PROXY);
   app.set("trust proxy", Number.isNaN(hops) ? process.env.TRUST_PROXY : hops);
+} else if (process.env.VERCEL) {
+  // Vercel Serverless runs behind reverse proxy; trust 1 hop by default
+  app.set("trust proxy", 1);
 }
 app.disable("x-powered-by");
 
@@ -55,15 +60,34 @@ app.use(
 const clientUrls = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(",").map((url) => url.trim().replace(/\/+$/, "")).filter(Boolean)
   : [];
+const frontendUrl = process.env.FRONTEND_URL?.trim().replace(/\/+$/, "");
+
 const allowedOrigins = [
   ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:3000", "http://127.0.0.1:3000"]),
   "https://law-web-five.vercel.app",
+  ...(frontendUrl && !clientUrls.includes(frontendUrl) ? [frontendUrl] : []),
   ...clientUrls,
 ];
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.trim().replace(/\/+$/, "");
+      if (allowedOrigins.includes(cleanOrigin)) return callback(null, true);
+
+      // Support Vercel preview branch deployments if configured
+      if (process.env.ALLOW_VERCEL_PREVIEWS === "true" && cleanOrigin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+
+      // Allow localhost in non-production environments
+      if (process.env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, false);
+    },
     credentials: true,
   }),
 );
@@ -118,23 +142,80 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 app.use(sanitizeInput);
 
-// Connect to MongoDB Atlas
-const connectDB = async () => {
+// MongoDB Atlas Connection with Serverless Connection Pooling/Caching
+let dbPromise: Promise<typeof mongoose> | null = null;
+
+export const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  if (mongoose.connection.readyState === 2 && dbPromise) {
+    await dbPromise;
+    return;
+  }
+
+  if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI environment variable is missing");
+  }
+
   try {
-    await mongoose.connect(process.env.MONGODB_URI!, {
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
+    dbPromise = mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
       socketTimeoutMS: 45000,
     });
+    await dbPromise;
     console.log("MongoDB Atlas connected successfully");
   } catch (error) {
+    dbPromise = null;
     console.error("MongoDB connection error:", error);
-    console.log("Retrying MongoDB connection in 5 seconds...");
-    setTimeout(connectDB, 5000);
+    if (!process.env.VERCEL) {
+      console.log("Retrying MongoDB connection in 5 seconds...");
+      setTimeout(connectDB, 5000);
+    }
+    throw error;
   }
 };
 
-connectDB();
+// Initial connection attempt on boot
+connectDB().catch((err) => {
+  if (process.env.VERCEL) {
+    console.error("Initial serverless MongoDB connect error:", err);
+  }
+});
+
+// Middleware to ensure DB connection before handling requests (crucial for Vercel serverless cold starts)
+app.use(async (req, res, next) => {
+  if (req.path === "/" || req.path === "/api/health") {
+    return next();
+  }
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection failed on request:", err);
+    res.status(503).json({ message: "Service temporarily unavailable: database connection error" });
+  }
+});
+
+// Root & Health check
+app.get("/", (_req, res) => {
+  res.json({
+    status: "OK",
+    name: "LawWeb API",
+    database: mongoose.connection.readyState === 1 ? "connected" : "connecting/disconnected",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "OK",
+    database: mongoose.connection.readyState === 1 ? "connected" : "connecting/disconnected",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -145,11 +226,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/content", contentRoutes);
-
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() });
-});
 
 // Error handling middleware
 app.use(
@@ -170,7 +246,14 @@ app.use("*", (req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-});
+// In standalone server (e.g. Render, Railway, VPS, Local dev), listen on PORT.
+// On Vercel (serverless environment), Vercel invokes the exported app directly.
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  });
+}
+
+export default app;
+export { app };
