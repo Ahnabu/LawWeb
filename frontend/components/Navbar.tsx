@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LayoutDashboard,
   LogOut,
@@ -63,8 +64,15 @@ export function Navbar() {
     <header className="glass-nav fixed inset-x-0 top-0 z-50 w-full">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-17 sm:gap-4 sm:px-6 lg:px-8">
         <Link href={localePath("/")} className="flex items-center gap-2 sm:gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-base sm:h-11 sm:w-11 sm:rounded-xl sm:text-lg bg-secondary/10 text-secondary ring-1 ring-secondary/20">
-            ⚖️
+          <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg sm:h-11 sm:w-11 sm:rounded-xl ring-1 ring-outline-variant bg-surface-container">
+            <Image
+              src="/logo.jpg"
+              alt="Islam and Associates International Law Offices"
+              width={44}
+              height={44}
+              className="h-full w-full object-cover"
+              priority
+            />
           </span>
           <span className="text-base font-semibold tracking-wide text-on-surface sm:text-lg">
             {t("site.firmName")}

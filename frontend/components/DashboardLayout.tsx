@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LogOut,
@@ -190,8 +191,14 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
           {/* Logo + collapse button */}
           <div className="flex items-center justify-between border-b border-outline-variant px-3 py-3">
             <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={closeSidebarOnMobile}>
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-lg">
-                ⚖️
+              <span className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container ring-1 ring-outline-variant">
+                <Image
+                  src="/logo.jpg"
+                  alt="Islam and Associates International Law Offices"
+                  width={36}
+                  height={36}
+                  className="h-full w-full object-cover"
+                />
               </span>
               <span className="truncate font-semibold text-on-surface text-sm leading-tight">
                 Islam & Associates
