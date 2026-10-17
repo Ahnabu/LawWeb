@@ -3,7 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import { Plus, X, Briefcase, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
+import { confirmDialog } from "../../../../components/ConfirmDialog";
 
 interface LawyerOption {
   _id: string;
@@ -134,8 +136,9 @@ export default function AdminCasesPage() {
         prev.map((c) => (c._id === caseId ? { ...c, totalPayment: data.data.totalPayment } : c))
       );
       setIsEditingTotalPayment(null);
+      toast.success("Total payment updated");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update total payment");
+      toast.error(err instanceof Error ? err.message : "Failed to update total payment");
     } finally {
       setIsSavingTotalPayment(false);
     }
@@ -172,15 +175,24 @@ export default function AdminCasesPage() {
       setPaymentAmount("");
       setPaymentDetails("");
       setPaymentDate(new Date().toISOString().split("T")[0]);
+      toast.success("Payment recorded");
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : "Failed to record payment");
+      const message = err instanceof Error ? err.message : "Failed to record payment";
+      setPaymentError(message);
+      toast.error(message);
     } finally {
       setIsRecordingPayment(false);
     }
   };
 
   const handleDeletePayment = async (caseId: string, paymentId: string) => {
-    if (!confirm("Are you sure you want to delete this payment entry?")) return;
+    const confirmed = await confirmDialog({
+      title: "Delete this payment entry?",
+      message: "The payment will be removed from this case's history.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
         method: "PATCH",
@@ -194,8 +206,9 @@ export default function AdminCasesPage() {
       setCases((prev) =>
         prev.map((c) => (c._id === caseId ? { ...c, payments: data.data.payments } : c))
       );
+      toast.success("Payment entry deleted");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete payment");
+      toast.error(err instanceof Error ? err.message : "Failed to delete payment");
     }
   };
 
@@ -247,12 +260,16 @@ export default function AdminCasesPage() {
         credentials: "include",
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to update status");
+      }
       setCases((prev) =>
         prev.map((c) => (c._id === id ? { ...c, status: newStatus } : c)),
       );
+      toast.success("Case status updated");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
       setUpdatingId(null);
     }
@@ -278,6 +295,7 @@ export default function AdminCasesPage() {
       setShowModal(false);
       setForm(EMPTY_FORM);
       void fetchCases();
+      toast.success(data.message || "Case created");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Failed to create case");
     } finally {

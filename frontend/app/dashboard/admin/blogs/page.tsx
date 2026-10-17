@@ -8,7 +8,9 @@ import {
   ArrowLeft, ChevronUp, ChevronDown, ImagePlus, Loader2,
   Heading1, Heading2, Heading3, AlignLeft, Quote, Zap, Minus, List,
 } from "lucide-react";
+import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
+import { confirmDialog } from "../../../../components/ConfirmDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type BlockType = "h1" | "h2" | "h3" | "paragraph" | "quote" | "callout" | "divider" | "list";
@@ -88,17 +90,24 @@ export default function AdminBlogsPage() {
         tags:data.tags.join(", "), coverImageUrl:data.coverImageUrl??"", status:data.status });
       setBlocks((data.blocks??[]).map(b => ({ ...b, id:uid() })));
       setEditId(id); setSaved(false); setView("editor");
-    } catch(e) { alert(e instanceof Error ? e.message : "Error"); }
+    } catch(e) { toast.error(e instanceof Error ? e.message : "Failed to load blog"); }
   };
 
   // delete
   const doDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"?`)) return;
+    const confirmed = await confirmDialog({
+      title: `Delete "${title}"?`,
+      message: "The post will be removed from the site. This cannot be undone.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       const r = await apiFetch(`${API_BASE_URL}/api/blogs/${id}`, { method:"DELETE", credentials:"include" });
       if (!r.ok) throw new Error("Delete failed");
       setBlogs(p => p.filter(b => b._id !== id));
-    } catch(e) { alert(e instanceof Error ? e.message : "Delete failed"); }
+      toast.success("Blog post deleted");
+    } catch(e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
   };
 
   // block operations
@@ -127,7 +136,8 @@ export default function AdminBlogsPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.message);
       setForm(f => ({ ...f, coverImageUrl: d.url }));
-    } catch(e) { alert(e instanceof Error ? e.message : "Upload failed"); }
+      toast.success("Cover image uploaded");
+    } catch(e) { toast.error(e instanceof Error ? e.message : "Upload failed"); }
     finally { setUploading(false); }
   };
 
@@ -160,7 +170,11 @@ export default function AdminBlogsPage() {
       setForm(f => ({ ...f, status:d.data.status }));
       setSaved(true); void fetchBlogs();
       setTimeout(() => setSaved(false), 3000);
-    } catch(e) { setSaveErr(e instanceof Error ? e.message : "Save failed"); }
+      toast.success(d.data.status === "published" ? "Blog post published" : "Blog post saved");
+    } catch(e) {
+      const message = e instanceof Error ? e.message : "Save failed";
+      setSaveErr(message); toast.error(message);
+    }
     finally { setSaving(false); }
   };
 

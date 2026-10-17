@@ -13,6 +13,7 @@ import {
   type AdminContentPage,
   type ContentRevisionSummary,
 } from "../lib/adminContent";
+import { confirmDialog } from "./ConfirmDialog";
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -57,10 +58,15 @@ export function ContentHistory({ def, page, current, dirty, onRestored }: {
   };
 
   const restore = async (version: number) => {
-    const message = dirty
-      ? `Restore version ${version} into the draft? Your unsaved edits will be lost. The live site does not change until you publish.`
-      : `Restore version ${version} into the draft? The live site does not change until you publish.`;
-    if (!confirm(message)) return;
+    const confirmed = await confirmDialog({
+      title: `Restore version ${version}?`,
+      message: dirty
+        ? "It is copied into the draft and your unsaved edits will be lost. The live site does not change until you publish."
+        : "It is copied into the draft. The live site does not change until you publish.",
+      confirmLabel: "Restore",
+      tone: dirty ? "danger" : "default",
+    });
+    if (!confirmed) return;
     setBusy(`restore-${version}`);
     try {
       onRestored(await restoreContentRevision(def.key, version));

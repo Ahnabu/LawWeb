@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import { Calendar, Clock, User, Scale, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
 
 interface ConsultationItem {
@@ -85,8 +86,9 @@ export default function AdminAppointmentsPage() {
           c._id === id ? { ...c, status: newStatus as ConsultationItem["status"] } : c,
         ),
       );
+      toast.success(`Appointment marked ${newStatus}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
       setUpdatingId(null);
     }

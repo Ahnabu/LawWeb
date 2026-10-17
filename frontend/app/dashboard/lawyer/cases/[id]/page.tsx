@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Star, StarOff } from "lucide-react";
 import { API_BASE_URL } from "../../../../../lib/api";
+import { toast } from "sonner";
 import { apiFetch } from "../../../../../lib/http";
 
 type CaseStatus =
@@ -141,7 +142,7 @@ export default function CaseDetailPage() {
     if (!caseData) return;
     const value = Number(tempTotalPayment);
     if (isNaN(value) || value < 0) {
-      alert("Please enter a valid amount");
+      toast.error("Please enter a valid amount");
       return;
     }
     setIsSavingTotalPayment(true);
@@ -156,8 +157,9 @@ export default function CaseDetailPage() {
       if (!res.ok) throw new Error(data.message || "Failed to update total payment");
       setCaseData(data.data);
       setIsEditingTotalPayment(false);
+      toast.success("Total payment updated");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update total payment");
+      toast.error(err instanceof Error ? err.message : "Failed to update total payment");
     } finally {
       setIsSavingTotalPayment(false);
     }
@@ -192,8 +194,11 @@ export default function CaseDetailPage() {
       setPaymentAmount("");
       setPaymentDetails("");
       setPaymentDate(new Date().toISOString().split("T")[0]);
+      toast.success("Payment recorded");
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : "Failed to record payment");
+      const message = err instanceof Error ? err.message : "Failed to record payment";
+      setPaymentError(message);
+      toast.error(message);
     } finally {
       setIsRecordingPayment(false);
     }
@@ -243,8 +248,11 @@ export default function CaseDetailPage() {
       if (!res.ok) throw new Error(data.message || "Update failed");
       setCaseData(data.data);
       setSaveMsg("Case updated successfully.");
+      toast.success("Case updated");
     } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "Update failed");
+      const message = err instanceof Error ? err.message : "Update failed";
+      setSaveMsg(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -259,10 +267,11 @@ export default function CaseDetailPage() {
         credentials: "include",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.message || "Failed to update featured status");
       setCaseData((prev) => prev && { ...prev, isFeatured: data.data.isFeatured });
-    } catch {
-      // ignore
+      toast.success(data.data.isFeatured ? "Case featured as a success story" : "Case removed from success stories");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update featured status");
     } finally {
       setIsToggling(false);
     }

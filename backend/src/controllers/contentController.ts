@@ -199,9 +199,15 @@ export const publishContentPage = async (req: AuthRequest, res: Response) => {
       .select('_id');
     if (stale.length) await ContentRevision.deleteMany({ _id: { $in: stale.map((r) => r._id) } });
 
-    void notifyContentPublished(pageKey);
+    // Awaited: on serverless hosting, work left running after the response is sent may never finish
+    const liveUpdated = await notifyContentPublished(pageKey);
 
-    res.json({ status: 200, message: 'Page published successfully', data: serializePage(pageKey, updated) });
+    res.json({
+      status: 200,
+      message: 'Page published successfully',
+      data: serializePage(pageKey, updated),
+      meta: { liveUpdated },
+    });
   } catch (error) {
     console.error('Publish content page error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });

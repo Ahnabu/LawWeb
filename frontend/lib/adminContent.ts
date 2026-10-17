@@ -57,8 +57,13 @@ export function saveContentDraft(key: ContentPageKey, data: PageContent): Promis
   )
 }
 
-export function publishContentPage(key: ContentPageKey): Promise<AdminContentPage> {
-  return request(contentUrl(`/${key}/publish`), { method: 'POST' }, 'Failed to publish page')
+// liveUpdated: false when the backend could not refresh the site's cache, so
+// the change shows after the time-based revalidation (a few minutes) instead
+export async function publishContentPage(key: ContentPageKey): Promise<{ page: AdminContentPage; liveUpdated: boolean }> {
+  const res = await apiFetch(contentUrl(`/${key}/publish`), { method: 'POST', credentials: 'include' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new ContentSaveError(data.message || 'Failed to publish page', data.errors ?? [])
+  return { page: data.data as AdminContentPage, liveUpdated: data.meta?.liveUpdated !== false }
 }
 
 export function discardContentDraft(key: ContentPageKey): Promise<AdminContentPage> {

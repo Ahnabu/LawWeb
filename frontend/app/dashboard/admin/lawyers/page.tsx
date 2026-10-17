@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
+import { confirmDialog } from "../../../../components/ConfirmDialog";
 
 interface LawyerItem {
   _id: string;
@@ -98,15 +99,22 @@ export default function AdminLawyersPage() {
       if (detailsLawyer?._id === id) {
         setDetailsLawyer((prev) => prev ? { ...prev, isVerified: data.data.isVerified } : prev);
       }
+      toast.success(data.data.isVerified ? "Lawyer verified" : "Lawyer verification removed");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
       setTogglingId(null);
     }
   };
 
   const deleteLawyer = async (id: string, name: string) => {
-    if (!confirm(`Remove lawyer "${name}"? This cannot be undone.`)) return;
+    const confirmed = await confirmDialog({
+      title: `Remove ${name}?`,
+      message: "This lawyer account will be deleted. This cannot be undone.",
+      confirmLabel: "Remove lawyer",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setDeletingId(id);
     try {
       const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers/${id}`, {
@@ -115,8 +123,9 @@ export default function AdminLawyersPage() {
       if (!res.ok) throw new Error("Failed to remove lawyer");
       setLawyers((prev) => prev.filter((l) => l._id !== id));
       if (detailsLawyer?._id === id) setDetailsLawyer(null);
+      toast.success(`${name} removed`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setDeletingId(null);
     }

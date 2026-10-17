@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, ExternalLink, History, Languages, Loader2, RotateCcw, Save, Send } from "lucide-react";
-import type { PageContent, SiteSettingsOverride, StringOverride, StringOverrides } from "../../../../../lib/content";
+import { CONTENT_REVALIDATE_SECONDS, type PageContent, type SiteSettingsOverride, type StringOverride, type StringOverrides } from "../../../../../lib/content";
 import { getPageDef } from "../../../../../lib/contentRegistry";
 import { localizePath } from "../../../../../lib/locale";
 import {
@@ -25,6 +25,7 @@ import {
 } from "../../../../../lib/adminContent";
 import { ImageFieldEditor, ListEditor, SiteSettingsEditor, TextFieldEditor } from "../../../../../components/ContentEditorFields";
 import { ContentHistory } from "../../../../../components/ContentHistory";
+import { confirmDialog } from "../../../../../components/ConfirmDialog";
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -116,31 +117,54 @@ export default function AdminContentEditorPage() {
     toast.error(e instanceof Error ? e.message : fallback);
   };
 
-  const saveDraft = async (): Promise<boolean> => {
+  // Returns the saved page, or null when saving failed (error already shown)
+  const saveDraft = async (): Promise<AdminContentPage | null> => {
     setErrors([]);
     try {
-      applyPage(await saveContentDraft(def.key, cleaned));
-      return true;
+      const saved = await saveContentDraft(def.key, cleaned);
+      applyPage(saved);
+      return saved;
     } catch (e) {
       handleError(e, "Failed to save draft");
-      return false;
+      return null;
     }
   };
 
   const save = async () => {
     setBusy("save");
-    if (await saveDraft()) toast.success("Draft saved. Publish to make it live.");
+    const saved = await saveDraft();
+    if (saved) {
+      if (saved.hasUnpublishedChanges) toast.success("Draft saved. Publish to make it live.");
+      else toast.info("Draft saved. It matches the live version, so there is nothing to publish.");
+    }
     setBusy(null);
   };
 
   const publish = async () => {
     setBusy("publish");
     try {
-      if (dirty && !(await saveDraft())) return;
-      applyPage(await publishContentPage(def.key));
-      toast.success(`${def.title} published`, def.publicPath
+      if (dirty) {
+        const saved = await saveDraft();
+        if (!saved) return;
+        if (!saved.hasUnpublishedChanges) {
+          toast.info("Nothing to publish. The live site already shows this content.");
+          return;
+        }
+      }
+      const { page: published, liveUpdated } = await publishContentPage(def.key);
+      applyPage(published);
+      const viewAction = def.publicPath
         ? { action: { label: "View page", onClick: () => window.open(def.publicPath, "_blank", "noopener") } }
-        : undefined);
+        : {};
+      if (liveUpdated) {
+        toast.success(`${def.title} published`, viewAction);
+      } else {
+        toast.warning(`${def.title} published`, {
+          ...viewAction,
+          description: `The live site picks up the change within ${Math.round(CONTENT_REVALIDATE_SECONDS / 60)} minutes.`,
+          duration: 8000,
+        });
+      }
     } catch (e) {
       handleError(e, "Failed to publish");
     } finally {
@@ -149,13 +173,14 @@ export default function AdminContentEditorPage() {
   };
 
   const discard = async () => {
-    const message = page?.hasUnpublishedChanges
-      ? "Discard all unpublished changes? The draft goes back to the live version."
-      : "Discard your unsaved edits?";
-    if (!confirm(message)) return;
+    const confirmed = await confirmDialog(page?.hasUnpublishedChanges
+      ? { title: "Discard all unpublished changes?", message: "The draft goes back to the live version.", confirmLabel: "Discard", tone: "danger" }
+      : { title: "Discard your unsaved edits?", confirmLabel: "Discard", tone: "danger" });
+    if (!confirmed) return;
     setErrors([]);
     if (!page?.hasUnpublishedChanges) {
       if (page) applyPage(page);
+      toast.success("Edits discarded");
       return;
     }
     setBusy("discard");
@@ -317,9 +342,21 @@ export default function AdminContentEditorPage() {
 }
 
 function BackLink({ dirty }: { dirty: boolean }) {
+  const router = useRouter();
+  const href = "/dashboard/admin/content";
+  const leave = async (e: React.MouseEvent) => {
+    if (!dirty) return;
+    e.preventDefault();
+    const confirmed = await confirmDialog({
+      title: "Leave without saving?",
+      message: "You have unsaved changes on this page.",
+      confirmLabel: "Leave",
+      tone: "danger",
+    });
+    if (confirmed) router.push(href);
+  };
   return (
-    <Link href="/dashboard/admin/content"
-      onClick={(e) => { if (dirty && !confirm("You have unsaved changes. Leave without saving?")) e.preventDefault(); }}
+    <Link href={href} onClick={leave}
       className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-on-surface transition">
       <ArrowLeft className="h-4 w-4" /> Back to Content
     </Link>

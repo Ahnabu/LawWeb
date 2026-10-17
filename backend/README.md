@@ -1,6 +1,6 @@
 # Islam & Associates - Backend API
 
-The RESTful backend service for **Islam & Associates**, built with Node.js, Express, TypeScript, and MongoDB.
+The RESTful backend service for **Islam & Associates**, built with Node.js, Express, TypeScript, and Mongo.
 
 ---
 
