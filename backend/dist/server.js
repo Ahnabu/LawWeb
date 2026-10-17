@@ -45,6 +45,17 @@ else if (process.env.VERCEL) {
     app.set("trust proxy", 1);
 }
 app.disable("x-powered-by");
+// Request analytics & latency tracking middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+        const duration = Date.now() - start;
+        if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+            console.log(`[API Analytics] ${req.method} ${req.originalUrl || req.url} - ${res.statusCode} (${duration}ms)`);
+        }
+    });
+    next();
+});
 // Security middleware
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {

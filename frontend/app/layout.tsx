@@ -1,4 +1,6 @@
 import './globals.css'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { LanguageProvider } from '../components/LanguageProvider'
 import { ContentProvider } from '../components/ContentProvider'
 import { ThemeProvider } from '../components/ThemeProvider'
@@ -47,6 +49,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </ContentProvider>
           </AuthProvider>
           <SonnerToaster />
+          <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
