@@ -153,7 +153,7 @@ export default function ClientAppointmentsPage() {
               {filtered.map((apt) => (
                 <tr key={apt._id} className="transition-colors hover:bg-surface-container">
                   <td className="px-3 py-2.5 font-medium text-on-surface">
-                    {apt.lawyerId?.name || "—"}
+                    {apt.lawyerId?.name || (apt.formerLawyerName ? `${apt.formerLawyerName} (former)` : "—")}
                     <div className="text-xs text-on-surface-variant">{apt.lawyerId?.barId && `Bar: ${apt.lawyerId.barId}`}</div>
                   </td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-on-surface-variant">
@@ -216,7 +216,10 @@ export default function ClientAppointmentsPage() {
             </div>
 
             <div className="space-y-3 text-sm">
-              <Row label="Lawyer" value={selected.lawyerId?.name || "—"} />
+              <Row
+                label="Lawyer"
+                value={selected.lawyerId?.name || (selected.formerLawyerName ? `${selected.formerLawyerName} (no longer with the firm)` : "—")}
+              />
               {selected.lawyerId?.barId && (
                 <Row label="Bar ID" value={selected.lawyerId.barId} />
               )}
@@ -241,6 +244,7 @@ export default function ClientAppointmentsPage() {
                 <Row label="Contact Phone" value={selected.clientPhone} />
               )}
               {selected.notes && <Row label="Lawyer Notes" value={selected.notes} />}
+              {selected.cancellationReason && <Row label="Cancellation" value={selected.cancellationReason} />}
               <div className="flex items-center justify-between">
                 <span className="font-medium text-on-surface-variant">Status</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[selected.status]}`}>

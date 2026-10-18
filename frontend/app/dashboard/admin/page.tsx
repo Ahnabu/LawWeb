@@ -7,6 +7,8 @@ import { apiFetch } from "../../../lib/http";
 interface AdminStats {
   totalCases: number;
   activeCases: number;
+  // Total/active exclude archived cases; archived ones are counted here
+  archivedCases?: number;
   totalLawyers: number;
   totalClients: number;
   todayConsultations: number;
@@ -84,6 +86,7 @@ export default function AdminDashboardPage() {
               value={stats.todayConsultations}
             />
             <SummaryRow label="Active cases" value={stats.activeCases} />
+            <SummaryRow label="Archived cases" value={stats.archivedCases ?? 0} />
             <SummaryRow label="Verified lawyers" value={stats.totalLawyers} />
             <SummaryRow label="Registered clients" value={stats.totalClients} />
           </div>

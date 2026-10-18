@@ -17,7 +17,11 @@ export interface ConsultationUser {
 export interface Consultation {
   _id: string
   clientId: ConsultationUser
-  lawyerId: ConsultationUser
+  // null once the lawyer's account is deleted; formerLawyerName keeps the name
+  lawyerId: ConsultationUser | null
+  formerLawyerName?: string
+  // Set when the firm cancelled the booking (e.g. the lawyer left)
+  cancellationReason?: string
   consultationType: ConsultationType
   meetingMode?: 'in-person' | 'phone' | 'video'
   date: string
@@ -187,16 +191,6 @@ export async function getAdminConsultations(params?: { status?: string; page?: n
   return { data: data.data, meta: data.meta }
 }
 
-export async function getAdminLawyers(): Promise<AdminUser[]> {
-  const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, {
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch lawyers')
-  return data.data as AdminUser[]
-}
-
 export async function getAdminClients(params?: { page?: number }): Promise<{
   data: AdminUser[]
   meta: { total: number; page: number; limit: number }
@@ -213,14 +207,156 @@ export async function getAdminClients(params?: { page?: number }): Promise<{
   return { data: data.data, meta: data.meta }
 }
 
-export async function toggleLawyerVerification(lawyerId: string): Promise<{ isVerified: boolean }> {
-  const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers/${lawyerId}/toggle-verification`, {
-    method: 'PATCH',
+// ─── Admin lawyers ────────────────────────────────────────────────────────────
+
+export interface AdminLawyer extends AdminUser {
+  specialization?: string
+  passwordNeedsChange?: boolean
+  profileImageUrl?: string
+  /** Position on the public site (ascending) */
+  sortOrder: number
+  isBlocked?: boolean
+  blockedAt?: string
+  blockedReason?: string
+  designation: { en: string; bn: string }
+  updatedAt?: string
+}
+
+export interface AdminLawyerDetails extends AdminLawyer {
+  stats: { totalCases: number; activeCases: number; totalConsultations: number }
+}
+
+export interface LawyerInput {
+  name: string
+  email: string
+  phone: string
+  barId: string
+  specialization: string
+}
+
+export interface LawyerUpdateInput extends Partial<LawyerInput> {
+  designation?: { en?: string; bn?: string }
+}
+
+export interface LawyerDeletionImpact {
+  lawyer: { _id: string; name: string; email: string }
+  openCases: number
+  openCaseList: { _id: string; caseNumber: string; title: string; status: string }[]
+  totalCases: number
+  archivedCases: number
+  upcomingConsultations: number
+  upcomingConsultationList: { _id: string; date: string; time: string; subject: string; clientName: string }[]
+  affectedClients: number
+  pastConsultations: number
+  hasProfile: boolean
+  hasAvailability: boolean
+}
+
+export interface LawyerDeletionSummary {
+  archivedCases: number
+  cancelledConsultations: number
+  notifiedClients: number
+  emailFailures: number
+}
+
+/** Server message + payload, so callers can toast exactly what the API said */
+export interface ApiResult<T> {
+  message: string
+  data: T
+}
+
+async function adminRequest<T>(path: string, init: RequestInit = {}, fallback = 'Request failed'): Promise<ApiResult<T>> {
+  const res = await apiFetch(`${API_BASE_URL}${path}`, {
     credentials: 'include',
+    cache: 'no-store',
+    ...init,
+    headers: init.body ? { 'Content-Type': 'application/json', ...init.headers } : init.headers,
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to toggle verification')
-  return data.data as { isVerified: boolean }
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body?.message || fallback)
+  return { message: body?.message || '', data: body?.data as T }
+}
+
+export async function getAdminLawyers(): Promise<AdminLawyer[]> {
+  const { data } = await adminRequest<AdminLawyer[]>('/api/admin/lawyers', {}, 'Failed to fetch lawyers')
+  return data ?? []
+}
+
+export function getAdminLawyerDetails(lawyerId: string) {
+  return adminRequest<AdminLawyerDetails>(`/api/admin/lawyers/${lawyerId}`, {}, 'Failed to load lawyer details')
+}
+
+export async function addAdminLawyer(input: LawyerInput): Promise<ApiResult<AdminLawyer> & { emailSent: boolean }> {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body?.message || 'Failed to add lawyer')
+  return { message: body.message, data: body.data, emailSent: body.emailSent !== false }
+}
+
+export function updateAdminLawyer(lawyerId: string, input: LawyerUpdateInput) {
+  return adminRequest<AdminLawyer>(
+    `/api/admin/lawyers/${lawyerId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    'Failed to update lawyer'
+  )
+}
+
+/** Saves the public display order; `order` is every lawyer id, first to last */
+export function reorderAdminLawyers(order: string[]) {
+  return adminRequest<{ _id: string; sortOrder: number }[]>(
+    '/api/admin/lawyers/order',
+    { method: 'PUT', body: JSON.stringify({ order }) },
+    'Failed to save the lawyer order'
+  )
+}
+
+export function getLawyerDeletionImpact(lawyerId: string) {
+  return adminRequest<LawyerDeletionImpact>(
+    `/api/admin/lawyers/${lawyerId}/deletion-impact`,
+    {},
+    'Could not check what deleting this lawyer affects'
+  )
+}
+
+export function deleteAdminLawyer(lawyerId: string) {
+  return adminRequest<LawyerDeletionSummary>(
+    `/api/admin/lawyers/${lawyerId}`,
+    { method: 'DELETE' },
+    'Failed to remove lawyer'
+  )
+}
+
+export function toggleLawyerVerification(lawyerId: string) {
+  return adminRequest<{ _id: string; isVerified: boolean }>(
+    `/api/admin/lawyers/${lawyerId}/toggle-verification`,
+    { method: 'PATCH' },
+    'Failed to update verification'
+  )
+}
+
+export interface BlockState {
+  _id: string
+  isBlocked: boolean
+  blockedAt?: string | null
+  blockedReason?: string | null
+}
+
+// Account block endpoints are shared with user management
+export function blockAdminUser(userId: string, reason?: string) {
+  return adminRequest<BlockState>(
+    `/api/admin/users/${userId}/block`,
+    { method: 'PATCH', body: JSON.stringify(reason ? { reason } : {}) },
+    'Failed to block account'
+  )
+}
+
+export function unblockAdminUser(userId: string) {
+  return adminRequest<BlockState>(`/api/admin/users/${userId}/unblock`, { method: 'PATCH' }, 'Failed to unblock account')
 }
 
 // ─── Lawyer Profile ───────────────────────────────────────────────────────────

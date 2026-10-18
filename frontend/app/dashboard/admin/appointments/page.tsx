@@ -16,7 +16,10 @@ interface ConsultationItem {
   description?: string;
   notes?: string;
   clientId?: { name?: string; email?: string; phone?: string };
-  lawyerId?: { name?: string; email?: string; barId?: string };
+  lawyerId?: { name?: string; email?: string; barId?: string } | null;
+  // Kept after the lawyer's account is deleted (lawyerId is then null)
+  formerLawyerName?: string;
+  cancellationReason?: string;
 }
 
 const STATUS_OPTIONS = ["all", "scheduled", "completed", "cancelled", "rescheduled"] as const;
@@ -190,7 +193,7 @@ export default function AdminAppointmentsPage() {
                   </span>
                   <span className="flex items-center gap-1.5 text-on-surface-variant">
                     <Scale className="h-4 w-4 shrink-0" />
-                    {item.lawyerId?.name || "—"}
+                    {item.lawyerId?.name || (item.formerLawyerName ? `${item.formerLawyerName} (removed)` : "—")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -263,6 +266,12 @@ export default function AdminAppointmentsPage() {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Notes</p>
                       <p className="mt-1 text-sm text-on-surface">{item.notes}</p>
+                    </div>
+                  )}
+                  {item.cancellationReason && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Cancellation</p>
+                      <p className="mt-1 text-sm text-on-surface">{item.cancellationReason}</p>
                     </div>
                   )}
 

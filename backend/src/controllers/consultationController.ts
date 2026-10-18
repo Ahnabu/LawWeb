@@ -84,6 +84,10 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Lawyer account is not verified' });
     }
 
+    if (lawyer.isBlocked) {
+      return res.status(400).json({ message: 'This lawyer is not taking appointments right now. Please choose another lawyer.' });
+    }
+
     // Validate against the lawyer's schedule. Lawyers who never saved a schedule
     // get the same defaults their availability page shows them.
     const availability = await LawyerAvailability.findOne({ lawyerId }).lean();
@@ -309,10 +313,14 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
         .lean();
       for (const c of consultations) {
         const lawyer = c.lawyerId as any;
+        const lawyerName = lawyer?.name || c.formerLawyerName || 'Lawyer';
+        const firmCancelled = c.status === 'cancelled' && c.cancellationReason;
         notifications.push({
           id: String(c._id),
-          title: c.lawyerConfirmed ? 'Appointment confirmed by lawyer' : `Appointment ${c.status}`,
-          body: `${c.subject} — ${lawyer?.name || 'Lawyer'}`,
+          title: firmCancelled
+            ? 'Appointment cancelled'
+            : c.lawyerConfirmed ? 'Appointment confirmed by lawyer' : `Appointment ${c.status}`,
+          body: firmCancelled ? `${c.subject} — ${c.cancellationReason}` : `${c.subject} — ${lawyerName}`,
           time: c.updatedAt as Date,
           type: 'appointment',
         });

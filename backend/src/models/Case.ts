@@ -62,6 +62,15 @@ export interface IPayment {
   details?: string;
 }
 
+export type CaseArchiveReason = 'manual' | 'lawyer-deleted';
+
+// Copy of the assigned lawyer kept on the case when that lawyer account is deleted
+export interface IFormerLawyer {
+  name: string;
+  email?: string;
+  barId?: string;
+}
+
 export interface ICase extends Document {
   caseNumber: string;
   totalPayment?: number;
@@ -99,6 +108,13 @@ export interface ICase extends Document {
   evidenceSummary?: string;
   internalNotes?: string;
   notes?: string;
+  // Archived cases are hidden from active lists; restore clears these
+  isArchived: boolean;
+  archivedAt?: Date;
+  archivedBy?: mongoose.Types.ObjectId;
+  archiveReason?: CaseArchiveReason;
+  archiveNote?: string;
+  formerLawyer?: IFormerLawyer;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -206,6 +222,18 @@ const CaseSchema: Schema = new Schema(
     evidenceSummary: { type: String, trim: true },
     internalNotes: { type: String, trim: true },
     notes: { type: String, trim: true },
+    isArchived: { type: Boolean, default: false, index: true },
+    archivedAt: { type: Date, default: null },
+    archivedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    archiveReason: { type: String, enum: ['manual', 'lawyer-deleted'], default: null },
+    archiveNote: { type: String, trim: true },
+    formerLawyer: {
+      type: new Schema(
+        { name: { type: String, trim: true }, email: { type: String, trim: true }, barId: { type: String, trim: true } },
+        { _id: false }
+      ),
+      default: null,
+    },
   },
   { timestamps: true }
 );

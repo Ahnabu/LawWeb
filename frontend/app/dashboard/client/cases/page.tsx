@@ -5,6 +5,8 @@ import { Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
 import { apiFetch } from "../../../../lib/http";
+import { ArchivedBadge } from "../../../../components/CaseArchive";
+import { caseLawyerName, formatCaseDate } from "../../../../lib/cases";
 
 type CaseStatus =
   | "active"
@@ -32,7 +34,11 @@ interface CaseItem {
   status: CaseStatus;
   priority: "high" | "medium" | "low";
   description: string;
-  lawyerId?: { name?: string; email?: string; barId?: string; phone?: string };
+  // null when the lawyer's account was deleted; formerLawyer then holds their name
+  lawyerId?: { name?: string; email?: string; barId?: string; phone?: string } | null;
+  formerLawyer?: { name: string } | null;
+  isArchived?: boolean;
+  archivedAt?: string | null;
   courtName?: string;
   jurisdiction?: string;
   opposingParty?: string;
@@ -62,19 +68,22 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-success/15 text-success",
 };
 
-const STATUS_FILTERS: { label: string; value: CaseStatus | "all" }[] = [
+type CaseFilter = CaseStatus | "all" | "archived";
+
+const STATUS_FILTERS: { label: string; value: CaseFilter }[] = [
   { label: "All", value: "all" },
   { label: "Active", value: "active" },
   { label: "Filed", value: "filed" },
   { label: "Hearing", value: "hearing-scheduled" },
   { label: "Won", value: "won" },
   { label: "Closed", value: "closed" },
+  { label: "Archived", value: "archived" },
 ];
 
 export default function ClientCasesPage() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [filtered, setFiltered] = useState<CaseItem[]>([]);
-  const [activeTab, setActiveTab] = useState<CaseStatus | "all">("all");
+  const [activeTab, setActiveTab] = useState<CaseFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState<CaseItem | null>(null);
 
@@ -92,8 +101,10 @@ export default function ClientCasesPage() {
   useEffect(() => {
     if (activeTab === "all") {
       setFiltered(cases);
+    } else if (activeTab === "archived") {
+      setFiltered(cases.filter((c) => c.isArchived));
     } else {
-      setFiltered(cases.filter((c) => c.status === activeTab));
+      setFiltered(cases.filter((c) => !c.isArchived && c.status === activeTab));
     }
   }, [activeTab, cases]);
 
@@ -110,7 +121,8 @@ export default function ClientCasesPage() {
 
   const stats = {
     total: cases.length,
-    active: cases.filter((c) => c.status === "active").length,
+    // An archived case is no longer being worked on, even if its last status was "active"
+    active: cases.filter((c) => !c.isArchived && c.status === "active").length,
     won: cases.filter((c) => c.status === "won").length,
     closed: cases.filter((c) => c.status === "closed").length,
   };
@@ -181,7 +193,7 @@ export default function ClientCasesPage() {
                     {c.title}
                   </td>
                   <td className="px-3 py-2.5 text-on-surface-variant">
-                    {c.lawyerId?.name || "—"}
+                    {caseLawyerName(c)}
                   </td>
                   <td className="px-3 py-2.5 capitalize text-on-surface-variant">
                     {c.type.replace(/-/g, " ")}
@@ -192,9 +204,12 @@ export default function ClientCasesPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[c.status] || ""}`}>
-                      {c.status.replace(/-/g, " ")}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[c.status] || ""}`}>
+                        {c.status.replace(/-/g, " ")}
+                      </span>
+                      {c.isArchived && <ArchivedBadge />}
+                    </div>
                   </td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-xs text-on-surface-variant">
                     {c.nextCourtDate
@@ -247,6 +262,12 @@ export default function ClientCasesPage() {
             </div>
 
             <div className="space-y-3 text-sm">
+              {selected.isArchived && (
+                <div className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
+                  This case was archived on {formatCaseDate(selected.archivedAt)} and is no longer active.
+                  Contact the firm if you have questions about it.
+                </div>
+              )}
               <Row label="Case #" value={selected.caseNumber} />
               <Row label="Title" value={selected.title} />
               <Row label="Type" value={selected.type.replace(/-/g, " ")} />
@@ -262,7 +283,11 @@ export default function ClientCasesPage() {
                   {selected.priority}
                 </span>
               </div>
-              {selected.lawyerId?.name && <Row label="Assigned Lawyer" value={selected.lawyerId.name} />}
+              {selected.lawyerId?.name ? (
+                <Row label="Assigned Lawyer" value={selected.lawyerId.name} />
+              ) : selected.formerLawyer?.name ? (
+                <Row label="Former Lawyer" value={selected.formerLawyer.name} />
+              ) : null}
               {selected.courtName && <Row label="Court" value={selected.courtName} />}
               {selected.jurisdiction && <Row label="Jurisdiction" value={selected.jurisdiction} />}
               {selected.opposingParty && <Row label="Opposing Party" value={selected.opposingParty} />}

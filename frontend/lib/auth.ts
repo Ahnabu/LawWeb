@@ -1,8 +1,10 @@
 export type UserRole = "admin" | "lawyer" | "client";
 
-interface AuthError extends Error {
+export interface AuthError extends Error {
   verificationRequired?: boolean;
   email?: string;
+  /** Server error code, e.g. "ACCOUNT_BLOCKED" */
+  code?: string;
 }
 
 export interface AuthUser {
@@ -106,6 +108,7 @@ export async function signIn(
     const error: AuthError = new Error(errorMessage(data, "Login failed"));
     error.verificationRequired = data.verificationRequired;
     error.email = data.email;
+    error.code = data.code;
     throw error;
   }
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, HelpCircle } from "lucide-react";
 
-// Styled replacement for window.confirm(). Mount <ConfirmDialogHost /> once
+// Styled confirm dialog (never the browser default). Mount <ConfirmDialogHost /> once
 // (root layout), then `if (!(await confirmDialog({ ... }))) return;` anywhere.
 
 export interface ConfirmOptions {
@@ -13,6 +13,10 @@ export interface ConfirmOptions {
   cancelLabel?: string;
   /** "danger" for destructive actions (red confirm button) */
   tone?: "danger" | "default";
+  /** Extra content under the message, e.g. a list of what will be affected */
+  details?: ReactNode;
+  /** When set, the confirm button stays disabled until this exact text is typed */
+  confirmPhrase?: string;
 }
 
 interface PendingConfirm extends ConfirmOptions {
@@ -23,9 +27,11 @@ let showConfirm: ((request: PendingConfirm) => void) | null = null;
 
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
-    // Host not mounted (should not happen): fall back to the native dialog
+    // Host not mounted (should not happen): treat as cancelled rather than
+    // falling back to the browser's native dialog
     if (!showConfirm) {
-      resolve(window.confirm(options.message ? `${options.title}\n\n${options.message}` : options.title));
+      console.error("confirmDialog called without <ConfirmDialogHost /> mounted");
+      resolve(false);
       return;
     }
     showConfirm({ ...options, resolve });
@@ -34,7 +40,9 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
 
 export function ConfirmDialogHost() {
   const [pending, setPending] = useState<PendingConfirm | null>(null);
+  const [typed, setTyped] = useState("");
   const confirmRef = useRef<HTMLButtonElement | null>(null);
+  const phraseRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     showConfirm = (request) =>
@@ -56,7 +64,8 @@ export function ConfirmDialogHost() {
   useEffect(() => {
     if (!pending) return;
     const previousFocus = document.activeElement as HTMLElement | null;
-    confirmRef.current?.focus();
+    setTyped("");
+    (pending.confirmPhrase ? phraseRef.current : confirmRef.current)?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -74,6 +83,7 @@ export function ConfirmDialogHost() {
   if (!pending) return null;
 
   const danger = pending.tone === "danger";
+  const phraseOk = !pending.confirmPhrase || typed.trim() === pending.confirmPhrase;
   const Icon = danger ? AlertTriangle : HelpCircle;
 
   return (
@@ -84,7 +94,7 @@ export function ConfirmDialogHost() {
         aria-labelledby="confirm-dialog-title"
         aria-describedby={pending.message ? "confirm-dialog-message" : undefined}
         onMouseDown={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border border-outline-variant bg-surface p-5 shadow-2xl"
+        className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-5 shadow-2xl ${pending.details ? "max-w-md" : "max-w-sm"}`}
       >
         <div className="flex gap-4">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${danger ? "bg-error/10" : "bg-secondary/10"}`}>
@@ -101,6 +111,22 @@ export function ConfirmDialogHost() {
             )}
           </div>
         </div>
+        {pending.details && <div className="mt-4 text-sm text-on-surface-variant">{pending.details}</div>}
+        {pending.confirmPhrase && (
+          <label className="mt-4 block text-sm text-on-surface-variant">
+            Type <span className="font-semibold text-on-surface">{pending.confirmPhrase}</span> to confirm
+            <input
+              ref={phraseRef}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && phraseOk) close(true);
+              }}
+              className="mt-1.5 w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface outline-none focus:border-secondary"
+              autoComplete="off"
+            />
+          </label>
+        )}
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
@@ -113,7 +139,8 @@ export function ConfirmDialogHost() {
             ref={confirmRef}
             type="button"
             onClick={() => close(true)}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90 ${danger ? "bg-error text-white" : "bg-secondary text-primary"}`}
+            disabled={!phraseOk}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${danger ? "bg-error text-white" : "bg-secondary text-primary"}`}
           >
             {pending.confirmLabel ?? "Confirm"}
           </button>

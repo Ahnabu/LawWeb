@@ -1,18 +1,36 @@
 import express from 'express';
 import {
   getAdminStats,
+  getAllConsultationsAdmin,
+  updateConsultationStatusAdmin,
+} from '../controllers/adminController';
+import {
   getAllCasesAdmin,
   createCaseAdmin,
   updateCaseAdmin,
-  getAllConsultationsAdmin,
-  updateConsultationStatusAdmin,
+  archiveCaseAdmin,
+  restoreCaseAdmin,
+  deleteCaseAdmin,
+} from '../controllers/adminCaseController';
+import {
   getAllLawyersAdmin,
   addLawyerAdmin,
+  updateLawyerAdmin,
+  reorderLawyersAdmin,
+  getLawyerDeletionImpactAdmin,
   deleteLawyerAdmin,
-  getAllClientsAdmin,
   toggleLawyerVerification,
   getLawyerDetailsAdmin,
-} from '../controllers/adminController';
+} from '../controllers/adminLawyerController';
+import {
+  getAllClientsAdmin,
+  listUsersAdmin,
+  getUserDetailsAdmin,
+  updateUserAdmin,
+  blockUserAdmin,
+  unblockUserAdmin,
+  deleteUserAdmin,
+} from '../controllers/adminUserController';
 import {
   listBlogs as getBlogs,
   getBlogById,
@@ -50,6 +68,9 @@ router.get('/stats', getAdminStats);
 router.get('/cases', getAllCasesAdmin);
 router.post('/cases', createCaseAdmin);
 router.patch('/cases/:caseId', updateCaseAdmin);
+router.patch('/cases/:caseId/archive', archiveCaseAdmin);
+router.patch('/cases/:caseId/restore', restoreCaseAdmin);
+router.delete('/cases/:caseId', deleteCaseAdmin);
 
 // Consultations/Appointments
 router.get('/consultations', getAllConsultationsAdmin);
@@ -58,12 +79,22 @@ router.patch('/consultations/:consultationId/status', updateConsultationStatusAd
 // Lawyers
 router.get('/lawyers', getAllLawyersAdmin);
 router.post('/lawyers', addLawyerAdmin);
+// Static path before /:lawyerId
+router.put('/lawyers/order', reorderLawyersAdmin);
 router.get('/lawyers/:lawyerId', getLawyerDetailsAdmin);
+router.patch('/lawyers/:lawyerId', updateLawyerAdmin);
+router.get('/lawyers/:lawyerId/deletion-impact', getLawyerDeletionImpactAdmin);
 router.delete('/lawyers/:lawyerId', deleteLawyerAdmin);
 router.patch('/lawyers/:lawyerId/toggle-verification', toggleLawyerVerification);
 
 // Clients/Users
 router.get('/clients', getAllClientsAdmin);
+router.get('/users', listUsersAdmin);
+router.get('/users/:userId', getUserDetailsAdmin);
+router.patch('/users/:userId', updateUserAdmin);
+router.patch('/users/:userId/block', blockUserAdmin);
+router.patch('/users/:userId/unblock', unblockUserAdmin);
+router.delete('/users/:userId', deleteUserAdmin);
 
 // ── Blogs ─────────────────────────────────────────────────────────────────────
 router.get("/blogs", getBlogs);

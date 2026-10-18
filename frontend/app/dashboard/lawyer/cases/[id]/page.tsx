@@ -2,10 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Star, StarOff } from "lucide-react";
+import { ArrowLeft, Star, StarOff, Archive, RotateCcw } from "lucide-react";
 import { API_BASE_URL } from "../../../../../lib/api";
 import { toast } from "sonner";
 import { apiFetch } from "../../../../../lib/http";
+import { useAuth } from "../../../../../components/AuthProvider";
+import { confirmDialog } from "../../../../../components/ConfirmDialog";
+import { askArchiveCase } from "../../../../../components/CaseArchive";
+import {
+  archiveCase,
+  restoreCase,
+  archivedByName,
+  canLawyerRestore,
+  formatCaseDate,
+  type CaseArchiveFields,
+} from "../../../../../lib/cases";
 
 type CaseStatus =
   | "active"
@@ -44,7 +55,7 @@ interface IPayment {
   details?: string;
 }
 
-interface CaseDetail {
+interface CaseDetail extends CaseArchiveFields {
   _id: string;
   caseNumber: string;
   title: string;
@@ -112,6 +123,8 @@ const ALL_STATUSES: CaseStatus[] = [
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
+  const [isArchiving, setIsArchiving] = useState(false);
   const [caseData, setCaseData] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -277,6 +290,58 @@ export default function CaseDetailPage() {
     }
   };
 
+  const handleArchive = async () => {
+    if (!caseData) return;
+    const note = await askArchiveCase({
+      caseNumber: caseData.caseNumber,
+      title: caseData.title,
+      restoreHint: "You can restore it later from the Archived tab.",
+    });
+    if (note === null) return;
+    setIsArchiving(true);
+    try {
+      const { message, data } = await archiveCase<CaseDetail>(id, { note });
+      setCaseData((prev) =>
+        prev && {
+          ...prev,
+          isArchived: true,
+          archivedAt: data.archivedAt,
+          archivedBy: data.archivedBy,
+          archiveReason: data.archiveReason,
+          archiveNote: data.archiveNote,
+        },
+      );
+      setIsEditingTotalPayment(false);
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to archive case");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!caseData) return;
+    const confirmed = await confirmDialog({
+      title: `Restore ${caseData.caseNumber}?`,
+      message: "The case will return to your active cases and can be edited again.",
+      confirmLabel: "Restore",
+    });
+    if (!confirmed) return;
+    setIsArchiving(true);
+    try {
+      const { message } = await restoreCase(id);
+      setCaseData((prev) =>
+        prev && { ...prev, isArchived: false, archivedAt: null, archivedBy: null, archiveReason: null, archiveNote: undefined },
+      );
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore case");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -309,6 +374,10 @@ export default function CaseDetailPage() {
       year: "numeric",
     });
 
+  const isArchived = caseData.isArchived === true;
+  const canRestore = canLawyerRestore(caseData, user?._id);
+  const archiver = archivedByName(caseData);
+
   return (
     <div className="space-y-6">
       {/* Back + title */}
@@ -330,11 +399,33 @@ export default function CaseDetailPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {!isArchived ? (
+            <button
+              type="button"
+              disabled={isArchiving}
+              onClick={handleArchive}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-outline px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Archive
+            </button>
+          ) : canRestore ? (
+            <button
+              type="button"
+              disabled={isArchiving}
+              onClick={handleRestore}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restore
+            </button>
+          ) : null}
+
           <button
             type="button"
             aria-label={caseData.isFeatured ? "Unfeature case" : "Feature case"}
-            disabled={isToggling}
+            disabled={isToggling || isArchived}
             onClick={toggleFeatured}
             className="inline-flex items-center gap-1.5 rounded-lg border border-outline px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:border-secondary hover:text-secondary transition-colors disabled:opacity-50"
           >
@@ -359,6 +450,29 @@ export default function CaseDetailPage() {
           </span>
         </div>
       </div>
+
+      {isArchived && (
+        <div role="status" className="flex gap-3 rounded-lg border border-outline-variant bg-surface-container-high p-4 text-sm">
+          <Archive className="mt-0.5 h-5 w-5 shrink-0 text-on-surface-variant" aria-hidden="true" />
+          <div className="space-y-1">
+            <p className="font-semibold text-on-surface">
+              This case was archived on {formatCaseDate(caseData.archivedAt)}
+              {archiver ? ` by ${archiver}` : ""}.
+            </p>
+            <p className="text-on-surface-variant">
+              It is read-only.{" "}
+              {canRestore
+                ? "Restore it to make changes."
+                : "It was archived by an administrator, so only an admin can restore it."}
+            </p>
+            {caseData.archiveNote && (
+              <p className="text-on-surface-variant">
+                <span className="font-medium text-on-surface">Note:</span> {caseData.archiveNote}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Main details */}
@@ -473,7 +587,8 @@ export default function CaseDetailPage() {
           <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Payments & Financial History</h3>
             
-            {/* Add Payment Form */}
+            {/* Add Payment Form (hidden while archived) */}
+            {!isArchived && (
             <form onSubmit={handleRecordPayment} className="mb-6 rounded-lg bg-surface p-4 border border-outline-variant/50">
               <h4 className="mb-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Record Offline Payment</h4>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -522,6 +637,7 @@ export default function CaseDetailPage() {
                 {isRecordingPayment ? "Recording..." : "Record Payment"}
               </button>
             </form>
+            )}
 
             {/* Payments List */}
             <div className="space-y-2">
@@ -552,7 +668,8 @@ export default function CaseDetailPage() {
             </div>
           </section>
 
-          {/* Update Case */}
+          {/* Update Case (archived cases are read-only) */}
+          {!isArchived && (
           <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Update Case</h3>
             <div className="space-y-3">
@@ -633,6 +750,7 @@ export default function CaseDetailPage() {
               </button>
             </div>
           </section>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -718,16 +836,18 @@ export default function CaseDetailPage() {
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-on-surface">৳{(caseData.totalPayment || 0).toLocaleString()}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTempTotalPayment(String(caseData.totalPayment || 0));
-                          setIsEditingTotalPayment(true);
-                        }}
-                        className="text-[10px] text-primary hover:underline font-semibold"
-                      >
-                        Edit
-                      </button>
+                      {!isArchived && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempTotalPayment(String(caseData.totalPayment || 0));
+                            setIsEditingTotalPayment(true);
+                          }}
+                          className="text-[10px] text-primary hover:underline font-semibold"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

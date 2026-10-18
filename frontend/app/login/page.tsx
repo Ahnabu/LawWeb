@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { postLoginPath, safeRedirectPath, signIn } from "../../lib/auth";
+import { ACCOUNT_BLOCKED_CODE, consumeAuthNotice } from "../../lib/http";
 import { useAuth } from "../../components/AuthProvider";
 
 function LoginPageContent() {
@@ -16,6 +17,14 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Set when the account is blocked: on a login attempt, or when an open
+  // session was ended by the block (lib/http.ts leaves the notice behind)
+  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const notice = consumeAuthNotice();
+    if (notice) setBlockedNotice(notice);
+  }, []);
 
   // No default here: without an explicit ?redirect= the user goes to their own
   // role's dashboard. The old "/dashboard/client" default was saved to
@@ -27,6 +36,7 @@ function LoginPageContent() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setBlockedNotice(null);
     setIsSubmitting(true);
 
     try {
@@ -36,7 +46,11 @@ function LoginPageContent() {
       const saved = consumePostAuthRedirect();
       router.replace(postLoginPath(data.user.role, redirectParam ?? saved));
     } catch (submitError: unknown) {
-      const err = submitError as { verificationRequired?: boolean; email?: string; message?: string };
+      const err = submitError as { verificationRequired?: boolean; email?: string; message?: string; code?: string };
+      if (err.code === ACCOUNT_BLOCKED_CODE) {
+        setBlockedNotice(err.message || "Your account has been blocked. Contact the firm for help.");
+        return;
+      }
       if (err.verificationRequired && err.email) {
         const next = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : "";
         router.push(`/verify-email?email=${encodeURIComponent(err.email)}${next}`);
@@ -135,13 +149,25 @@ function LoginPageContent() {
                   </button>
                 </div>
               </label>
-              {resetDone && !error && (
+              {blockedNotice && (
+                <div
+                  role="alert"
+                  className="flex gap-3 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm leading-6 text-error"
+                >
+                  <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Account blocked</p>
+                    <p>{blockedNotice}</p>
+                  </div>
+                </div>
+              )}
+              {resetDone && !error && !blockedNotice && (
                 <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success leading-6">
                   Your password was updated. Log in with your new password.
                 </p>
               )}
               {error && (
-                <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger leading-6">
+                <p className="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error leading-6">
                   {error}
                 </p>
               )}

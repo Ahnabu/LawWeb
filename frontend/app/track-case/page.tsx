@@ -38,7 +38,11 @@ interface TrackedCase {
   nextCourtDate?: string;
   filingDate?: string;
   notes?: string;
-  lawyerId?: { name: string; barId?: string };
+  // null when the lawyer's account was deleted; only their name survives in formerLawyer
+  lawyerId?: { name: string; barId?: string } | null;
+  formerLawyer?: { name?: string } | null;
+  isArchived?: boolean;
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,6 +86,22 @@ export default function TrackCasePage() {
     new Date(d).toLocaleDateString(locale === "bn" ? "bn-BD" : "en-BD", { day: "numeric", month: "long", year: "numeric" });
 
   const currentStep = result ? (STATUS_STEP[result.stage || result.status] ?? 1) : 0;
+
+  // Not CMS-managed yet: archive wording is kept inline per locale
+  const archivedText =
+    locale === "bn"
+      ? {
+          badge: "আর্কাইভ করা হয়েছে",
+          formerSuffix: "(প্রাক্তন আইনজীবী)",
+          notice: (date: string | null) =>
+            `এই মামলাটি${date ? ` ${date} তারিখে` : ""} আর্কাইভ করা হয়েছে এবং বর্তমানে সক্রিয় নয়। প্রশ্ন থাকলে`,
+        }
+      : {
+          badge: "Archived",
+          formerSuffix: "(former lawyer)",
+          notice: (date: string | null) =>
+            `This case was archived${date ? ` on ${date}` : ""} and is no longer active. Questions?`,
+        };
 
   return (
     <main className="min-h-screen bg-surface text-on-surface">
@@ -146,6 +166,11 @@ export default function TrackCasePage() {
                   <p className="mt-1 text-sm text-on-surface-variant">{result.title}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {result.isArchived && (
+                    <span className="rounded-full border border-outline-variant bg-outline/20 px-3 py-1 text-xs font-semibold text-on-surface-variant">
+                      {archivedText.badge}
+                    </span>
+                  )}
                   <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary capitalize">
                     {result.status.replace(/-/g, " ")}
                   </span>
@@ -157,6 +182,13 @@ export default function TrackCasePage() {
                 </div>
               </div>
 
+              {result.isArchived && (
+                <div className="mt-6 rounded-xl border border-outline-variant bg-surface p-4 text-sm text-on-surface-variant">
+                  {archivedText.notice(result.archivedAt ? fmt(result.archivedAt) : null)}{" "}
+                  <Link href={localePath("/#contact")} className="text-secondary underline">{t("trackCase.contactUs")}</Link>
+                </div>
+              )}
+
               <div className="mt-8 grid gap-6 md:grid-cols-2">
                 <div className="rounded-xl bg-surface p-6 space-y-4">
                   <div>
@@ -166,7 +198,12 @@ export default function TrackCasePage() {
                   <div>
                     <p className="text-xs text-on-surface-variant">{t("trackCase.assignedLawyer")}</p>
                     <p className="mt-1 font-semibold text-on-surface">
-                      {result.lawyerId?.name || t("trackCase.pendingAssignment")}
+                      {result.lawyerId?.name ||
+                        (result.formerLawyer?.name
+                          ? `${result.formerLawyer.name} ${archivedText.formerSuffix}`
+                          : result.isArchived
+                            ? "—"
+                            : t("trackCase.pendingAssignment"))}
                       {result.lawyerId?.barId && (
                         <span className="ml-1 text-xs font-normal text-on-surface-variant">({result.lawyerId.barId})</span>
                       )}

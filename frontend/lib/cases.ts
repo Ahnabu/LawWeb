@@ -35,13 +35,32 @@ export interface CaseClient {
   phone?: string
 }
 
-export interface Case {
+export type CaseArchiveReason = 'manual' | 'lawyer-deleted'
+
+// Snapshot kept on a case after its lawyer account was deleted
+export interface FormerLawyer {
+  name: string
+  email?: string
+  barId?: string
+}
+
+export interface CaseArchiveFields {
+  isArchived?: boolean
+  archivedAt?: string | null
+  archivedBy?: { _id: string; name?: string; role?: string } | string | null
+  archiveReason?: CaseArchiveReason | null
+  archiveNote?: string
+  formerLawyer?: FormerLawyer | null
+}
+
+export interface Case extends CaseArchiveFields {
   _id: string
   caseNumber: string
   clientId?: CaseClient | null
   clientEmail: string
   clientName: string
-  lawyerId: CaseLawyer
+  // null once the assigned lawyer account has been deleted
+  lawyerId: CaseLawyer | null
   type: CaseType
   title: string
   description: string
@@ -149,4 +168,102 @@ export const CASE_STATUS_COLORS: Record<CaseStatus, string> = {
   closed: 'bg-outline/20 text-on-surface-variant',
   won: 'bg-success/20 text-success',
   lost: 'bg-error/15 text-error',
+}
+
+// ---------------------------------------------------------------------------
+// Archiving
+// ---------------------------------------------------------------------------
+
+/** Error carrying the server's HTTP status and optional machine code (e.g. LAWYER_REQUIRED) */
+export class CaseApiError extends Error {
+  status: number
+  code?: string
+
+  constructor(message: string, status: number, code?: string) {
+    super(message)
+    this.name = 'CaseApiError'
+    this.status = status
+    this.code = code
+  }
+}
+
+interface CaseActionResult<T> {
+  message: string
+  data: T
+}
+
+async function caseAction<T>(url: string, init: RequestInit, fallback: string): Promise<CaseActionResult<T>> {
+  const res = await apiFetch(url, {
+    credentials: 'include',
+    ...init,
+    headers: init.body ? { 'Content-Type': 'application/json', ...(init.headers || {}) } : init.headers,
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new CaseApiError(body.message || fallback, res.status, body.code)
+  return { message: body.message || fallback, data: body.data as T }
+}
+
+/** Archive a case. Admins use the admin route; lawyers can only archive their own cases. */
+export function archiveCase<T = Case>(caseId: string, options: { note?: string; asAdmin?: boolean } = {}) {
+  const base = options.asAdmin ? `${API_BASE_URL}/api/admin/cases` : `${API_BASE_URL}/api/cases`
+  return caseAction<T>(
+    `${base}/${caseId}/archive`,
+    { method: 'PATCH', body: JSON.stringify({ note: options.note?.trim() || undefined }) },
+    'Failed to archive case',
+  )
+}
+
+/**
+ * Restore an archived case. Admins may pass lawyerId to reassign; the server answers
+ * 400 with code LAWYER_REQUIRED when the original lawyer is gone and none was given.
+ */
+export function restoreCase<T = Case>(caseId: string, options: { lawyerId?: string; asAdmin?: boolean } = {}) {
+  const base = options.asAdmin ? `${API_BASE_URL}/api/admin/cases` : `${API_BASE_URL}/api/cases`
+  return caseAction<T>(
+    `${base}/${caseId}/restore`,
+    { method: 'PATCH', body: JSON.stringify(options.lawyerId ? { lawyerId: options.lawyerId } : {}) },
+    'Failed to restore case',
+  )
+}
+
+/** Permanently delete an archived case (admin only; active cases are refused with 409). */
+export function deleteArchivedCase(caseId: string) {
+  return caseAction<null>(`${API_BASE_URL}/api/admin/cases/${caseId}`, { method: 'DELETE' }, 'Failed to delete case')
+}
+
+type LawyerRef = { name?: string } | string | null | undefined
+
+/** Name of the assigned lawyer, falling back to the snapshot kept after account deletion */
+export function caseLawyerName(c: { lawyerId?: LawyerRef; formerLawyer?: FormerLawyer | null }): string {
+  if (c.lawyerId && typeof c.lawyerId === 'object' && c.lawyerId.name) return c.lawyerId.name
+  if (c.formerLawyer?.name) return `${c.formerLawyer.name} (former)`
+  return '—'
+}
+
+/** True when the case points at a lawyer account that no longer exists */
+export function hasDeletedLawyer(c: { lawyerId?: LawyerRef; archiveReason?: CaseArchiveReason | null }): boolean {
+  return c.archiveReason === 'lawyer-deleted' || !c.lawyerId
+}
+
+export function archivedByName(c: CaseArchiveFields): string | undefined {
+  return c.archivedBy && typeof c.archivedBy === 'object' ? c.archivedBy.name : undefined
+}
+
+/** Short human label for why a case is archived */
+export function archiveReasonLabel(c: CaseArchiveFields): string {
+  if (c.archiveReason === 'lawyer-deleted') return 'Lawyer deleted'
+  const by = archivedByName(c)
+  return by ? `Archived by ${by}` : 'Archived'
+}
+
+export function formatCaseDate(value?: string | null): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/** Lawyers can restore only cases they archived themselves; anything else needs an admin */
+export function canLawyerRestore(c: CaseArchiveFields, userId?: string | null): boolean {
+  if (!c.isArchived || c.archiveReason !== 'manual' || !userId) return false
+  const byId = c.archivedBy && typeof c.archivedBy === 'object' ? c.archivedBy._id : c.archivedBy
+  return byId === userId
 }

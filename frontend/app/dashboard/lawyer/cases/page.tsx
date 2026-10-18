@@ -2,10 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Star, StarOff, Plus, Eye, X } from "lucide-react";
+import { Star, StarOff, Plus, Eye, X, Archive, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
 import { apiFetch } from "../../../../lib/http";
+import { useAuth } from "../../../../components/AuthProvider";
+import { confirmDialog } from "../../../../components/ConfirmDialog";
+import { ArchivedBadge, askArchiveCase } from "../../../../components/CaseArchive";
+import {
+  archiveCase,
+  restoreCase,
+  archiveReasonLabel,
+  canLawyerRestore,
+  formatCaseDate,
+  type CaseArchiveFields,
+} from "../../../../lib/cases";
 
 type CaseStatus =
   | "active"
@@ -20,7 +31,7 @@ type CaseStatus =
 
 type CasePriority = "high" | "medium" | "low";
 
-interface CaseItem {
+interface CaseItem extends CaseArchiveFields {
   _id: string;
   caseNumber: string;
   title: string;
@@ -110,9 +121,12 @@ const emptyForm = {
 };
 
 export default function LawyerCasesPage() {
+  const { user } = useAuth();
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [filtered, setFiltered] = useState<CaseItem[]>([]);
   const [activeTab, setActiveTab] = useState<CaseStatus | "all">("all");
+  const [view, setView] = useState<"active" | "archived">("active");
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -122,7 +136,8 @@ export default function LawyerCasesPage() {
 
   const fetchCases = async () => {
     try {
-      const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
+      // Load active and archived together; the tabs split them client-side
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases?archived=all`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -140,7 +155,8 @@ export default function LawyerCasesPage() {
   }, []);
 
   useEffect(() => {
-    const sorted = [...cases].sort((a, b) =>
+    const inView = cases.filter((c) => (view === "archived" ? c.isArchived : !c.isArchived));
+    const sorted = [...inView].sort((a, b) =>
       a.isFeatured === b.isFeatured ? 0 : a.isFeatured ? -1 : 1,
     );
     if (activeTab === "all") {
@@ -148,7 +164,64 @@ export default function LawyerCasesPage() {
     } else {
       setFiltered(sorted.filter((c) => c.status === activeTab));
     }
-  }, [activeTab, cases]);
+  }, [activeTab, cases, view]);
+
+  const handleArchive = async (c: CaseItem) => {
+    const note = await askArchiveCase({
+      caseNumber: c.caseNumber,
+      title: c.title,
+      restoreHint: "You can restore it from the Archived tab.",
+    });
+    if (note === null) return;
+    setBusyId(c._id);
+    try {
+      const { message, data } = await archiveCase<CaseItem>(c._id, { note });
+      setCases((prev) =>
+        prev.map((x) =>
+          x._id === c._id
+            ? {
+                ...x,
+                isArchived: true,
+                archivedAt: data.archivedAt,
+                archivedBy: data.archivedBy,
+                archiveReason: data.archiveReason,
+                archiveNote: data.archiveNote,
+              }
+            : x,
+        ),
+      );
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to archive case");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRestore = async (c: CaseItem) => {
+    const confirmed = await confirmDialog({
+      title: `Restore ${c.caseNumber}?`,
+      message: `"${c.title}" will return to your active cases.`,
+      confirmLabel: "Restore",
+    });
+    if (!confirmed) return;
+    setBusyId(c._id);
+    try {
+      const { message } = await restoreCase(c._id);
+      setCases((prev) =>
+        prev.map((x) =>
+          x._id === c._id
+            ? { ...x, isArchived: false, archivedAt: null, archivedBy: null, archiveReason: null, archiveNote: undefined }
+            : x,
+        ),
+      );
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore case");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const handleAddCase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,11 +301,13 @@ export default function LawyerCasesPage() {
     );
   }
 
+  const liveCases = cases.filter((c) => !c.isArchived);
+  const archivedCount = cases.length - liveCases.length;
   const stats = {
-    total: cases.length,
-    active: cases.filter((c) => c.status === "active").length,
-    won: cases.filter((c) => c.status === "won").length,
-    closed: cases.filter((c) => c.status === "closed").length,
+    total: liveCases.length,
+    active: liveCases.filter((c) => c.status === "active").length,
+    won: liveCases.filter((c) => c.status === "won").length,
+    closed: liveCases.filter((c) => c.status === "closed").length,
   };
 
   return (
@@ -264,6 +339,32 @@ export default function LawyerCasesPage() {
         <StatsCard label="Closed Cases" value={stats.closed} />
       </div>
 
+      {/* Active / Archived */}
+      <div role="tablist" aria-label="Case list" className="flex w-full gap-1 rounded-lg border border-outline-variant bg-surface-container p-1 sm:w-fit">
+        {(["active", "archived"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => setView(v)}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors sm:flex-none ${
+              view === v ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container-high"
+            }`}
+          >
+            {v === "archived" && <Archive className="h-3.5 w-3.5" />}
+            {v === "active" ? `Active (${liveCases.length})` : `Archived (${archivedCount})`}
+          </button>
+        ))}
+      </div>
+
+      {view === "archived" && (
+        <p className="rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-xs text-on-surface-variant">
+          Archived cases are read-only. You can restore cases you archived yourself; cases archived by an
+          administrator can only be restored by an admin.
+        </p>
+      )}
+
       {/* Status filter tabs */}
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
         {STATUS_FILTERS.map((tab) => (
@@ -285,14 +386,20 @@ export default function LawyerCasesPage() {
       {/* Table */}
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
-          No cases found.{" "}
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="text-primary underline"
-          >
-            Add your first case.
-          </button>
+          {view === "archived" ? (
+            "No archived cases."
+          ) : (
+            <>
+              No cases found.{" "}
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="text-primary underline"
+              >
+                Add your first case.
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-outline-variant">
@@ -306,7 +413,7 @@ export default function LawyerCasesPage() {
                 <th className="px-3 py-2.5">Type</th>
                 <th className="px-3 py-2.5">Priority</th>
                 <th className="px-3 py-2.5">Status</th>
-                <th className="px-3 py-2.5">Next Hearing</th>
+                <th className="px-3 py-2.5">{view === "archived" ? "Archived" : "Next Hearing"}</th>
                 <th className="px-3 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
@@ -321,7 +428,7 @@ export default function LawyerCasesPage() {
                     <button
                       type="button"
                       aria-label={c.isFeatured ? "Unfeature case" : "Feature case"}
-                      disabled={togglingId === c._id}
+                      disabled={togglingId === c._id || c.isArchived}
                       onClick={() => toggleFeatured(c._id)}
                       className="text-on-surface-variant hover:text-secondary transition-colors disabled:opacity-40"
                     >
@@ -360,7 +467,12 @@ export default function LawyerCasesPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-on-surface-variant whitespace-nowrap text-xs">
-                    {c.nextCourtDate
+                    {c.isArchived ? (
+                      <div className="space-y-1">
+                        <div>{formatCaseDate(c.archivedAt)}</div>
+                        <ArchivedBadge label={archiveReasonLabel(c)} />
+                      </div>
+                    ) : c.nextCourtDate
                       ? new Date(c.nextCourtDate).toLocaleDateString("en-BD", {
                           day: "2-digit",
                           month: "short",
@@ -369,13 +481,36 @@ export default function LawyerCasesPage() {
                       : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <Link
-                      href={`/dashboard/lawyer/cases/${c._id}`}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-secondary hover:bg-secondary/10 transition-colors"
-                    >
-                      <Eye className="h-3.5 w-3.5 text-secondary" />
-                      View
-                    </Link>
+                    <div className="inline-flex items-center justify-end gap-1">
+                      <Link
+                        href={`/dashboard/lawyer/cases/${c._id}`}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-secondary hover:bg-secondary/10 transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-secondary" />
+                        View
+                      </Link>
+                      {!c.isArchived ? (
+                        <button
+                          type="button"
+                          disabled={busyId === c._id}
+                          onClick={() => handleArchive(c)}
+                          className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high transition-colors disabled:opacity-50"
+                        >
+                          <Archive className="h-3.5 w-3.5" />
+                          Archive
+                        </button>
+                      ) : canLawyerRestore(c, user?._id) ? (
+                        <button
+                          type="button"
+                          disabled={busyId === c._id}
+                          onClick={() => handleRestore(c)}
+                          className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Restore
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

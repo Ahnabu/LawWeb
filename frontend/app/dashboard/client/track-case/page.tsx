@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { API_BASE_URL } from "../../../../lib/api";
 import { apiFetch } from "../../../../lib/http";
+import { ArchivedBadge } from "../../../../components/CaseArchive";
+import { formatCaseDate } from "../../../../lib/cases";
 
 type CaseStatus =
   | "active"
@@ -24,7 +26,10 @@ interface TrackedCase {
   status: CaseStatus;
   priority: "high" | "medium" | "low";
   description: string;
-  lawyerId?: { name?: string; email?: string };
+  lawyerId?: { name?: string; email?: string } | null;
+  formerLawyer?: { name: string } | null;
+  isArchived?: boolean;
+  archivedAt?: string | null;
   courtName?: string;
   jurisdiction?: string;
   opposingParty?: string;
@@ -154,12 +159,13 @@ export default function TrackCasePage() {
                 <p className="mt-1 truncate font-semibold text-on-surface">
                   {c.title}
                 </p>
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[c.status]}`}
                   >
                     {c.status.replace(/-/g, " ")}
                   </span>
+                  {c.isArchived && <ArchivedBadge />}
                 </div>
               </button>
             ))}
@@ -171,7 +177,13 @@ export default function TrackCasePage() {
               {/* Header */}
               <div className="rounded-lg border border-outline-variant bg-surface-container p-6">
                 <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
+                  {selectedCase.isArchived && (
+                    <div className="rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface-variant">
+                      This case was archived on {formatCaseDate(selectedCase.archivedAt)} and is no longer
+                      active. Contact the firm if you have questions about it.
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
                         Case Details
@@ -180,7 +192,8 @@ export default function TrackCasePage() {
                         {selectedCase.title}
                       </h2>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCase.isArchived && <ArchivedBadge className="py-1" />}
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[selectedCase.status]}`}
                       >
@@ -210,15 +223,19 @@ export default function TrackCasePage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-variant">Assigned Lawyer</p>
+                      <p className="text-xs text-on-surface-variant">
+                        {!selectedCase.lawyerId?.name && selectedCase.formerLawyer?.name ? "Former Lawyer" : "Assigned Lawyer"}
+                      </p>
                       <p className="mt-1 font-semibold text-on-surface">
-                        {selectedCase.lawyerId?.name || "Pending Assignment"}
+                        {selectedCase.lawyerId?.name ||
+                          selectedCase.formerLawyer?.name ||
+                          (selectedCase.isArchived ? "—" : "Pending Assignment")}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-on-surface-variant">Next Hearing</p>
                       <p className="mt-1 font-semibold text-on-surface">
-                        {selectedCase.nextCourtDate || "Not scheduled"}
+                        {selectedCase.nextCourtDate ? formatCaseDate(selectedCase.nextCourtDate) : "Not scheduled"}
                       </p>
                     </div>
                   </div>

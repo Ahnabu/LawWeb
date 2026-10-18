@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import User from '../models/User';
+import { clearAuthCookies } from '../utils/session';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -8,10 +9,13 @@ interface AuthRequest extends Request {
 
 // Everything controllers read from req.user, plus what the checks below need
 export const AUTH_USER_FIELDS =
-  'name email role barId phone specialization profileImageUrl isVerified passwordNeedsChange tokenVersion';
+  'name email role barId phone specialization profileImageUrl isVerified passwordNeedsChange tokenVersion isBlocked';
+
+export const ACCOUNT_BLOCKED_MESSAGE = 'Your account has been blocked. Contact the firm for help.';
 
 // Error codes the frontend's request queue (frontend/lib/http.ts) reacts to:
-// any 401 triggers one refresh + retry; PASSWORD_CHANGE_REQUIRED does not.
+// any 401 triggers one refresh + retry; PASSWORD_CHANGE_REQUIRED does not;
+// ACCOUNT_BLOCKED signs the user out locally and explains why.
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const accessToken = req.cookies.accessToken;
 
@@ -33,6 +37,13 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
   try {
     // Runs on every authenticated request: lean read of just what the routes use
     const user = await User.findById(decoded.userId).select(AUTH_USER_FIELDS).lean();
+
+    // Checked before the version: blocking also bumps tokenVersion, and the
+    // user should learn they were blocked rather than see a generic expiry.
+    if (user?.isBlocked) {
+      clearAuthCookies(res);
+      return res.status(403).json({ message: ACCOUNT_BLOCKED_MESSAGE, code: 'ACCOUNT_BLOCKED' });
+    }
 
     // tokenVersion moves on password change/reset, killing every older token.
     // Tokens issued before versioning existed carry no tv and are refused too.

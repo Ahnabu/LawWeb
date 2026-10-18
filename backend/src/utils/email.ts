@@ -193,3 +193,36 @@ export async function sendPasswordChangedEmail({
     devPreview: "password changed notice",
   });
 }
+
+export async function sendAppointmentCancelledEmail({
+  email,
+  name,
+  subject,
+  dateLabel,
+  time,
+  reason,
+  bookUrl,
+}: {
+  email: string;
+  name: string;
+  subject: string;
+  dateLabel: string;
+  time: string;
+  reason: string;
+  bookUrl: string;
+}) {
+  await sendEmail({
+    to: email,
+    subject: "Your LawWeb appointment was cancelled",
+    text: `Hi ${name},\n\nYour appointment "${subject}" on ${dateLabel} at ${time} was cancelled.\n\nReason: ${reason}\n\nWe are sorry for the inconvenience. You can book a new appointment with another lawyer here:\n\n${bookUrl}`,
+    html: layout(
+      "Your appointment was cancelled",
+      `<p style="margin: 0 0 12px;">Hi ${escapeHtml(name)},</p>
+       <p style="margin: 0 0 12px;">Your appointment <strong>${escapeHtml(subject)}</strong> on ${escapeHtml(dateLabel)} at ${escapeHtml(time)} was cancelled.</p>
+       <p style="margin: 0 0 12px;"><strong>Reason:</strong> ${escapeHtml(reason)}</p>
+       <p style="margin: 0 0 12px;">We are sorry for the inconvenience. You can book a new appointment with another lawyer.</p>
+       ${button(bookUrl, "Book a new appointment")}`,
+    ),
+    devPreview: `appointment cancelled (${dateLabel} ${time})`,
+  });
+}

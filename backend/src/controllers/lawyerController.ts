@@ -23,11 +23,19 @@ interface AuthRequest extends Request {
   user?: any;
 }
 
+// Who the public site lists and lets clients book: verified, not blocked.
+// Deleted lawyers simply no longer exist.
+const PUBLIC_LAWYER_FILTER = { role: 'lawyer' as const, isVerified: true, isBlocked: { $ne: true } };
+// Admin-defined order (drag-and-drop), name as a tie-breaker
+const PUBLIC_LAWYER_SORT = { sortOrder: 1, name: 1 } as const;
+
+const isBookableLawyer = (lawyerId: string) => User.exists({ _id: lawyerId, ...PUBLIC_LAWYER_FILTER });
+
 export const getAllLawyers = async (req: Request, res: Response) => {
   try {
-    const lawyers = await User.find({ role: 'lawyer', isVerified: true })
+    const lawyers = await User.find(PUBLIC_LAWYER_FILTER)
       .select('name email phone barId specialization isVerified')
-      .sort({ name: 1 });
+      .sort(PUBLIC_LAWYER_SORT);
 
     res.json({
       message: 'Lawyers retrieved successfully',
@@ -42,9 +50,9 @@ export const getAllLawyers = async (req: Request, res: Response) => {
 // Public endpoint returning only minimal data (name, specialization, barId) for home/lawyers pages
 export const getPublicLawyers = async (req: Request, res: Response) => {
   try {
-    const lawyers = await User.find({ role: 'lawyer', isVerified: true })
+    const lawyers = await User.find(PUBLIC_LAWYER_FILTER)
       .select('name barId specialization')
-      .sort({ name: 1 });
+      .sort(PUBLIC_LAWYER_SORT);
 
     res.json({
       message: 'Lawyers retrieved successfully',
@@ -60,20 +68,22 @@ export const getLawyerProfile = async (req: Request, res: Response) => {
   try {
     const { lawyerId } = req.params;
 
-    if (!lawyerId) {
-      return res.status(400).json({ message: 'Lawyer ID is required' });
+    if (!lawyerId || !mongoose.isValidObjectId(lawyerId)) {
+      return res.status(400).json({ message: 'A valid lawyer ID is required' });
     }
 
-    const [lawyer, profile] = await Promise.all([
+    const [found, profile] = await Promise.all([
       User.findById(lawyerId)
-        .select('name email phone barId specialization isVerified role createdAt')
+        .select('name email phone barId specialization isVerified isBlocked role createdAt')
         .lean(),
       LawyerProfile.findOne({ userId: lawyerId }).lean(),
     ]);
 
-    if (!lawyer) {
+    // Blocked lawyers are hidden from the public site like deleted ones
+    if (!found || found.isBlocked) {
       return res.status(404).json({ message: 'Lawyer not found' });
     }
+    const { isBlocked: _isBlocked, ...lawyer } = found;
 
     if (lawyer.role !== 'lawyer') {
       return res.status(400).json({ message: 'User is not a lawyer' });
@@ -159,6 +169,10 @@ export const getLawyerAvailabilityPublic = async (req: Request, res: Response) =
       return res.status(400).json({ status: 400, message: 'Invalid lawyer ID' });
     }
 
+    if (!(await isBookableLawyer(String(lawyerId)))) {
+      return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+    }
+
     const availability = await LawyerAvailability.findOne({ lawyerId }).lean();
 
     // Lawyers who never saved a schedule are bookable on the model defaults,
@@ -190,6 +204,10 @@ export const getLawyerSlotsPublic = async (req: Request, res: Response) => {
     const date = parseDateOnly(req.query.date);
     if (!date) {
       return res.status(400).json({ status: 400, message: 'A valid date (YYYY-MM-DD) is required' });
+    }
+
+    if (!(await isBookableLawyer(String(lawyerId)))) {
+      return res.status(404).json({ status: 404, message: 'Lawyer not found' });
     }
 
     const availability = await LawyerAvailability.findOne({ lawyerId }).lean();

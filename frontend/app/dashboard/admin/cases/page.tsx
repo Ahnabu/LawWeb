@@ -2,16 +2,29 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
-import { Plus, X, Briefcase, ChevronDown } from "lucide-react";
+import { Plus, X, Briefcase, ChevronDown, Archive, RotateCcw, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
 import { confirmDialog } from "../../../../components/ConfirmDialog";
+import { ArchivedBadge, askArchiveCase } from "../../../../components/CaseArchive";
+import {
+  archiveCase,
+  restoreCase,
+  deleteArchivedCase,
+  CaseApiError,
+  archiveReasonLabel,
+  formatCaseDate,
+  type CaseArchiveFields,
+} from "../../../../lib/cases";
 
 interface LawyerOption {
   _id: string;
   name: string;
   barId?: string;
+  isBlocked?: boolean;
 }
+
+type CaseView = "active" | "archived";
 
 interface IPayment {
   _id: string;
@@ -20,7 +33,7 @@ interface IPayment {
   details?: string;
 }
 
-interface CaseItem {
+interface CaseItem extends CaseArchiveFields {
   _id: string;
   caseNumber?: string;
   title: string;
@@ -32,7 +45,8 @@ interface CaseItem {
   notes?: string;
   clientName: string;
   clientEmail: string;
-  lawyerId?: { _id: string; name?: string; email?: string; barId?: string };
+  // null when the assigned lawyer account was deleted
+  lawyerId?: { _id: string; name?: string; email?: string; barId?: string; isBlocked?: boolean } | null;
   clientId?: { name?: string; email?: string };
   totalPayment?: number;
   payments?: IPayment[];
@@ -88,8 +102,18 @@ export default function AdminCasesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [view, setView] = useState<CaseView>("active");
+  const [counts, setCounts] = useState({ active: 0, archived: 0 });
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Restore-with-reassignment modal (used when the original lawyer is gone)
+  const [restoreTarget, setRestoreTarget] = useState<CaseItem | null>(null);
+  const [restoreLawyerId, setRestoreLawyerId] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -216,19 +240,28 @@ export default function AdminCasesPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const res = await apiFetch(`${API_BASE_URL}/api/admin/cases${params}`, {
+      const params = new URLSearchParams({ archived: view === "archived" ? "true" : "false", limit: "200" });
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (search) params.set("search", search);
+      const res = await apiFetch(`${API_BASE_URL}/api/admin/cases?${params.toString()}`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch cases");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Failed to fetch cases");
       setCases(data.data ?? []);
+      if (data.meta?.counts) setCounts(data.meta.counts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, view, search]);
+
+  // Debounce the search box so typing does not fire a request per keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const fetchLawyers = useCallback(async () => {
     try {
@@ -250,6 +283,114 @@ export default function AdminCasesPage() {
   useEffect(() => {
     void fetchLawyers();
   }, [fetchLawyers]);
+
+  // Blocked lawyers cannot be given cases
+  const assignableLawyers = lawyers.filter((l) => !l.isBlocked);
+
+  const removeFromList = (id: string, from: CaseView) => {
+    setCases((prev) => prev.filter((c) => c._id !== id));
+    setExpandedId((cur) => (cur === id ? null : cur));
+    setCounts((prev) => ({
+      active: from === "active" ? Math.max(0, prev.active - 1) : prev.active + 1,
+      archived: from === "archived" ? Math.max(0, prev.archived - 1) : prev.archived + 1,
+    }));
+  };
+
+  const handleArchive = async (item: CaseItem) => {
+    const note = await askArchiveCase({
+      caseNumber: item.caseNumber,
+      title: item.title,
+      restoreHint: "You can restore it from the Archived tab at any time.",
+    });
+    if (note === null) return;
+    setBusyId(item._id);
+    try {
+      const { message } = await archiveCase(item._id, { note, asAdmin: true });
+      removeFromList(item._id, "active");
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to archive case");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openRestoreModal = (item: CaseItem) => {
+    setRestoreTarget(item);
+    setRestoreLawyerId("");
+  };
+
+  const handleRestore = async (item: CaseItem) => {
+    // Without a usable lawyer the case must be reassigned as part of the restore
+    if (!item.lawyerId || item.lawyerId.isBlocked || item.archiveReason === "lawyer-deleted") {
+      openRestoreModal(item);
+      return;
+    }
+    const confirmed = await confirmDialog({
+      title: `Restore ${item.caseNumber || "this case"}?`,
+      message: `"${item.title}" will return to the active case list, assigned to ${item.lawyerId.name || "its lawyer"}.`,
+      confirmLabel: "Restore",
+    });
+    if (!confirmed) return;
+    setBusyId(item._id);
+    try {
+      const { message } = await restoreCase(item._id, { asAdmin: true });
+      removeFromList(item._id, "archived");
+      toast.success(message);
+    } catch (err) {
+      if (err instanceof CaseApiError && err.code === "LAWYER_REQUIRED") {
+        toast.error(err.message);
+        openRestoreModal(item);
+      } else {
+        toast.error(err instanceof Error ? err.message : "Failed to restore case");
+      }
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const submitRestoreWithLawyer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoreTarget) return;
+    if (!restoreLawyerId) {
+      toast.error("Choose a lawyer to take over this case.");
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      const { message } = await restoreCase(restoreTarget._id, { asAdmin: true, lawyerId: restoreLawyerId });
+      removeFromList(restoreTarget._id, "archived");
+      setRestoreTarget(null);
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore case");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleDeletePermanently = async (item: CaseItem) => {
+    const phrase = item.caseNumber || "DELETE";
+    const confirmed = await confirmDialog({
+      title: `Delete ${item.caseNumber || "this case"} permanently?`,
+      message: "This removes the case, its hearings, documents and payment history for good. It cannot be undone.",
+      confirmLabel: "Delete permanently",
+      tone: "danger",
+      confirmPhrase: phrase,
+    });
+    if (!confirmed) return;
+    setBusyId(item._id);
+    try {
+      const { message } = await deleteArchivedCase(item._id);
+      setCases((prev) => prev.filter((c) => c._id !== item._id));
+      setCounts((prev) => ({ ...prev, archived: Math.max(0, prev.archived - 1) }));
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete case");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const updateCaseStatus = async (id: string, newStatus: string) => {
     setUpdatingId(id);
@@ -333,8 +474,50 @@ export default function AdminCasesPage() {
         </button>
       </header>
 
+      {/* Active / Archived tabs + search */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div role="tablist" aria-label="Case list" className="flex gap-1 rounded-lg border border-outline-variant bg-surface-container p-1">
+          {(["active", "archived"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => {
+                setView(v);
+                setExpandedId(null);
+              }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors sm:flex-none ${
+                view === v ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container-high"
+              }`}
+            >
+              {v === "archived" && <Archive className="h-3.5 w-3.5" />}
+              {v === "active" ? "Active" : "Archived"} ({counts[v]})
+            </button>
+          ))}
+        </div>
+        <label className="relative block w-full sm:w-72">
+          <span className="sr-only">Search cases</span>
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Case #, title, client name or email"
+            className="w-full rounded-lg border border-outline-variant bg-surface py-2 pl-9 pr-3 text-sm text-on-surface outline-none focus:border-primary"
+          />
+        </label>
+      </div>
+
+      {view === "archived" && (
+        <p className="rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-xs text-on-surface-variant">
+          Archived cases are read-only. Cases land here when they are archived manually or when their lawyer&apos;s
+          account is deleted. Restore a case to edit it again, or delete it permanently.
+        </p>
+      )}
+
       {/* Stats */}
-      {!isLoading && !error && (
+      {!isLoading && !error && view === "active" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard label="Total Cases" value={stats.total} />
           <StatsCard label="Active Cases" value={stats.active} />
@@ -376,14 +559,16 @@ export default function AdminCasesPage() {
         </div>
       ) : cases.length === 0 ? (
         <div className="rounded-xl border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
-          No cases found{statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}.
+          No {view === "archived" ? "archived " : ""}cases found
+          {statusFilter !== "all" ? ` with status "${statusFilter.replace(/-/g, " ")}"` : ""}
+          {search ? ` matching "${search}"` : ""}.
         </div>
       ) : (
         <div className="space-y-3">
           {cases.map((item) => (
             <div
               key={item._id}
-              className="rounded-xl border border-outline-variant bg-surface-container overflow-hidden"
+              className={`rounded-xl border border-outline-variant overflow-hidden ${item.isArchived ? "bg-surface-container-low" : "bg-surface-container"}`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div className="flex-1 min-w-0">
@@ -404,27 +589,110 @@ export default function AdminCasesPage() {
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.isOnline ? "bg-green-500/10 text-green-700" : "bg-secondary/10 text-secondary"}`}>
                       {item.isOnline ? "Online" : "Offline"}
                     </span>
+                    {item.isArchived && (
+                      <ArchivedBadge
+                        label={archiveReasonLabel(item)}
+                        tone={item.archiveReason === "lawyer-deleted" ? "danger" : "neutral"}
+                      />
+                    )}
                   </div>
                   <p className="font-semibold text-on-surface truncate">{item.title}</p>
                   <p className="text-sm text-on-surface-variant mt-0.5">
                     Client: {item.clientName} &middot; Lawyer:{" "}
-                    {item.lawyerId?.name || "—"}
+                    {item.lawyerId?.name ? (
+                      <>
+                        {item.lawyerId.name}
+                        {item.lawyerId.isBlocked && <span className="text-error"> (blocked)</span>}
+                      </>
+                    ) : item.formerLawyer?.name ? (
+                      <span className="text-error">Former lawyer: {item.formerLawyer.name} (account deleted)</span>
+                    ) : (
+                      "—"
+                    )}
                   </p>
+                  {item.isArchived && (
+                    <p className="mt-0.5 text-xs text-on-surface-variant">Archived {formatCaseDate(item.archivedAt)}</p>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleExpand(item._id)}
-                  className="rounded-lg border border-outline-variant p-1.5 text-on-surface-variant hover:bg-surface transition shrink-0"
-                  aria-label="Toggle details"
-                >
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${expandedId === item._id ? "rotate-180" : ""}`}
-                  />
-                </button>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {item.isArchived ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busyId === item._id}
+                        onClick={() => handleRestore(item)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition hover:border-primary hover:text-primary disabled:opacity-50"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === item._id}
+                        onClick={() => handleDeletePermanently(item)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-error/40 px-3 py-1.5 text-xs font-semibold text-error transition hover:bg-error/10 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busyId === item._id}
+                      onClick={() => handleArchive(item)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition hover:border-primary hover:text-primary disabled:opacity-50"
+                    >
+                      <Archive className="h-3.5 w-3.5" />
+                      Archive
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleExpand(item._id)}
+                    className="rounded-lg border border-outline-variant p-1.5 text-on-surface-variant hover:bg-surface transition"
+                    aria-label="Toggle details"
+                    aria-expanded={expandedId === item._id}
+                  >
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${expandedId === item._id ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </div>
               </div>
 
               {expandedId === item._id && (
                 <div className="border-t border-outline-variant bg-surface p-4 space-y-4">
+                  {item.isArchived && (
+                    <div className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-3 text-sm sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Archive reason</p>
+                        <p className="mt-0.5 text-on-surface">
+                          {item.archiveReason === "lawyer-deleted" ? "Lawyer account deleted" : archiveReasonLabel(item)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Archived on</p>
+                        <p className="mt-0.5 text-on-surface">{formatCaseDate(item.archivedAt)}</p>
+                      </div>
+                      {item.formerLawyer?.name && (
+                        <div className="sm:col-span-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Former lawyer</p>
+                          <p className="mt-0.5 text-on-surface">
+                            {item.formerLawyer.name}
+                            {item.formerLawyer.barId ? ` (${item.formerLawyer.barId})` : ""}
+                            {item.formerLawyer.email ? ` · ${item.formerLawyer.email}` : ""}
+                          </p>
+                        </div>
+                      )}
+                      {item.archiveNote && (
+                        <div className="sm:col-span-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Note</p>
+                          <p className="mt-0.5 text-on-surface">{item.archiveNote}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <p className="text-sm text-on-surface">{item.description}</p>
                   <div className="grid gap-3 sm:grid-cols-2 text-sm">
                     <div>
@@ -462,7 +730,7 @@ export default function AdminCasesPage() {
                   {/* Financials & Payments Section */}
                   <div className="border-t border-outline-variant/65 pt-4 space-y-4">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Financials & Payments</h4>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className={`grid gap-4 ${item.isArchived ? "" : "sm:grid-cols-2"}`}>
                       {/* Column 1: Summary */}
                       <div className="rounded-lg bg-surface-container-low p-4 border border-outline-variant/30 space-y-3">
                         <div className="flex justify-between items-center text-sm">
@@ -496,16 +764,18 @@ export default function AdminCasesPage() {
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <span className="font-semibold text-on-surface">৳{(item.totalPayment || 0).toLocaleString()}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTempTotalPayment(String(item.totalPayment || 0));
-                                  setIsEditingTotalPayment(item._id);
-                                }}
-                                className="text-[10px] text-primary hover:underline font-semibold"
-                              >
-                                Edit
-                              </button>
+                              {!item.isArchived && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTempTotalPayment(String(item.totalPayment || 0));
+                                    setIsEditingTotalPayment(item._id);
+                                  }}
+                                  className="text-[10px] text-primary hover:underline font-semibold"
+                                >
+                                  Edit
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -525,7 +795,8 @@ export default function AdminCasesPage() {
                         </div>
                       </div>
 
-                      {/* Column 2: Record Payment */}
+                      {/* Column 2: Record Payment (not on archived cases) */}
+                      {!item.isArchived && (
                       <form onSubmit={(e) => handleRecordPayment(e, item._id)} className="rounded-lg bg-surface-container-low p-4 border border-outline-variant/30 space-y-2">
                         <h5 className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Record Offline Payment</h5>
                         <div className="grid gap-2 grid-cols-2">
@@ -574,6 +845,7 @@ export default function AdminCasesPage() {
                           {isRecordingPayment ? "Recording..." : "Record Payment"}
                         </button>
                       </form>
+                      )}
                     </div>
 
                     {/* Payment History List */}
@@ -589,7 +861,7 @@ export default function AdminCasesPage() {
                                 <th className="px-3 py-1.5">Date</th>
                                 <th className="px-3 py-1.5">Details</th>
                                 <th className="px-3 py-1.5 text-right">Amount</th>
-                                <th className="px-3 py-1.5 text-center">Action</th>
+                                {!item.isArchived && <th className="px-3 py-1.5 text-center">Action</th>}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-outline-variant/20">
@@ -602,15 +874,17 @@ export default function AdminCasesPage() {
                                   <td className="px-3 py-1.5 text-right font-medium text-success">
                                     ৳{p.amount.toLocaleString()}
                                   </td>
-                                  <td className="px-3 py-1.5 text-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeletePayment(item._id, p._id)}
-                                      className="text-error hover:underline text-[11px] font-medium"
-                                    >
-                                      Delete
-                                    </button>
-                                  </td>
+                                  {!item.isArchived && (
+                                    <td className="px-3 py-1.5 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeletePayment(item._id, p._id)}
+                                        className="text-error hover:underline text-[11px] font-medium"
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  )}
                                 </tr>
                               ))}
                             </tbody>
@@ -620,7 +894,8 @@ export default function AdminCasesPage() {
                     </div>
                   </div>
 
-                  {/* Status update */}
+                  {/* Status update (archived cases are read-only) */}
+                  {!item.isArchived && (
                   <div className="flex flex-wrap gap-2 pt-1">
                     <p className="w-full text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Update Status</p>
                     {CASE_STATUSES.map((s) => (
@@ -639,6 +914,7 @@ export default function AdminCasesPage() {
                       </button>
                     ))}
                   </div>
+                  )}
                 </div>
               )}
             </div>
@@ -714,7 +990,7 @@ export default function AdminCasesPage() {
                     className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
                   >
                     <option value="">Select lawyer</option>
-                    {lawyers.map((l) => (
+                    {assignableLawyers.map((l) => (
                       <option key={l._id} value={l._id}>
                         {l.name}{l.barId ? ` (${l.barId})` : ""}
                       </option>
@@ -794,6 +1070,93 @@ export default function AdminCasesPage() {
                   className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-on-primary hover:opacity-90 transition disabled:opacity-50"
                 >
                   {isSubmitting ? "Creating…" : "Create Case"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Restore + reassign modal */}
+      {restoreTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-16"
+          onMouseDown={() => !isRestoring && setRestoreTarget(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="restore-case-title"
+            onMouseDown={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-outline-variant p-5">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5 text-secondary" />
+                <h3 id="restore-case-title" className="font-display text-lg font-semibold text-on-surface">
+                  Restore {restoreTarget.caseNumber || "case"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                disabled={isRestoring}
+                onClick={() => setRestoreTarget(null)}
+                className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={submitRestoreWithLawyer} className="space-y-4 p-5">
+              <p className="text-sm text-on-surface-variant">
+                {restoreTarget.lawyerId?.name ? (
+                  <>
+                    {restoreTarget.lawyerId.name}&apos;s account is blocked, so &quot;{restoreTarget.title}&quot; needs a
+                    new lawyer before it can return to the active list.
+                  </>
+                ) : (
+                  <>
+                    {restoreTarget.formerLawyer?.name
+                      ? `${restoreTarget.formerLawyer.name}'s account was deleted`
+                      : "The lawyer on this case no longer exists"}
+                    , so &quot;{restoreTarget.title}&quot; needs a new lawyer before it can return to the active list.
+                  </>
+                )}
+              </p>
+              <label className="block text-xs font-medium text-on-surface-variant">
+                Assign to <span className="text-error">*</span>
+                <select
+                  value={restoreLawyerId}
+                  onChange={(e) => setRestoreLawyerId(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                  required
+                >
+                  <option value="">Select lawyer</option>
+                  {assignableLawyers.map((l) => (
+                    <option key={l._id} value={l._id}>
+                      {l.name}{l.barId ? ` (${l.barId})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {assignableLawyers.length === 0 && (
+                <p className="text-xs text-error">There are no active lawyers to assign. Add or unblock a lawyer first.</p>
+              )}
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  disabled={isRestoring}
+                  onClick={() => setRestoreTarget(null)}
+                  className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRestoring || !restoreLawyerId}
+                  className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-on-primary hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {isRestoring ? "Restoring…" : "Restore & assign"}
                 </button>
               </div>
             </form>

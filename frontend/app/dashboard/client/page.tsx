@@ -25,6 +25,7 @@ interface CaseSummary {
   title: string;
   description: string;
   status: string;
+  isArchived: boolean;
 }
 
 interface ConsultationApiItem {
@@ -48,6 +49,7 @@ interface CaseApiItem {
   title?: string;
   description?: string;
   status?: string;
+  isArchived?: boolean;
 }
 
 interface CasesApiResponse {
@@ -96,6 +98,7 @@ export default function ClientDashboardPage() {
           title: item.title ?? "Untitled Case",
           description: item.description ?? "",
           status: item.status ?? "active",
+          isArchived: item.isArchived === true,
         })) as CaseSummary[];
 
         const pendingAppointments = normalizedAppointments.filter(
@@ -107,8 +110,9 @@ export default function ClientDashboardPage() {
         ).length;
 
         const resolvedStatuses = new Set(["closed", "won", "lost"]);
+        // Archived cases are no longer being worked on, so they count as resolved
         const resolvedCases = normalizedCases.filter((item) =>
-          resolvedStatuses.has(item.status),
+          item.isArchived || resolvedStatuses.has(item.status),
         ).length;
         const activeCases = normalizedCases.length - resolvedCases;
 
@@ -245,9 +249,16 @@ export default function ClientDashboardPage() {
                 <p className="mt-1 text-sm text-on-surface-variant">
                   {caseItem.description}
                 </p>
-                <span className="mt-2 inline-block rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
-                  {caseItem.status}
-                </span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="inline-block rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                    {caseItem.status}
+                  </span>
+                  {caseItem.isArchived && (
+                    <span className="inline-block rounded-full bg-outline/20 px-3 py-1 text-xs font-semibold text-on-surface-variant">
+                      Archived
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
