@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   UserRound,
-  UserCircle2,
   X,
 } from "lucide-react";
 import { navLinks } from "../lib/data";
@@ -139,14 +138,6 @@ export function Navbar() {
                       <LayoutDashboard className="h-4 w-4" />
                       {t("nav.dashboard")}
                     </Link>
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className={menuItemClass}
-                    >
-                      <UserCircle2 className="h-4 w-4" />
-                      {t("nav.profile")}
-                    </Link>
                     <hr className="rule mx-2 my-1" />
                     <button
                       type="button"
@@ -232,17 +223,10 @@ export function Navbar() {
                   >
                     {t("nav.dashboard")}
                   </Link>
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="btn btn-secondary"
-                  >
-                    {t("nav.profile")}
-                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="btn btn-ghost col-span-2"
+                    className="btn btn-ghost"
                   >
                     {t("nav.logout")}
                   </button>

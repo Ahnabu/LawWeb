@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Footer } from '../../components/Footer'
 import { Navbar } from '../../components/Navbar'
 import { WhatsAppCta } from '../../components/WhatsAppCta'
-import { LawyerPublicCard } from '../../components/LawyerPublicCard'
+import { LawyerPublicCard, type PublicLawyer } from '../../components/LawyerPublicCard'
 import { SuccessStoryCard } from '../../components/SuccessStoryCard'
 import { PracticeAreaCard } from '../../components/PracticeAreaCard'
 import { useContent } from '../../components/ContentProvider'
@@ -13,13 +13,6 @@ import { useLanguage } from '../../components/LanguageProvider'
 import { useContentList, useSiteSettings } from '../../components/contentHooks'
 import { homeStats, practiceAreas, successStories } from '../../lib/data'
 import { API_BASE_URL } from '../../lib/api'
-
-interface PublicLawyer {
-  _id: string
-  name: string
-  barId?: string
-  specialization?: string
-}
 
 export default function HomePage() {
   const { t, localePath } = useLanguage()

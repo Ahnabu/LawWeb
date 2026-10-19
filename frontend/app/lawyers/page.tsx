@@ -6,16 +6,9 @@ import { Search } from 'lucide-react'
 import { Footer } from '../../components/Footer'
 import { Navbar } from '../../components/Navbar'
 import { WhatsAppCta } from '../../components/WhatsAppCta'
-import { LawyerPublicCard } from '../../components/LawyerPublicCard'
+import { LawyerPublicCard, type PublicLawyer } from '../../components/LawyerPublicCard'
 import { useLanguage } from '../../components/LanguageProvider'
 import { API_BASE_URL } from '../../lib/api'
-
-interface PublicLawyer {
-  _id: string
-  name: string
-  barId?: string
-  specialization?: string
-}
 
 export default function LawyersPage() {
   const { t } = useLanguage()

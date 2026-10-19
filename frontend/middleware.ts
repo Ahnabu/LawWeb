@@ -6,6 +6,13 @@ const dashboardPathByRole: Record<string, string> = {
   client: '/dashboard/client',
 }
 
+// The old /profile page now lives in each dashboard's account section
+const accountPathByRole: Record<string, string> = {
+  admin: '/dashboard/admin/settings',
+  lawyer: '/dashboard/lawyer/profile',
+  client: '/dashboard/client/profile',
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
@@ -21,6 +28,10 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
+  }
+
+  if (userRole && isProfileRoute) {
+    return NextResponse.redirect(new URL(accountPathByRole[userRole], request.url))
   }
 
   if (userRole && isLoginRoute) {

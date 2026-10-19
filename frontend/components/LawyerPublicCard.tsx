@@ -1,19 +1,28 @@
-import Link from 'next/link'
+'use client'
 
-interface LawyerPublicCardProps {
+import Image from 'next/image'
+import Link from 'next/link'
+import { useLanguage } from './LanguageProvider'
+
+export interface PublicLawyer {
   _id: string
   name: string
   barId?: string
   specialization?: string
+  profileImageUrl?: string
+  designation?: { en?: string; bn?: string }
 }
 
-export function LawyerPublicCard({ _id, name, barId, specialization }: LawyerPublicCardProps) {
+export function LawyerPublicCard({ _id, name, barId, specialization, profileImageUrl, designation }: PublicLawyer) {
+  const { locale } = useLanguage()
   const initials = name
     .split(' ')
     .map((p) => p[0])
     .join('')
     .slice(0, 2)
     .toUpperCase()
+
+  const title = designation?.[locale] || designation?.en || 'Attorney at Law'
 
   const specialties = specialization
     ? specialization
@@ -25,10 +34,22 @@ export function LawyerPublicCard({ _id, name, barId, specialization }: LawyerPub
   return (
     <div className="card card-interactive flex h-full flex-col p-5 sm:p-6">
       <div className="flex items-center gap-4">
-        <span className="monogram h-14 w-14 text-lg">{initials}</span>
+        {profileImageUrl ? (
+          <Image
+            src={profileImageUrl}
+            alt={name}
+            width={64}
+            height={64}
+            className="h-14 w-14 shrink-0 rounded-full border border-outline-variant object-cover shadow-[0_1px_2px_rgb(16_24_40/0.12)]"
+          />
+        ) : (
+          <span className="monogram h-14 w-14 text-lg">{initials}</span>
+        )}
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-lg font-semibold leading-snug text-heading">{name}</h3>
-          <p className="mt-0.5 text-sm text-on-surface-variant">Attorney at Law</p>
+          <p className="mt-0.5 line-clamp-2 text-sm text-on-surface-variant" title={title}>
+            {title}
+          </p>
         </div>
       </div>
 
