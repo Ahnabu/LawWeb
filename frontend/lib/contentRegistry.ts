@@ -413,6 +413,15 @@ export const contentRegistry: ContentPageDef[] = [
         ],
       },
       {
+        title: 'Archived cases',
+        texts: [
+          text('trackCase.archived', 'Archived badge'),
+          text('trackCase.archivedOn', 'Archived date label'),
+          text('trackCase.archivedNotice', 'Archived notice', true),
+          text('trackCase.formerLawyer', 'Former lawyer suffix'),
+        ],
+      },
+      {
         title: 'Errors',
         texts: [
           text('trackCase.notFound', 'Not found message', true),
@@ -448,6 +457,8 @@ export const contentRegistry: ContentPageDef[] = [
           text('blogsPage.readMore', 'Read more link'),
           text('blogsPage.noArticles', 'Empty state'),
           text('blogsPage.loadError', 'Load error'),
+          text('blogsPage.loadMore', 'Load more button'),
+          text('blogsPage.loadingMore', 'Loading more label'),
         ],
       },
       {
@@ -474,6 +485,67 @@ export const contentRegistry: ContentPageDef[] = [
         ),
       },
       seoSection('blogs'),
+    ],
+  },
+  {
+    key: 'contact',
+    title: 'Contact',
+    description: 'Text on the Contact page. Phone, email, address and social links come from Site Settings.',
+    publicPath: '/contact',
+    sections: [
+      {
+        title: 'Header',
+        texts: [
+          text('contact.label', 'Eyebrow'),
+          text('contact.title', 'Title'),
+          text('contact.subtitle', 'Subtitle', true),
+        ],
+      },
+      {
+        title: 'Contact cards',
+        texts: [
+          text('contact.callUs', 'Phone card title'),
+          text('contact.whatsappLabel', 'WhatsApp card title'),
+          text('contact.whatsappAction', 'WhatsApp card link'),
+          text('contact.emailUs', 'Email card title'),
+          text('contact.officeTitle', 'Office heading'),
+          text('contact.directions', 'Directions link'),
+        ],
+      },
+      {
+        title: 'Office hours',
+        texts: [text('contact.hoursTitle', 'Heading'), text('contact.hours', 'Hours (one line per row)', true)],
+      },
+      {
+        title: 'Message form',
+        description: 'Messages sent with this form appear under Messages in the admin dashboard.',
+        texts: [
+          text('contact.formTitle', 'Heading'),
+          text('contact.formText', 'Intro text', true),
+          text('contact.nameLabel', 'Name label'),
+          text('contact.emailLabel', 'Email label'),
+          text('contact.phoneLabel', 'Phone label'),
+          text('contact.subjectLabel', 'Subject label'),
+          text('contact.messageLabel', 'Message label'),
+          text('contact.optional', 'Optional field marker'),
+          text('contact.privacyNote', 'Privacy note', true),
+          text('contact.send', 'Send button'),
+          text('contact.sending', 'Sending label'),
+          text('contact.successTitle', 'Success heading'),
+          text('contact.successText', 'Success text', true),
+          text('contact.sendAnother', 'Send another link'),
+          text('contact.sendError', 'Error message', true),
+        ],
+      },
+      {
+        title: 'Booking prompt',
+        texts: [
+          text('contact.bookTitle', 'Heading'),
+          text('contact.bookText', 'Text', true),
+          text('contact.bookCta', 'Button label'),
+        ],
+      },
+      seoSection('contact'),
     ],
   },
 ]

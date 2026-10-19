@@ -2,10 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Star, StarOff, Plus, Eye, X } from "lucide-react";
+import { Star, StarOff, Plus, Eye, X, Archive, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "../../../../lib/api";
 import { apiFetch } from "../../../../lib/http";
+import { useAuth } from "../../../../components/AuthProvider";
+import { confirmDialog } from "../../../../components/ConfirmDialog";
+import { ArchivedBadge, askArchiveCase } from "../../../../components/CaseArchive";
+import { RichTextEditor } from "../../../../components/RichTextEditor";
+import { CASE_DESCRIPTION_MAX, CASE_NOTES_MAX, isRichTextEmpty } from "../../../../lib/richText";
+import {
+  archiveCase,
+  restoreCase,
+  archiveReasonLabel,
+  canLawyerRestore,
+  formatCaseDate,
+  type CaseArchiveFields,
+} from "../../../../lib/cases";
 
 type CaseStatus =
   | "active"
@@ -20,7 +33,7 @@ type CaseStatus =
 
 type CasePriority = "high" | "medium" | "low";
 
-interface CaseItem {
+interface CaseItem extends CaseArchiveFields {
   _id: string;
   caseNumber: string;
   title: string;
@@ -38,7 +51,7 @@ interface CaseItem {
 
 const STATUS_COLORS: Record<CaseStatus, string> = {
   active: "bg-blue-500/15 text-blue-600",
-  filed: "bg-secondary/15 text-secondary",
+  filed: "bg-secondary/15 text-gold-ink",
   "hearing-scheduled": "bg-purple-500/15 text-purple-600",
   "under-review": "bg-yellow-500/15 text-yellow-600",
   closed: "bg-surface-container text-on-surface-variant",
@@ -50,7 +63,7 @@ const STATUS_COLORS: Record<CaseStatus, string> = {
 
 const PRIORITY_COLORS: Record<CasePriority, string> = {
   high: "bg-error/15 text-error",
-  medium: "bg-secondary/15 text-secondary",
+  medium: "bg-secondary/15 text-gold-ink",
   low: "bg-success/15 text-success",
 };
 
@@ -110,9 +123,12 @@ const emptyForm = {
 };
 
 export default function LawyerCasesPage() {
+  const { user } = useAuth();
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [filtered, setFiltered] = useState<CaseItem[]>([]);
   const [activeTab, setActiveTab] = useState<CaseStatus | "all">("all");
+  const [view, setView] = useState<"active" | "archived">("active");
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -122,7 +138,8 @@ export default function LawyerCasesPage() {
 
   const fetchCases = async () => {
     try {
-      const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
+      // Load active and archived together; the tabs split them client-side
+      const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases?archived=all`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -140,7 +157,8 @@ export default function LawyerCasesPage() {
   }, []);
 
   useEffect(() => {
-    const sorted = [...cases].sort((a, b) =>
+    const inView = cases.filter((c) => (view === "archived" ? c.isArchived : !c.isArchived));
+    const sorted = [...inView].sort((a, b) =>
       a.isFeatured === b.isFeatured ? 0 : a.isFeatured ? -1 : 1,
     );
     if (activeTab === "all") {
@@ -148,10 +166,72 @@ export default function LawyerCasesPage() {
     } else {
       setFiltered(sorted.filter((c) => c.status === activeTab));
     }
-  }, [activeTab, cases]);
+  }, [activeTab, cases, view]);
+
+  const handleArchive = async (c: CaseItem) => {
+    const note = await askArchiveCase({
+      caseNumber: c.caseNumber,
+      title: c.title,
+      restoreHint: "You can restore it from the Archived tab.",
+    });
+    if (note === null) return;
+    setBusyId(c._id);
+    try {
+      const { message, data } = await archiveCase<CaseItem>(c._id, { note });
+      setCases((prev) =>
+        prev.map((x) =>
+          x._id === c._id
+            ? {
+                ...x,
+                isArchived: true,
+                archivedAt: data.archivedAt,
+                archivedBy: data.archivedBy,
+                archiveReason: data.archiveReason,
+                archiveNote: data.archiveNote,
+              }
+            : x,
+        ),
+      );
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to archive case");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRestore = async (c: CaseItem) => {
+    const confirmed = await confirmDialog({
+      title: `Restore ${c.caseNumber}?`,
+      message: `"${c.title}" will return to your active cases.`,
+      confirmLabel: "Restore",
+    });
+    if (!confirmed) return;
+    setBusyId(c._id);
+    try {
+      const { message } = await restoreCase(c._id);
+      setCases((prev) =>
+        prev.map((x) =>
+          x._id === c._id
+            ? { ...x, isArchived: false, archivedAt: null, archivedBy: null, archiveReason: null, archiveNote: undefined }
+            : x,
+        ),
+      );
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore case");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const handleAddCase = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The rich-text editor has no native `required`, so check it here
+    if (isRichTextEmpty(form.description)) {
+      setFormError("Please describe the case.");
+      return;
+    }
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -228,18 +308,20 @@ export default function LawyerCasesPage() {
     );
   }
 
+  const liveCases = cases.filter((c) => !c.isArchived);
+  const archivedCount = cases.length - liveCases.length;
   const stats = {
-    total: cases.length,
-    active: cases.filter((c) => c.status === "active").length,
-    won: cases.filter((c) => c.status === "won").length,
-    closed: cases.filter((c) => c.status === "closed").length,
+    total: liveCases.length,
+    active: liveCases.filter((c) => c.status === "active").length,
+    won: liveCases.filter((c) => c.status === "won").length,
+    closed: liveCases.filter((c) => c.status === "closed").length,
   };
 
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+          <h3 className="font-display text-2xl font-semibold text-heading">
             My Cases
           </h3>
           <p className="text-sm text-on-surface-variant">
@@ -249,7 +331,7 @@ export default function LawyerCasesPage() {
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 transition-opacity"
+          className="btn btn-primary"
         >
           <Plus className="h-4 w-4" />
           Add Case
@@ -264,17 +346,43 @@ export default function LawyerCasesPage() {
         <StatsCard label="Closed Cases" value={stats.closed} />
       </div>
 
+      {/* Active / Archived */}
+      <div role="tablist" aria-label="Case list" className="panel flex w-full gap-1 p-1 sm:w-fit">
+        {(["active", "archived"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => setView(v)}
+            className={`flex flex-1 items-center justify-center gap-1.5 min-h-9 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors sm:flex-none ${
+              view === v ? "bg-surface-raised font-semibold text-on-surface shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(16_24_40/0.12)]" : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            {v === "archived" && <Archive className="h-3.5 w-3.5" />}
+            {v === "active" ? `Active (${liveCases.length})` : `Archived (${archivedCount})`}
+          </button>
+        ))}
+      </div>
+
+      {view === "archived" && (
+        <p className="notice text-xs text-on-surface-variant">
+          Archived cases are read-only. You can restore cases you archived yourself; cases archived by an
+          administrator can only be restored by an admin.
+        </p>
+      )}
+
       {/* Status filter tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
+      <div className="panel flex gap-1 overflow-x-auto p-1">
         {STATUS_FILTERS.map((tab) => (
           <button
             type="button"
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+            className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
               activeTab === tab.value
-                ? "bg-primary text-on-primary"
-                : "text-on-surface-variant hover:bg-surface-container-high"
+                ? "bg-surface-raised font-semibold text-on-surface shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(16_24_40/0.12)]"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             {tab.label}
@@ -284,21 +392,27 @@ export default function LawyerCasesPage() {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
-          No cases found.{" "}
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="text-primary underline"
-          >
-            Add your first case.
-          </button>
+        <div className="panel p-8 text-center text-sm text-on-surface-variant">
+          {view === "archived" ? (
+            "No archived cases."
+          ) : (
+            <>
+              No cases found.{" "}
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="text-link"
+              >
+                Add your first case.
+              </button>
+            </>
+          )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-outline-variant">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-high text-left text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <tr className="border-b border-outline-variant bg-surface-container text-left text-xs font-semibold text-on-surface-variant">
                 <th className="px-3 py-2.5 w-5 sr-only">Featured</th>
                 <th className="px-3 py-2.5">Case #</th>
                 <th className="px-3 py-2.5">Title</th>
@@ -306,11 +420,11 @@ export default function LawyerCasesPage() {
                 <th className="px-3 py-2.5">Type</th>
                 <th className="px-3 py-2.5">Priority</th>
                 <th className="px-3 py-2.5">Status</th>
-                <th className="px-3 py-2.5">Next Hearing</th>
+                <th className="px-3 py-2.5">{view === "archived" ? "Archived" : "Next Hearing"}</th>
                 <th className="px-3 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant bg-surface">
+            <tbody className="divide-y divide-outline-variant">
               {filtered.map((c) => (
                 <tr
                   key={c._id}
@@ -321,12 +435,12 @@ export default function LawyerCasesPage() {
                     <button
                       type="button"
                       aria-label={c.isFeatured ? "Unfeature case" : "Feature case"}
-                      disabled={togglingId === c._id}
+                      disabled={togglingId === c._id || c.isArchived}
                       onClick={() => toggleFeatured(c._id)}
-                      className="text-on-surface-variant hover:text-secondary transition-colors disabled:opacity-40"
+                      className="text-on-surface-variant hover:text-gold-ink transition-colors disabled:opacity-40"
                     >
                       {c.isFeatured ? (
-                        <Star className="h-4 w-4 fill-secondary text-secondary" />
+                        <Star className="h-4 w-4 fill-secondary text-gold-ink" />
                       ) : (
                         <StarOff className="h-4 w-4" />
                       )}
@@ -347,20 +461,25 @@ export default function LawyerCasesPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[c.priority]}`}
+                      className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[c.priority]}`}
                     >
                       {c.priority}
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[c.status]}`}
+                      className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[c.status]}`}
                     >
                       {c.status.replace(/-/g, " ")}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-on-surface-variant whitespace-nowrap text-xs">
-                    {c.nextCourtDate
+                    {c.isArchived ? (
+                      <div className="space-y-1">
+                        <div>{formatCaseDate(c.archivedAt)}</div>
+                        <ArchivedBadge label={archiveReasonLabel(c)} />
+                      </div>
+                    ) : c.nextCourtDate
                       ? new Date(c.nextCourtDate).toLocaleDateString("en-BD", {
                           day: "2-digit",
                           month: "short",
@@ -369,13 +488,36 @@ export default function LawyerCasesPage() {
                       : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <Link
-                      href={`/dashboard/lawyer/cases/${c._id}`}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-secondary hover:bg-secondary/10 transition-colors"
-                    >
-                      <Eye className="h-3.5 w-3.5 text-secondary" />
-                      View
-                    </Link>
+                    <div className="inline-flex items-center justify-end gap-1">
+                      <Link
+                        href={`/dashboard/lawyer/cases/${c._id}`}
+                        className="btn btn-ghost btn-sm min-h-8 px-2 text-xs"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-gold-ink" />
+                        View
+                      </Link>
+                      {!c.isArchived ? (
+                        <button
+                          type="button"
+                          disabled={busyId === c._id}
+                          onClick={() => handleArchive(c)}
+                          className="btn btn-ghost btn-sm min-h-8 px-2 text-xs"
+                        >
+                          <Archive className="h-3.5 w-3.5" />
+                          Archive
+                        </button>
+                      ) : canLawyerRestore(c, user?._id) ? (
+                        <button
+                          type="button"
+                          disabled={busyId === c._id}
+                          onClick={() => handleRestore(c)}
+                          className="btn btn-ghost btn-sm min-h-8 px-2 text-xs"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Restore
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -387,22 +529,22 @@ export default function LawyerCasesPage() {
       {/* Add Case Modal */}
       {showAddModal && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 py-8"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgb(10_22_40/0.5)] p-4 py-8"
           onClick={() => setShowAddModal(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-xl border border-outline-variant bg-surface p-6 shadow-xl"
+            className="card w-full max-w-2xl p-5 shadow-xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-display text-lg font-semibold text-on-surface">
+              <h3 className="font-display text-lg font-semibold text-heading">
                 Add New Case
               </h3>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={() => setShowAddModal(false)}
-                className="rounded-full p-1 hover:bg-surface-container text-on-surface-variant"
+                className="btn btn-ghost btn-icon"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -410,37 +552,37 @@ export default function LawyerCasesPage() {
 
             <form onSubmit={handleAddCase} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
               {/* CLIENT INFORMATION */}
-              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <fieldset className="panel space-y-3 p-4">
+                <legend className="px-1 text-sm font-semibold text-on-surface-variant">
                   Client Information
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client Name *</label>
+                    <label className="label">Client Name *</label>
                     <input required value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Full name" />
+                      className="field" placeholder="Full name" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client Email *</label>
+                    <label className="label">Client Email *</label>
                     <input type="email" required value={form.clientEmail} onChange={(e) => setForm((f) => ({ ...f, clientEmail: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="email@example.com" />
+                      className="field" placeholder="email@example.com" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client Phone</label>
+                    <label className="label">Client Phone</label>
                     <input type="tel" value={form.clientPhone} onChange={(e) => setForm((f) => ({ ...f, clientPhone: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="+880 1XXXXXXXXX" />
+                      className="field" placeholder="+880 1XXXXXXXXX" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">WhatsApp Number</label>
+                    <label className="label">WhatsApp Number</label>
                     <input type="tel" value={form.clientWhatsapp} onChange={(e) => setForm((f) => ({ ...f, clientWhatsapp: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="For document sharing" />
+                      className="field" placeholder="For document sharing" />
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Case Origin</label>
+                    <label className="label">Case Origin</label>
                     <select value={form.caseOrigin} onChange={(e) => setForm((f) => ({ ...f, caseOrigin: e.target.value as CaseOrigin | "" }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
+                      className="field">
                       <option value="">Select origin...</option>
                       <option value="walk-in">Walk-In</option>
                       <option value="referral">Referral</option>
@@ -450,51 +592,57 @@ export default function LawyerCasesPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Referred By</label>
+                    <label className="label">Referred By</label>
                     <input value={form.referredBy} onChange={(e) => setForm((f) => ({ ...f, referredBy: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Name of referrer" />
+                      className="field" placeholder="Name of referrer" />
                   </div>
                 </div>
               </fieldset>
 
               {/* CASE DETAILS */}
-              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <fieldset className="panel space-y-3 p-4">
+                <legend className="px-1 text-sm font-semibold text-on-surface-variant">
                   Case Details
                 </legend>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Case Title *</label>
+                  <label className="label">Case Title *</label>
                   <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Brief title of the case" />
+                    className="field" placeholder="Brief title of the case" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Description *</label>
-                  <textarea required rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Describe the nature of the case..." />
+                  <p id="new-case-description-label" className="label">Description *</p>
+                  <RichTextEditor
+                    ariaLabelledBy="new-case-description-label"
+                    value={form.description}
+                    onChange={(html) => setForm((f) => ({ ...f, description: html }))}
+                    maxLength={CASE_DESCRIPTION_MAX}
+                    minHeightClass="min-h-24"
+                    placeholder="Describe the nature of the case..."
+                  />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <label htmlFor="case-type" className="mb-1 block text-xs font-medium text-on-surface-variant">Case Type *</label>
+                    <label htmlFor="case-type" className="label">Case Type *</label>
                     <select id="case-type" required value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
+                      className="field">
                       {CASE_TYPES.map((t) => (
                         <option key={t} value={t}>{t.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="case-priority" className="mb-1 block text-xs font-medium text-on-surface-variant">Priority</label>
+                    <label htmlFor="case-priority" className="label">Priority</label>
                     <select id="case-priority" value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as CasePriority }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
+                      className="field">
                       <option value="high">High</option>
                       <option value="medium">Medium</option>
                       <option value="low">Low</option>
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="case-stage" className="mb-1 block text-xs font-medium text-on-surface-variant">Case Stage</label>
+                    <label htmlFor="case-stage" className="label">Case Stage</label>
                     <select id="case-stage" value={form.stage} onChange={(e) => setForm((f) => ({ ...f, stage: e.target.value as CaseStage }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none">
+                      className="field">
                       <option value="intake">Intake</option>
                       <option value="pre-filing">Pre-Filing</option>
                       <option value="filed">Filed</option>
@@ -508,71 +656,71 @@ export default function LawyerCasesPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Applicable Statute / Law</label>
+                  <label className="label">Applicable Statute / Law</label>
                   <input value={form.statute} onChange={(e) => setForm((f) => ({ ...f, statute: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. Contract Act 1872, Penal Code s.420" />
+                    className="field" placeholder="e.g. Contract Act 1872, Penal Code s.420" />
                 </div>
               </fieldset>
 
               {/* COURT & OPPOSING PARTY */}
-              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <fieldset className="panel space-y-3 p-4">
+                <legend className="px-1 text-sm font-semibold text-on-surface-variant">
                   Court & Opposing Party
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Court Name</label>
+                    <label className="label">Court Name</label>
                     <input value={form.courtName} onChange={(e) => setForm((f) => ({ ...f, courtName: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. High Court Division" />
+                      className="field" placeholder="e.g. High Court Division" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Jurisdiction</label>
+                    <label className="label">Jurisdiction</label>
                     <input value={form.jurisdiction} onChange={(e) => setForm((f) => ({ ...f, jurisdiction: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. Dhaka" />
+                      className="field" placeholder="e.g. Dhaka" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Opposing Party</label>
+                    <label className="label">Opposing Party</label>
                     <input value={form.opposingParty} onChange={(e) => setForm((f) => ({ ...f, opposingParty: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Name of opposing party" />
+                      className="field" placeholder="Name of opposing party" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Opposing Counsel</label>
+                    <label className="label">Opposing Counsel</label>
                     <input value={form.opposingCounsel} onChange={(e) => setForm((f) => ({ ...f, opposingCounsel: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Opposing lawyer's name" />
+                      className="field" placeholder="Opposing lawyer's name" />
                   </div>
                   <div>
-                    <label htmlFor="filing-date" className="mb-1 block text-xs font-medium text-on-surface-variant">Filing Date</label>
+                    <label htmlFor="filing-date" className="label">Filing Date</label>
                     <input id="filing-date" type="date" value={form.filingDate} onChange={(e) => setForm((f) => ({ ...f, filingDate: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" />
+                      className="field" />
                   </div>
                   <div>
-                    <label htmlFor="next-hearing-date" className="mb-1 block text-xs font-medium text-on-surface-variant">Next Hearing Date</label>
+                    <label htmlFor="next-hearing-date" className="label">Next Hearing Date</label>
                     <input id="next-hearing-date" type="date" value={form.nextCourtDate} onChange={(e) => setForm((f) => ({ ...f, nextCourtDate: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" />
+                      className="field" />
                   </div>
                 </div>
               </fieldset>
 
               {/* FINANCIAL */}
-              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <fieldset className="panel space-y-3 p-4">
+                <legend className="px-1 text-sm font-semibold text-on-surface-variant">
                   Financial
                 </legend>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Case Value (৳)</label>
+                    <label className="label">Case Value (৳)</label>
                     <input type="number" min="0" value={form.caseValue} onChange={(e) => setForm((f) => ({ ...f, caseValue: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Monetary value at stake" />
+                      className="field" placeholder="Monetary value at stake" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Retainer Amount (৳)</label>
+                    <label className="label">Retainer Amount (৳)</label>
                     <input type="number" min="0" value={form.retainerAmount} onChange={(e) => setForm((f) => ({ ...f, retainerAmount: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Retainer fee" />
+                      className="field" placeholder="Retainer fee" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-on-surface-variant">Estimated Fee (৳)</label>
+                    <label className="label">Estimated Fee (৳)</label>
                     <input type="number" min="0" value={form.estimatedFee} onChange={(e) => setForm((f) => ({ ...f, estimatedFee: e.target.value }))}
-                      className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Estimated total fee" />
+                      className="field" placeholder="Estimated total fee" />
                   </div>
                 </div>
                 <label className="flex items-center gap-2 text-sm text-on-surface">
@@ -583,53 +731,59 @@ export default function LawyerCasesPage() {
               </fieldset>
 
               {/* EVIDENCE & WITNESSES */}
-              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <fieldset className="panel space-y-3 p-4">
+                <legend className="px-1 text-sm font-semibold text-on-surface-variant">
                   Evidence & Witnesses
                 </legend>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Witness Names</label>
+                  <label className="label">Witness Names</label>
                   <input value={form.witnessNames} onChange={(e) => setForm((f) => ({ ...f, witnessNames: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none" placeholder="Comma-separated names, e.g. John Doe, Jane Smith" />
+                    className="field" placeholder="Comma-separated names, e.g. John Doe, Jane Smith" />
                   <p className="mt-0.5 text-xs text-on-surface-variant">Separate multiple witnesses with commas</p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Evidence Summary</label>
+                  <label className="label">Evidence Summary</label>
                   <textarea rows={2} value={form.evidenceSummary} onChange={(e) => setForm((f) => ({ ...f, evidenceSummary: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Key evidence, exhibits, or document list..." />
+                    className="field resize-none" placeholder="Key evidence, exhibits, or document list..." />
                 </div>
               </fieldset>
 
               {/* NOTES */}
-              <fieldset className="space-y-3 rounded-lg border border-outline-variant p-4">
-                <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <fieldset className="panel space-y-3 p-4">
+                <legend className="px-1 text-sm font-semibold text-on-surface-variant">
                   Notes
                 </legend>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Client-Visible Notes</label>
-                  <textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Notes visible to client..." />
+                  <p id="new-case-notes-label" className="label">Client-Visible Notes</p>
+                  <RichTextEditor
+                    ariaLabelledBy="new-case-notes-label"
+                    value={form.notes}
+                    onChange={(html) => setForm((f) => ({ ...f, notes: html }))}
+                    maxLength={CASE_NOTES_MAX}
+                    minHeightClass="min-h-20"
+                    placeholder="Notes visible to client..."
+                  />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-on-surface-variant">Internal Notes (Lawyer Only)</label>
+                  <label className="label">Internal Notes (Lawyer Only)</label>
                   <textarea rows={2} value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Private notes not visible to client..." />
+                    className="field resize-none" placeholder="Private notes not visible to client..." />
                 </div>
               </fieldset>
 
               {formError && (
-                <p className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-sm text-error">
+                <p className="notice notice-error">
                   {formError}
                 </p>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowAddModal(false)}
-                  className="rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
+                  className="btn btn-secondary">
                   Cancel
                 </button>
                 <button type="submit" disabled={isSubmitting}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 disabled:opacity-50 transition-opacity">
+                  className="btn btn-primary">
                   {isSubmitting ? "Creating..." : "Create Case"}
                 </button>
               </div>
@@ -643,9 +797,9 @@ export default function LawyerCasesPage() {
 
 function StatsCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+    <div className="card p-4">
       <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+      <p className="mt-1 font-display text-2xl font-semibold text-heading">
         {value}
       </p>
     </div>

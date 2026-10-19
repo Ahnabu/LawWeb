@@ -20,10 +20,9 @@ import { siteConfig } from "../lib/siteConfig";
 import { apiFetch } from "../lib/http";
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
-const inputBase =
-  "block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-secondary";
-const smallButton =
-  "flex items-center gap-1.5 rounded-lg border border-outline-variant px-2.5 py-1 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high disabled:opacity-40 transition";
+const inputBase = "field";
+const smallButton = "btn btn-ghost btn-sm";
+const iconButton = "btn btn-ghost btn-icon";
 
 function TextInput({ value, onChange, placeholder, multiline, maxLength, lang }: {
   value: string; onChange: (value: string) => void; placeholder?: string;
@@ -31,7 +30,7 @@ function TextInput({ value, onChange, placeholder, multiline, maxLength, lang }:
 }) {
   return multiline ? (
     <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      maxLength={maxLength} rows={3} lang={lang} className={`${inputBase} resize-y`} />
+      maxLength={maxLength} rows={3} lang={lang} className={inputBase} />
   ) : (
     <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
       maxLength={maxLength} lang={lang} className={inputBase} />
@@ -50,25 +49,21 @@ function LocalizedInputs({ value, onChange, placeholder, multiline, maxLength, o
   return (
     <div className="space-y-1.5">
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">
-          English
-          <div className="mt-1 normal-case tracking-normal font-normal">
-            <TextInput value={value.en} onChange={(en) => onChange({ ...value, en })} placeholder={placeholder?.en}
-              multiline={multiline} maxLength={maxLength} lang="en" />
-          </div>
+        <label className="block">
+          <span className="label font-medium text-on-surface-variant">English</span>
+          <TextInput value={value.en} onChange={(en) => onChange({ ...value, en })} placeholder={placeholder?.en}
+            multiline={multiline} maxLength={maxLength} lang="en" />
         </label>
-        <label className="block text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">
-          বাংলা
-          <div className="mt-1 normal-case tracking-normal font-normal">
-            <TextInput value={value.bn} onChange={(bn) => onChange(confirmBangla({ ...value, bn }))} placeholder={placeholder?.bn}
-              multiline={multiline} maxLength={maxLength} lang="bn" />
-          </div>
+        <label className="block">
+          <span className="label font-medium text-on-surface-variant">বাংলা</span>
+          <TextInput value={value.bn} onChange={(bn) => onChange(confirmBangla({ ...value, bn }))} placeholder={placeholder?.bn}
+            multiline={multiline} maxLength={maxLength} lang="bn" />
         </label>
       </div>
       {outdated && (
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-orange-600">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gold-ink">
           <span className="font-semibold">The English changed after this Bangla was written.</span>
-          <button type="button" onClick={() => onChange(confirmBangla(value))} className="font-semibold underline hover:no-underline">
+          <button type="button" onClick={() => onChange(confirmBangla(value))} className="text-link">
             Bangla is up to date
           </button>
         </div>
@@ -87,29 +82,29 @@ export function TextFieldEditor({ field, override, onChange }: {
   const banglaState = textBanglaState(field.key, override);
 
   return (
-    <div className="space-y-2 rounded-lg border border-outline-variant bg-surface p-3">
+    <div className="space-y-3 border-t border-outline-variant pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-on-surface">{field.label}</span>
-          {edited && <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[11px] font-semibold text-secondary">Edited</span>}
+          {edited && <span className="chip"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-secondary" />Edited</span>}
           {banglaState === "missing" && (
             <>
-              <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-[11px] font-semibold text-yellow-700">
-                English changed — update Bangla
+              <span className="chip">
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-secondary" />English changed — update Bangla
               </span>
               <button type="button" onClick={() => onChange(confirmBangla(value))} title="The current Bangla still fits the new English"
-                className="text-[11px] font-semibold text-on-surface-variant underline hover:no-underline">
+                className="text-link text-xs">
                 Keep Bangla
               </button>
             </>
           )}
           {banglaState === "outdated" && (
-            <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-[11px] font-semibold text-orange-600">Bangla outdated</span>
+            <span className="chip"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-error" />Bangla outdated</span>
           )}
         </div>
         {edited && (
           <button type="button" onClick={() => onChange(undefined)} className={smallButton} title="Use the default text">
-            <RotateCcw className="h-3 w-3" /> Reset
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Reset
           </button>
         )}
       </div>
@@ -135,46 +130,46 @@ export function ListEditor({ list, items, customized, onChange, onReset }: {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 border-t border-outline-variant pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-on-surface">{list.label}</span>
-          <span className="text-xs text-on-surface-variant">{items.length}/{list.max}</span>
+          <span className="text-sm text-on-surface-variant tabular-nums">{items.length}/{list.max}</span>
           {customized ? (
-            <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[11px] font-semibold text-secondary">Edited</span>
+            <span className="chip"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-secondary" />Edited</span>
           ) : (
-            <span className="rounded-full bg-outline/20 px-2 py-0.5 text-[11px] font-semibold text-on-surface-variant">Default</span>
+            <span className="chip"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-outline" />Default</span>
           )}
         </div>
         {customized && (
           <button type="button" onClick={onReset} className={smallButton} title="Use the default list">
-            <RotateCcw className="h-3 w-3" /> Reset list
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Reset list
           </button>
         )}
       </div>
 
       {items.length === 0 && (
-        <div className="rounded-lg border border-dashed border-outline-variant p-6 text-center text-xs text-on-surface-variant">
+        <div className="panel p-6 text-center text-sm text-on-surface-variant">
           This list is empty, so the section shows no items. Add one below or reset to the default list.
         </div>
       )}
 
       {items.map((item, index) => (
-        <div key={index} className="space-y-3 rounded-lg border border-outline-variant bg-surface p-3">
+        <div key={index} className="panel space-y-4 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">{list.itemLabel} {index + 1}</span>
-            <div className="flex items-center gap-1">
+            <span className="text-sm font-semibold text-on-surface">{list.itemLabel} {index + 1}</span>
+            <div className="-my-1 flex items-center">
               <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up"
-                className="rounded p-1 text-on-surface-variant hover:bg-surface-container disabled:opacity-30">
-                <ChevronUp className="h-3.5 w-3.5" />
+                className={iconButton}>
+                <ChevronUp className="h-4 w-4" aria-hidden="true" />
               </button>
               <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Move down"
-                className="rounded p-1 text-on-surface-variant hover:bg-surface-container disabled:opacity-30">
-                <ChevronDown className="h-3.5 w-3.5" />
+                className={iconButton}>
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
               </button>
               <button type="button" onClick={() => remove(index)} aria-label={`Remove ${list.itemLabel.toLowerCase()}`}
-                className="rounded p-1 text-on-surface-variant hover:bg-error/10 hover:text-error">
-                <Trash2 className="h-3.5 w-3.5" />
+                className={`${iconButton} hover:text-error`}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -193,8 +188,8 @@ export function ListEditor({ list, items, customized, onChange, onReset }: {
       ))}
 
       <button type="button" onClick={() => onChange([...items, emptyListItem(list)])} disabled={items.length >= list.max}
-        className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-secondary disabled:opacity-40 transition">
-        <Plus className="h-3.5 w-3.5" /> Add {list.itemLabel.toLowerCase()}
+        className="btn btn-secondary btn-sm">
+        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Add {list.itemLabel.toLowerCase()}
       </button>
     </div>
   );
@@ -207,7 +202,7 @@ function ListItemFieldEditor({ field, value, onChange }: {
     const localized = (value as LocalizedValue | undefined) ?? { en: "", bn: "" };
     return (
       <div className="space-y-1">
-        <p className="text-xs font-medium text-on-surface-variant">
+        <p className="label">
           {field.label} <span className="text-error">*</span>
         </p>
         <LocalizedInputs value={{ en: localized.en ?? "", bn: localized.bn ?? "", bnFor: localized.bnFor }} onChange={onChange}
@@ -217,10 +212,12 @@ function ListItemFieldEditor({ field, value, onChange }: {
   }
 
   return (
-    <label className="block text-xs font-medium text-on-surface-variant">
-      {field.label}
-      {field.type === "slug" && <span className="font-normal"> (lowercase, hyphens; used in links, e.g. family-law)</span>}
-      <div className="mt-1 sm:max-w-xs">
+    <label className="block">
+      <span className="label">
+        {field.label}
+        {field.type === "slug" && <span className="font-normal text-on-surface-variant"> (lowercase, hyphens; used in links, e.g. family-law)</span>}
+      </span>
+      <div className="sm:max-w-xs">
         <TextInput value={(value as string | undefined) ?? ""} maxLength={field.maxLength}
           onChange={(next) => onChange(field.type === "slug" ? next.toLowerCase().replace(/\s+/g, "-") : next)} />
       </div>
@@ -278,33 +275,35 @@ export function ImageFieldEditor({ field, value, onChange }: {
   const uploading = status !== null;
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-semibold text-on-surface">{field.label}</p>
-      {field.hint && <p className="text-xs text-on-surface-variant">{field.hint}</p>}
+    <div className="space-y-3 border-t border-outline-variant pt-5">
+      <div>
+        <p className="text-sm font-semibold text-on-surface">{field.label}</p>
+        {field.hint && <p className="text-sm text-on-surface-variant">{field.hint}</p>}
+      </div>
       {value ? (
         <div className="relative overflow-hidden rounded-lg border border-outline-variant">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="" className="aspect-[16/6] w-full object-cover" />
         </div>
       ) : (
-        <div className="flex aspect-[16/6] w-full items-center justify-center rounded-lg border border-dashed border-outline bg-surface text-xs text-on-surface-variant">
+        <div className="panel flex aspect-[16/6] w-full items-center justify-center text-sm text-on-surface-variant">
           No image — the default background is used
         </div>
       )}
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
         onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} />
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className={smallButton}>
-          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="btn btn-secondary btn-sm">
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />}
           {status === "compressing" ? "Compressing…" : status === "uploading" ? "Uploading…" : value ? "Replace image" : "Upload image"}
         </button>
         {value && (
           <button type="button" onClick={() => onChange(undefined)} disabled={uploading} className={smallButton}>
-            <Trash2 className="h-3.5 w-3.5" /> Remove
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Remove
           </button>
         )}
       </div>
-      <p className="text-xs text-on-surface-variant">JPG, PNG or WebP, up to 25 MB. Large photos are resized to 1600px wide and compressed before upload.</p>
+      <p className="hint">JPG, PNG or WebP, up to 25 MB. Large photos are resized to 1600px wide and compressed before upload.</p>
     </div>
   );
 }
@@ -319,20 +318,22 @@ export function SiteSettingsEditor({ settings, onChange }: {
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         {SETTINGS_FIELDS.map((field) => (
-          <label key={field.name} className="block text-xs font-medium text-on-surface-variant">
-            {field.label}
+          <label key={field.name} className="block">
+            <span className="label">{field.label}</span>
             <input type={field.type ?? "text"} value={settings[field.name] ?? ""}
               onChange={(e) => onChange({ ...settings, [field.name]: e.target.value })}
               placeholder={siteConfig[field.name] || "Not set"} maxLength={field.name === "phoneDisplay" ? 40 : 100}
-              className={`mt-1 ${inputBase}`} />
-            {field.hint && <span className="mt-1 block font-normal">{field.hint}</span>}
+              className={inputBase} />
+            {field.hint && <span className="hint block">{field.hint}</span>}
           </label>
         ))}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-on-surface">Social links</p>
-        <p className="text-xs text-on-surface-variant">Shown in the footer. Leave empty to hide the section.</p>
+      <div className="space-y-3 border-t border-outline-variant pt-5">
+        <div>
+          <p className="text-sm font-semibold text-on-surface">Social links</p>
+          <p className="text-sm text-on-surface-variant">Shown in the footer. Leave empty to hide the section.</p>
+        </div>
         {socials.map((social, index) => (
           <div key={index} className="flex flex-wrap items-center gap-2">
             <select value={social.platform} aria-label="Platform"
@@ -344,14 +345,14 @@ export function SiteSettingsEditor({ settings, onChange }: {
               onChange={(e) => setSocials(socials.map((s, i) => (i === index ? { ...s, url: e.target.value } : s)))}
               className={`${inputBase} min-w-0 flex-1`} />
             <button type="button" onClick={() => setSocials(socials.filter((_, i) => i !== index))} aria-label="Remove link"
-              className="rounded p-1.5 text-on-surface-variant hover:bg-error/10 hover:text-error">
-              <X className="h-4 w-4" />
+              className={`${iconButton} hover:text-error`}>
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         ))}
         <button type="button" onClick={() => setSocials([...socials, { platform: "facebook", url: "" }])} disabled={socials.length >= 10}
-          className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-secondary disabled:opacity-40 transition">
-          <Plus className="h-3.5 w-3.5" /> Add social link
+          className="btn btn-secondary btn-sm">
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Add social link
         </button>
       </div>
     </div>

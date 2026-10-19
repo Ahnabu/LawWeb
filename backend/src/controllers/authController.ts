@@ -23,7 +23,8 @@ import {
   sendVerificationCodeEmail,
 } from "../utils/email";
 import { getFrontendUrl } from "../config/env";
-import { AUTH_USER_FIELDS } from "../middleware/auth";
+import { ACCOUNT_BLOCKED_MESSAGE, AUTH_USER_FIELDS } from "../middleware/auth";
+import { recordAudit } from "../utils/audit";
 
 type UserSummary = Pick<
   IUser,
@@ -63,6 +64,10 @@ const safeEqual = (a: string, b: string) => {
   const right = Buffer.from(b);
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 };
+
+// Same body the auth middleware sends; the frontend signs out on this code
+const sendAccountBlocked = (res: Response) =>
+  res.status(403).json({ message: ACCOUNT_BLOCKED_MESSAGE, code: "ACCOUNT_BLOCKED" });
 
 const isDuplicateKeyError = (error: unknown) =>
   (error as { code?: number })?.code === 11000;
@@ -187,13 +192,16 @@ export const register = async (req: Request, res: Response) => {
     const selectedRole = role === "lawyer" ? "lawyer" : "client";
 
     const existingUser = await User.findOne({ email: normalizedEmail })
-      .select("name email isVerified")
+      .select("name email isVerified isBlocked")
       .lean();
     if (existingUser) {
       if (!existingUser.isVerified) {
-        inBackground("Verification email failed", () =>
-          issueVerificationCode(existingUser),
-        );
+        // Same answer for a blocked account, but no code is sent
+        if (!existingUser.isBlocked) {
+          inBackground("Verification email failed", () =>
+            issueVerificationCode(existingUser),
+          );
+        }
         return res.status(200).json({
           message:
             "This email is waiting for verification. Enter the code we emailed you, or resend it.",
@@ -225,6 +233,17 @@ export const register = async (req: Request, res: Response) => {
         return res.status(409).json({ message: "User already exists" });
       throw error;
     }
+
+    recordAudit(req, {
+      actor: user,
+      action: "user.register",
+      category: "user",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} registered as ${user.role}`,
+      metadata: { role: user.role },
+    });
 
     let emailSent = true;
     try {
@@ -269,7 +288,33 @@ export const login = async (req: Request, res: Response) => {
     );
 
     if (!user || !isPasswordValid) {
+      recordAudit(req, {
+        actor: user ? user : null,
+        action: "auth.login_failed",
+        category: "auth",
+        targetType: "user",
+        targetId: user?._id,
+        targetLabel: user?.name ?? normalizeEmail(email).slice(0, 200),
+        summary: user
+          ? `Failed sign-in for ${user.email} (wrong password)`
+          : `Failed sign-in for unknown email ${normalizeEmail(email).slice(0, 200)}`,
+        metadata: { reason: user ? "wrong_password" : "unknown_email" },
+      });
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Only revealed to someone who knows the password
+    if (user.isBlocked) {
+      recordAudit(req, {
+        actor: user,
+        action: "auth.login_blocked",
+        category: "auth",
+        targetType: "user",
+        targetId: user._id,
+        targetLabel: user.name,
+        summary: `Blocked account ${user.email} tried to sign in`,
+      });
+      return sendAccountBlocked(res);
     }
 
     if (!user.isVerified) {
@@ -284,6 +329,15 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const accessTokenExpiresAt = await issueSession(req, res, user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.login",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} signed in`,
+    });
 
     res.json({
       message: "Login successful",
@@ -302,6 +356,23 @@ export const logout = async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
       await revokeSession(refreshToken);
+      // The access token may have expired; the refresh token still names the user
+      let userId: string | undefined;
+      try {
+        userId = verifyRefreshToken(refreshToken).userId;
+      } catch {
+        userId = undefined;
+      }
+      if (userId) {
+        recordAudit(req, {
+          actor: { _id: userId },
+          action: "auth.logout",
+          category: "auth",
+          targetType: "user",
+          targetId: userId,
+          summary: "Signed out",
+        });
+      }
     }
   } catch (error) {
     console.error("Logout error:", error);
@@ -354,6 +425,14 @@ export const refreshToken = async (req: Request, res: Response) => {
       .select(AUTH_USER_FIELDS)
       .lean();
 
+    // Before the version check: blocking bumps tokenVersion too, and the
+    // user should be told why the session ended.
+    if (user?.isBlocked) {
+      await revokeAllSessions(user._id);
+      clearAuthCookies(res);
+      return sendAccountBlocked(res);
+    }
+
     if (!user || (user.tokenVersion ?? 0) !== decoded.tv) {
       await revokeSession(token);
       return reject("Session is no longer valid");
@@ -370,6 +449,15 @@ export const refreshToken = async (req: Request, res: Response) => {
         `[auth] Refresh token reuse detected for user ${user._id}; revoking all sessions`,
       );
       await revokeAllSessions(user._id);
+      recordAudit(req, {
+        actor: user,
+        action: "auth.token_reuse_detected",
+        category: "auth",
+        targetType: "user",
+        targetId: user._id,
+        targetLabel: user.name,
+        summary: `Reused refresh token for ${user.email}; all sessions revoked`,
+      });
       return reject("Session revoked");
     }
 
@@ -487,7 +575,21 @@ export const verifyEmail = async (req: Request, res: Response) => {
         .json({ message: "Invalid or expired verification code." });
     }
 
+    // The code proved ownership of the address, so saying why is safe
+    if (user.isBlocked) {
+      return sendAccountBlocked(res);
+    }
+
     const accessTokenExpiresAt = await issueSession(req, res, user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.email_verified",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} verified their email and signed in`,
+    });
 
     res.json({
       message: "Email verified successfully.",
@@ -511,7 +613,11 @@ export const resendVerificationCode = async (req: Request, res: Response) => {
   });
 
   inBackground("Resend verification code failed", async () => {
-    const user = await User.findOne({ email, isVerified: false })
+    const user = await User.findOne({
+      email,
+      isVerified: false,
+      isBlocked: { $ne: true },
+    })
       .select("name email")
       .lean();
     if (user) await issueVerificationCode(user);
@@ -524,11 +630,17 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
   try {
     const email = normalizeEmail((req.body as { email: string }).email);
-    const user = await User.findOne({ email }).select("name email").lean();
+    const user = await User.findOne({ email })
+      .select("name email isBlocked")
+      .lean();
     if (!user) {
       return res
         .status(404)
         .json({ message: "No account was found for that email address." });
+    }
+    // A new password would not let a blocked account in, so send no link
+    if (user.isBlocked) {
+      return sendAccountBlocked(res);
     }
 
     const { token, fields } = newResetToken(
@@ -554,6 +666,16 @@ export const forgotPassword = async (req: Request, res: Response) => {
       name: user.name,
       resetUrl: resetUrlFor(token),
       expiresMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
+    });
+
+    recordAudit(req, {
+      actor: { _id: user._id, name: user.name, email: user.email },
+      action: "auth.password_reset_requested",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `Password reset link requested for ${user.email}`,
     });
 
     return res.json({
@@ -600,8 +722,14 @@ export const resetPassword = async (req: Request, res: Response) => {
         });
 
     // Cheap indexed check first so bogus tokens never cost a bcrypt hash
-    if (!(await User.exists(tokenFilter))) {
+    const holder = await User.findOne(tokenFilter).select("isBlocked").lean();
+    if (!holder) {
       return invalidLink();
+    }
+    // Covers the reset link and the lawyer account-setup link alike. The token
+    // proves ownership of the address, so saying why is safe.
+    if (holder.isBlocked) {
+      return sendAccountBlocked(res);
     }
 
     const passwordHash = await hashPassword(password);
@@ -609,7 +737,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     // Consuming the token and setting the password is one write: a link used
     // twice in parallel succeeds only once.
     const user = await User.findOneAndUpdate(
-      tokenFilter,
+      { ...tokenFilter, isBlocked: { $ne: true } },
       {
         $set: {
           password: passwordHash,
@@ -628,7 +756,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       },
       { returnDocument: "after" },
     )
-      .select("name email")
+      .select("name email role")
       .lean();
 
     if (!user) {
@@ -638,6 +766,15 @@ export const resetPassword = async (req: Request, res: Response) => {
     await revokeAllSessions(user._id);
     clearAuthCookies(res);
     notifyPasswordChanged(user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.password_reset",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} set a new password via email link`,
+    });
 
     res.json({
       message:
@@ -713,6 +850,15 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     await revokeAllSessions(user._id);
     const accessTokenExpiresAt = await issueSession(req, res, user);
     notifyPasswordChanged(user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.password_changed",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} changed their password`,
+    });
 
     res.json({
       message: "Password changed successfully.",

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCase, getMyCases, getCaseById, updateCase, deleteCase, toggleFeaturedCase, trackCasePublic } from '../controllers/caseController';
+import { createCase, getMyCases, getCaseById, updateCase, deleteCase, toggleFeaturedCase, trackCasePublic, archiveMyCase, restoreMyCase } from '../controllers/caseController';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 
 const router = express.Router();
@@ -11,6 +11,8 @@ router.get('/track', trackCasePublic);
 router.get('/:caseId', authenticateToken, getCaseById);
 router.patch('/:caseId', authenticateToken, updateCase);
 router.patch('/:caseId/toggle-featured', authenticateToken, authorizeRoles('admin', 'lawyer'), toggleFeaturedCase);
+router.patch('/:caseId/archive', authenticateToken, authorizeRoles('lawyer'), archiveMyCase);
+router.patch('/:caseId/restore', authenticateToken, authorizeRoles('lawyer'), restoreMyCase);
 router.delete('/:caseId', authenticateToken, authorizeRoles('admin'), deleteCase);
 
 export default router;

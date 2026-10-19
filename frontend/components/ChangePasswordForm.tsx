@@ -60,14 +60,14 @@ export function ChangePasswordForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+        <div className="notice notice-error" role="alert">
           {error}
         </div>
       )}
 
-      <label className="block text-xs font-medium text-on-surface-variant">
+      <label className="block text-sm font-semibold text-on-surface">
         Current Password
-        <div className="relative mt-1">
+        <div className="relative mt-1.5">
           <input
             type={showCurrent ? "text" : "password"}
             value={currentPassword}
@@ -75,13 +75,13 @@ export function ChangePasswordForm({
             required
             autoComplete="current-password"
             placeholder="Enter current password"
-            className="block w-full rounded-lg border border-outline bg-surface px-3 py-2.5 pr-10 text-sm text-on-surface outline-none focus:border-primary"
+            className="field pr-12 font-normal"
           />
           <button
             type="button"
             aria-label={showCurrent ? "Hide password" : "Show password"}
             onClick={() => setShowCurrent((v) => !v)}
-            className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-on-surface-variant transition-colors hover:text-on-surface"
           >
             {showCurrent ? (
               <EyeOff className="h-4 w-4" />
@@ -92,9 +92,9 @@ export function ChangePasswordForm({
         </div>
       </label>
 
-      <label className="block text-xs font-medium text-on-surface-variant">
+      <label className="block text-sm font-semibold text-on-surface">
         New Password
-        <div className="relative mt-1">
+        <div className="relative mt-1.5">
           <input
             type={showNew ? "text" : "password"}
             value={newPassword}
@@ -102,13 +102,13 @@ export function ChangePasswordForm({
             required
             autoComplete="new-password"
             placeholder="8+ chars, upper, lower, number, symbol"
-            className="block w-full rounded-lg border border-outline bg-surface px-3 py-2.5 pr-10 text-sm text-on-surface outline-none focus:border-primary"
+            className="field pr-12 font-normal"
           />
           <button
             type="button"
             aria-label={showNew ? "Hide password" : "Show password"}
             onClick={() => setShowNew((v) => !v)}
-            className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-on-surface-variant transition-colors hover:text-on-surface"
           >
             {showNew ? (
               <EyeOff className="h-4 w-4" />
@@ -119,9 +119,9 @@ export function ChangePasswordForm({
         </div>
       </label>
 
-      <label className="block text-xs font-medium text-on-surface-variant">
+      <label className="block text-sm font-semibold text-on-surface">
         Confirm New Password
-        <div className="relative mt-1">
+        <div className="relative mt-1.5">
           <input
             type={showConfirm ? "text" : "password"}
             value={confirmPassword}
@@ -129,13 +129,13 @@ export function ChangePasswordForm({
             required
             autoComplete="new-password"
             placeholder="Re-enter new password"
-            className="block w-full rounded-lg border border-outline bg-surface px-3 py-2.5 pr-10 text-sm text-on-surface outline-none focus:border-primary"
+            className="field pr-12 font-normal"
           />
           <button
             type="button"
             aria-label={showConfirm ? "Hide password" : "Show password"}
             onClick={() => setShowConfirm((v) => !v)}
-            className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant hover:text-primary"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-on-surface-variant transition-colors hover:text-on-surface"
           >
             {showConfirm ? (
               <EyeOff className="h-4 w-4" />
@@ -146,14 +146,14 @@ export function ChangePasswordForm({
         </div>
       </label>
 
-      <p className="text-[11px] leading-5 text-on-surface-variant">
+      <p className="hint">
         Changing your password signs you out on every other device.
       </p>
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary hover:opacity-90 transition disabled:opacity-50"
+        className="btn btn-primary btn-block"
       >
         {isSubmitting ? "Changing Password…" : submitLabel}
       </button>

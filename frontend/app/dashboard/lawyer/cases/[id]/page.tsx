@@ -2,9 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Star, StarOff } from "lucide-react";
+import { ArrowLeft, Star, StarOff, Archive, RotateCcw } from "lucide-react";
 import { API_BASE_URL } from "../../../../../lib/api";
+import { toast } from "sonner";
 import { apiFetch } from "../../../../../lib/http";
+import { useAuth } from "../../../../../components/AuthProvider";
+import { confirmDialog } from "../../../../../components/ConfirmDialog";
+import { askArchiveCase } from "../../../../../components/CaseArchive";
+import { RichText } from "../../../../../components/RichText";
+import { RichTextEditor } from "../../../../../components/RichTextEditor";
+import { CASE_NOTES_MAX } from "../../../../../lib/richText";
+import {
+  archiveCase,
+  restoreCase,
+  archivedByName,
+  canLawyerRestore,
+  formatCaseDate,
+  type CaseArchiveFields,
+} from "../../../../../lib/cases";
 
 type CaseStatus =
   | "active"
@@ -43,7 +58,7 @@ interface IPayment {
   details?: string;
 }
 
-interface CaseDetail {
+interface CaseDetail extends CaseArchiveFields {
   _id: string;
   caseNumber: string;
   title: string;
@@ -87,7 +102,7 @@ interface CaseDetail {
 
 const STATUS_COLORS: Record<CaseStatus, string> = {
   active: "bg-blue-500/15 text-blue-600",
-  filed: "bg-secondary/15 text-secondary",
+  filed: "bg-secondary/15 text-gold-ink",
   "hearing-scheduled": "bg-purple-500/15 text-purple-600",
   "under-review": "bg-yellow-500/15 text-yellow-600",
   closed: "bg-surface-container text-on-surface-variant",
@@ -99,7 +114,7 @@ const STATUS_COLORS: Record<CaseStatus, string> = {
 
 const PRIORITY_COLORS: Record<CasePriority, string> = {
   high: "bg-error/15 text-error",
-  medium: "bg-secondary/15 text-secondary",
+  medium: "bg-secondary/15 text-gold-ink",
   low: "bg-success/15 text-success",
 };
 
@@ -111,6 +126,8 @@ const ALL_STATUSES: CaseStatus[] = [
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
+  const [isArchiving, setIsArchiving] = useState(false);
   const [caseData, setCaseData] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +158,7 @@ export default function CaseDetailPage() {
     if (!caseData) return;
     const value = Number(tempTotalPayment);
     if (isNaN(value) || value < 0) {
-      alert("Please enter a valid amount");
+      toast.error("Please enter a valid amount");
       return;
     }
     setIsSavingTotalPayment(true);
@@ -156,8 +173,9 @@ export default function CaseDetailPage() {
       if (!res.ok) throw new Error(data.message || "Failed to update total payment");
       setCaseData(data.data);
       setIsEditingTotalPayment(false);
+      toast.success("Total payment updated");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update total payment");
+      toast.error(err instanceof Error ? err.message : "Failed to update total payment");
     } finally {
       setIsSavingTotalPayment(false);
     }
@@ -192,8 +210,11 @@ export default function CaseDetailPage() {
       setPaymentAmount("");
       setPaymentDetails("");
       setPaymentDate(new Date().toISOString().split("T")[0]);
+      toast.success("Payment recorded");
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : "Failed to record payment");
+      const message = err instanceof Error ? err.message : "Failed to record payment";
+      setPaymentError(message);
+      toast.error(message);
     } finally {
       setIsRecordingPayment(false);
     }
@@ -243,8 +264,11 @@ export default function CaseDetailPage() {
       if (!res.ok) throw new Error(data.message || "Update failed");
       setCaseData(data.data);
       setSaveMsg("Case updated successfully.");
+      toast.success("Case updated");
     } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "Update failed");
+      const message = err instanceof Error ? err.message : "Update failed";
+      setSaveMsg(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -259,12 +283,65 @@ export default function CaseDetailPage() {
         credentials: "include",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.message || "Failed to update featured status");
       setCaseData((prev) => prev && { ...prev, isFeatured: data.data.isFeatured });
-    } catch {
-      // ignore
+      toast.success(data.data.isFeatured ? "Case featured as a success story" : "Case removed from success stories");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update featured status");
     } finally {
       setIsToggling(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!caseData) return;
+    const note = await askArchiveCase({
+      caseNumber: caseData.caseNumber,
+      title: caseData.title,
+      restoreHint: "You can restore it later from the Archived tab.",
+    });
+    if (note === null) return;
+    setIsArchiving(true);
+    try {
+      const { message, data } = await archiveCase<CaseDetail>(id, { note });
+      setCaseData((prev) =>
+        prev && {
+          ...prev,
+          isArchived: true,
+          archivedAt: data.archivedAt,
+          archivedBy: data.archivedBy,
+          archiveReason: data.archiveReason,
+          archiveNote: data.archiveNote,
+        },
+      );
+      setIsEditingTotalPayment(false);
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to archive case");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!caseData) return;
+    const confirmed = await confirmDialog({
+      title: `Restore ${caseData.caseNumber}?`,
+      message: "The case will return to your active cases and can be edited again.",
+      confirmLabel: "Restore",
+    });
+    if (!confirmed) return;
+    setIsArchiving(true);
+    try {
+      const { message } = await restoreCase(id);
+      setCaseData((prev) =>
+        prev && { ...prev, isArchived: false, archivedAt: null, archivedBy: null, archiveReason: null, archiveNote: undefined },
+      );
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore case");
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -285,7 +362,7 @@ export default function CaseDetailPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-primary underline"
+          className="text-link text-sm"
         >
           Go back
         </button>
@@ -300,6 +377,10 @@ export default function CaseDetailPage() {
       year: "numeric",
     });
 
+  const isArchived = caseData.isArchived === true;
+  const canRestore = canLawyerRestore(caseData, user?._id);
+  const archiver = archivedByName(caseData);
+
   return (
     <div className="space-y-6">
       {/* Back + title */}
@@ -308,12 +389,12 @@ export default function CaseDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center gap-1 text-xs text-on-surface-variant hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-on-surface-variant transition-colors hover:text-on-surface"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Cases
           </button>
-          <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+          <h3 className="font-display text-2xl font-semibold text-heading">
             {caseData.title}
           </h3>
           <p className="font-mono text-xs text-on-surface-variant">
@@ -321,17 +402,39 @@ export default function CaseDetailPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {!isArchived ? (
+            <button
+              type="button"
+              disabled={isArchiving}
+              onClick={handleArchive}
+              className="btn btn-secondary btn-sm"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Archive
+            </button>
+          ) : canRestore ? (
+            <button
+              type="button"
+              disabled={isArchiving}
+              onClick={handleRestore}
+              className="btn btn-secondary btn-sm"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restore
+            </button>
+          ) : null}
+
           <button
             type="button"
             aria-label={caseData.isFeatured ? "Unfeature case" : "Feature case"}
-            disabled={isToggling}
+            disabled={isToggling || isArchived}
             onClick={toggleFeatured}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-outline px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:border-secondary hover:text-secondary transition-colors disabled:opacity-50"
+            className="btn btn-secondary btn-sm"
           >
             {caseData.isFeatured ? (
               <>
-                <Star className="h-3.5 w-3.5 fill-secondary text-secondary" />
+                <Star className="h-3.5 w-3.5 fill-secondary text-gold-ink" />
                 Featured
               </>
             ) : (
@@ -342,30 +445,51 @@ export default function CaseDetailPage() {
             )}
           </button>
 
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${PRIORITY_COLORS[caseData.priority]}`}>
+          <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[caseData.priority]}`}>
             {caseData.priority} priority
           </span>
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_COLORS[caseData.status]}`}>
+          <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[caseData.status]}`}>
             {caseData.status.replace(/-/g, " ")}
           </span>
         </div>
       </div>
 
+      {isArchived && (
+        <div role="status" className="notice notice-info flex gap-3 p-4">
+          <Archive className="mt-0.5 h-5 w-5 shrink-0 text-on-surface-variant" aria-hidden="true" />
+          <div className="space-y-1">
+            <p className="font-semibold text-on-surface">
+              This case was archived on {formatCaseDate(caseData.archivedAt)}
+              {archiver ? ` by ${archiver}` : ""}.
+            </p>
+            <p className="text-on-surface-variant">
+              It is read-only.{" "}
+              {canRestore
+                ? "Restore it to make changes."
+                : "It was archived by an administrator, so only an admin can restore it."}
+            </p>
+            {caseData.archiveNote && (
+              <p className="text-on-surface-variant">
+                <span className="font-medium text-on-surface">Note:</span> {caseData.archiveNote}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Main details */}
         <div className="lg:col-span-2 space-y-4">
           {/* Description */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">
               Case Description
             </h3>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              {caseData.description}
-            </p>
+            <RichText value={caseData.description} />
           </section>
 
           {/* Court info */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">
               Court & Proceedings
             </h3>
@@ -390,7 +514,7 @@ export default function CaseDetailPage() {
           </section>
 
           {/* Opposing party */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">
               Opposing Party
             </h3>
@@ -402,7 +526,7 @@ export default function CaseDetailPage() {
 
           {/* Hearing History */}
           {caseData.hearingHistory && caseData.hearingHistory.length > 0 && (
-            <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+            <section className="card p-5">
               <h3 className="mb-3 text-sm font-semibold text-on-surface">Hearing History</h3>
               <div className="space-y-3">
                 {caseData.hearingHistory.map((h, i) => (
@@ -410,7 +534,7 @@ export default function CaseDetailPage() {
                     <p className="font-medium text-on-surface">{fmt(h.date)}</p>
                     <p className="mt-1 text-on-surface-variant">{h.description}</p>
                     {h.outcome && <p className="mt-1 text-xs text-success">Outcome: {h.outcome}</p>}
-                    {h.nextSteps && <p className="mt-1 text-xs text-secondary">Next: {h.nextSteps}</p>}
+                    {h.nextSteps && <p className="mt-1 text-xs text-gold-ink">Next: {h.nextSteps}</p>}
                   </div>
                 ))}
               </div>
@@ -419,7 +543,7 @@ export default function CaseDetailPage() {
 
           {/* Documents */}
           {caseData.documents && caseData.documents.length > 0 && (
-            <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+            <section className="card p-5">
               <h3 className="mb-3 text-sm font-semibold text-on-surface">Documents</h3>
               <div className="space-y-2">
                 {caseData.documents.map((d, i) => (
@@ -428,7 +552,7 @@ export default function CaseDetailPage() {
                       <p className="font-medium text-on-surface">{d.name}</p>
                       {d.documentType && <p className="text-xs text-on-surface-variant">{d.documentType}</p>}
                     </div>
-                    <span className="rounded-full border border-outline-variant px-2 py-0.5 text-xs capitalize text-on-surface-variant">
+                    <span className="chip capitalize">
                       {d.sharedVia}
                     </span>
                   </div>
@@ -439,14 +563,14 @@ export default function CaseDetailPage() {
 
           {/* Evidence & Witnesses */}
           {(caseData.evidenceSummary || (caseData.witnessNames && caseData.witnessNames.length > 0)) && (
-            <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+            <section className="card p-5">
               <h3 className="mb-3 text-sm font-semibold text-on-surface">Evidence & Witnesses</h3>
               {caseData.witnessNames && caseData.witnessNames.length > 0 && (
                 <div className="mb-3">
                   <p className="mb-1.5 text-xs font-medium text-on-surface-variant">Witnesses</p>
                   <div className="flex flex-wrap gap-1.5">
                     {caseData.witnessNames.map((w, i) => (
-                      <span key={i} className="rounded-full border border-outline-variant bg-surface px-2.5 py-0.5 text-xs text-on-surface">{w}</span>
+                      <span key={i} className="chip text-on-surface">{w}</span>
                     ))}
                   </div>
                 </div>
@@ -461,15 +585,16 @@ export default function CaseDetailPage() {
           )}
 
           {/* Payments & Financial History */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Payments & Financial History</h3>
             
-            {/* Add Payment Form */}
+            {/* Add Payment Form (hidden while archived) */}
+            {!isArchived && (
             <form onSubmit={handleRecordPayment} className="mb-6 rounded-lg bg-surface p-4 border border-outline-variant/50">
-              <h4 className="mb-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Record Offline Payment</h4>
+              <h4 className="mb-2 text-sm font-semibold text-on-surface-variant">Record Offline Payment</h4>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <label htmlFor="pay-amount" className="mb-1 block text-[11px] font-medium text-on-surface-variant">Amount (৳)</label>
+                  <label htmlFor="pay-amount" className="mb-1 block text-xs font-semibold text-on-surface-variant">Amount (৳)</label>
                   <input
                     id="pay-amount"
                     type="number"
@@ -477,30 +602,30 @@ export default function CaseDetailPage() {
                     placeholder="5000"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                    className="field field-sm"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="pay-date" className="mb-1 block text-[11px] font-medium text-on-surface-variant">Payment Date</label>
+                  <label htmlFor="pay-date" className="mb-1 block text-xs font-semibold text-on-surface-variant">Payment Date</label>
                   <input
                     id="pay-date"
                     type="date"
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                    className="field field-sm"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="pay-details" className="mb-1 block text-[11px] font-medium text-on-surface-variant">Details</label>
+                  <label htmlFor="pay-details" className="mb-1 block text-xs font-semibold text-on-surface-variant">Details</label>
                   <input
                     id="pay-details"
                     type="text"
                     placeholder="Cash / Bank / bkash reference"
                     value={paymentDetails}
                     onChange={(e) => setPaymentDetails(e.target.value)}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                    className="field field-sm"
                   />
                 </div>
               </div>
@@ -508,21 +633,22 @@ export default function CaseDetailPage() {
               <button
                 type="submit"
                 disabled={isRecordingPayment}
-                className="mt-3 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-primary hover:opacity-90 disabled:opacity-50 transition-opacity"
+                className="btn btn-primary btn-sm mt-3"
               >
                 {isRecordingPayment ? "Recording..." : "Record Payment"}
               </button>
             </form>
+            )}
 
             {/* Payments List */}
             <div className="space-y-2">
               {!caseData.payments || caseData.payments.length === 0 ? (
                 <p className="text-xs text-on-surface-variant italic">No payments recorded yet.</p>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-outline-variant/60">
+                <div className="panel overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-outline-variant bg-surface text-on-surface-variant font-semibold uppercase tracking-wider">
+                      <tr className="border-b border-outline-variant bg-surface-container font-semibold text-on-surface-variant">
                         <th className="px-3 py-2">Date</th>
                         <th className="px-3 py-2">Details</th>
                         <th className="px-3 py-2 text-right">Amount</th>
@@ -543,19 +669,20 @@ export default function CaseDetailPage() {
             </div>
           </section>
 
-          {/* Update Case */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          {/* Update Case (archived cases are read-only) */}
+          {!isArchived && (
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Update Case</h3>
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="status-select" className="mb-1 block text-xs font-medium text-on-surface-variant">Status</label>
+                  <label htmlFor="status-select" className="label">Status</label>
                   <select
                     id="status-select"
                     title="Case Status"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value as CaseStatus)}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                    className="field"
                   >
                     {ALL_STATUSES.map((s) => (
                       <option key={s} value={s}>{s.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}</option>
@@ -563,13 +690,13 @@ export default function CaseDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="stage-select" className="mb-1 block text-xs font-medium text-on-surface-variant">Stage</label>
+                  <label htmlFor="stage-select" className="label">Stage</label>
                   <select
                     id="stage-select"
                     title="Case Stage"
                     value={selectedStage}
                     onChange={(e) => setSelectedStage(e.target.value)}
-                    className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                    className="field"
                   >
                     {["intake","pre-filing","filed","pre-trial","trial","post-trial","appeal","enforcement","closed"].map((s) => (
                       <option key={s} value={s}>{s.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}</option>
@@ -578,35 +705,36 @@ export default function CaseDetailPage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="next-court" className="mb-1 block text-xs font-medium text-on-surface-variant">Next Hearing Date</label>
+                <label htmlFor="next-court" className="label">Next Hearing Date</label>
                 <input
                   id="next-court"
                   type="date"
                   value={nextCourtDate}
                   onChange={(e) => setNextCourtDate(e.target.value)}
-                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                  className="field"
                 />
               </div>
               <div>
-                <label htmlFor="case-notes" className="mb-1 block text-xs font-medium text-on-surface-variant">Client-Visible Notes</label>
-                <textarea
+                <p id="case-notes-label" className="label">Client-Visible Notes</p>
+                <RichTextEditor
                   id="case-notes"
-                  rows={3}
+                  ariaLabelledBy="case-notes-label"
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={setNotes}
+                  maxLength={CASE_NOTES_MAX}
+                  minHeightClass="min-h-24"
                   placeholder="Notes visible to client..."
-                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none"
                 />
               </div>
               <div>
-                <label htmlFor="internal-notes" className="mb-1 block text-xs font-medium text-on-surface-variant">Internal Notes (Lawyer Only)</label>
+                <label htmlFor="internal-notes" className="label">Internal Notes (Lawyer Only)</label>
                 <textarea
                   id="internal-notes"
                   rows={3}
                   value={internalNotes}
                   onChange={(e) => setInternalNotes(e.target.value)}
                   placeholder="Private notes not visible to client..."
-                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none"
+                  className="field resize-none"
                 />
               </div>
               {saveMsg && (
@@ -618,18 +746,19 @@ export default function CaseDetailPage() {
                 type="button"
                 disabled={isSaving}
                 onClick={handleUpdate}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 disabled:opacity-50 transition-opacity"
+                className="btn btn-primary"
               >
                 {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </section>
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Client info */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Client</h3>
             <div className="space-y-2 text-sm">
               <p className="font-medium text-on-surface">{caseData.clientName}</p>
@@ -658,9 +787,9 @@ export default function CaseDetailPage() {
 
           {/* Case stage */}
           {caseData.stage && (
-            <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+            <section className="card p-5">
               <h3 className="mb-2 text-sm font-semibold text-on-surface">Stage</h3>
-              <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary capitalize">
+              <span className="chip capitalize text-on-surface">
                 {caseData.stage.replace(/-/g, " ")}
               </span>
               {caseData.statute && (
@@ -673,7 +802,7 @@ export default function CaseDetailPage() {
           )}
 
           {/* Financials */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Financials</h3>
             <div className="space-y-3 text-sm">
               {/* Total Payment Edit */}
@@ -686,7 +815,7 @@ export default function CaseDetailPage() {
                         type="number"
                         min="0"
                         title="Total Payment"
-                        className="w-20 rounded border border-outline bg-surface px-1 py-0.5 text-xs text-on-surface focus:outline-none"
+                        className="w-20 rounded px-1 py-0.5 text-xs"
                         value={tempTotalPayment}
                         onChange={(e) => setTempTotalPayment(e.target.value)}
                       />
@@ -709,16 +838,18 @@ export default function CaseDetailPage() {
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-on-surface">৳{(caseData.totalPayment || 0).toLocaleString()}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTempTotalPayment(String(caseData.totalPayment || 0));
-                          setIsEditingTotalPayment(true);
-                        }}
-                        className="text-[10px] text-primary hover:underline font-semibold"
-                      >
-                        Edit
-                      </button>
+                      {!isArchived && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempTotalPayment(String(caseData.totalPayment || 0));
+                            setIsEditingTotalPayment(true);
+                          }}
+                          className="text-link text-[10px]"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -769,7 +900,7 @@ export default function CaseDetailPage() {
           </section>
 
           {/* Timestamps */}
-          <section className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold text-on-surface">Timeline</h3>
             <div className="space-y-2 text-sm">
               <div>
@@ -801,7 +932,7 @@ function InfoRow({
   return (
     <div>
       <p className="text-xs text-on-surface-variant">{label}</p>
-      <p className={`mt-0.5 font-medium capitalize ${highlight ? "text-secondary" : "text-on-surface"}`}>
+      <p className={`mt-0.5 font-medium capitalize ${highlight ? "text-gold-ink" : "text-on-surface"}`}>
         {value}
       </p>
     </div>

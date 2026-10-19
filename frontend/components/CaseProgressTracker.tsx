@@ -6,17 +6,32 @@ const steps = ['Filed', 'Under Review', 'Active', 'Hearing Scheduled', 'Resolved
 
 export function CaseProgressTracker({ currentStep = 3 }: CaseProgressTrackerProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 text-sm font-medium text-on-surface-variant">
-        {steps.map((step, index) => (
-          <span key={step} className={index < currentStep ? 'text-on-surface' : 'text-outline'}>
-            {step}
-          </span>
-        ))}
-      </div>
-      <div className="relative h-2 overflow-hidden rounded-full bg-surface-container-high">
-        <div className="absolute left-0 top-0 h-full rounded-full bg-secondary" style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }} />
-      </div>
-    </div>
+    <ol className="grid grid-cols-5">
+      {steps.map((step, index) => {
+        const done = index < currentStep
+        const isLast = index === steps.length - 1
+        return (
+          <li key={step} className="relative flex flex-col items-center text-center" aria-current={index === currentStep - 1 ? 'step' : undefined}>
+            {!isLast && (
+              <span
+                aria-hidden="true"
+                className={`absolute left-1/2 top-2.25 h-0.5 w-full ${index + 1 < currentStep ? 'bg-secondary' : 'bg-outline-variant'}`}
+              />
+            )}
+            <span
+              aria-hidden="true"
+              className={`relative z-10 h-5 w-5 rounded-full border-2 ${
+                done
+                  ? 'border-[#a8873a] bg-secondary shadow-[inset_0_1px_0_rgb(255_255_255/0.4)]'
+                  : 'border-outline bg-surface-raised shadow-[inset_0_1px_2px_rgb(16_24_40/0.1)]'
+              }`}
+            />
+            <span className={`mt-2 wrap-break-word px-0.5 text-[0.7rem] leading-tight sm:text-xs ${done ? 'font-semibold text-on-surface' : 'text-on-surface-variant'}`}>
+              {step}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
   )
 }

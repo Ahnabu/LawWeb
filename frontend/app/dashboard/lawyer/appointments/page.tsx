@@ -122,7 +122,7 @@ export default function LawyerAppointmentsPage() {
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+        <h3 className="font-display text-2xl font-semibold text-heading">
           Appointments
         </h3>
         <p className="text-sm text-on-surface-variant">
@@ -139,16 +139,16 @@ export default function LawyerAppointmentsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
+      <div className="panel flex gap-1 overflow-x-auto p-1">
         {STATUS_TABS.map((tab) => (
           <button
             type="button"
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+            className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
               activeTab === tab.value
-                ? "bg-primary text-on-primary"
-                : "text-on-surface-variant hover:bg-surface-container-high"
+                ? "bg-surface-raised font-semibold text-on-surface shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(16_24_40/0.12)]"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             {tab.label}
@@ -163,14 +163,14 @@ export default function LawyerAppointmentsPage() {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
+        <div className="panel p-8 text-center text-sm text-on-surface-variant">
           No appointments found.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-outline-variant">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-high text-left text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <tr className="border-b border-outline-variant bg-surface-container text-left text-xs font-semibold text-on-surface-variant">
                 <th className="px-3 py-2.5">Client</th>
                 <th className="px-3 py-2.5">Date & Time</th>
                 <th className="px-3 py-2.5">Type</th>
@@ -179,11 +179,11 @@ export default function LawyerAppointmentsPage() {
                 <th className="px-3 py-2.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant bg-surface">
+            <tbody className="divide-y divide-outline-variant">
               {filtered.map((apt) => (
                 <tr
                   key={apt._id}
-                  className="hover:bg-surface-container-low transition-colors"
+                  className="transition-colors hover:bg-surface-container/60"
                 >
                   <td className="px-3 py-2.5 font-medium text-on-surface">
                     {apt.clientId?.name || "—"}
@@ -208,7 +208,7 @@ export default function LawyerAppointmentsPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[apt.status]}`}
+                      className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[apt.status]}`}
                     >
                       {CONSULTATION_STATUS_LABELS[apt.status]}
                     </span>
@@ -217,9 +217,9 @@ export default function LawyerAppointmentsPage() {
                     <button
                       type="button"
                       onClick={() => setSelected(apt)}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-secondary hover:bg-secondary/10 transition-colors"
+                      className="btn btn-ghost btn-sm min-h-8 px-2 text-xs"
                     >
-                      <Eye className="h-3.5 w-3.5 text-secondary" />
+                      <Eye className="h-3.5 w-3.5 text-gold-ink" />
                       View
                     </button>
                   </td>
@@ -233,22 +233,22 @@ export default function LawyerAppointmentsPage() {
       {/* Details Modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(10_22_40/0.5)] p-4"
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full max-w-lg rounded-xl border border-outline-variant bg-surface p-6 shadow-xl"
+            className="card w-full max-w-lg p-5 shadow-xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold text-on-surface">
+              <h3 className="font-display text-lg font-semibold text-heading">
                 Appointment Details
               </h3>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={() => setSelected(null)}
-                className="rounded-full p-1 hover:bg-surface-container text-on-surface-variant"
+                className="btn btn-ghost btn-icon"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -277,20 +277,20 @@ export default function LawyerAppointmentsPage() {
               <Row label="Description" value={selected.description} />
               {selected.notes && <Row label="Notes" value={selected.notes} />}
               {selected.whatsappDocSharing && (
-                <div className="rounded-lg bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
+                <div className="panel px-3 py-2 text-xs text-on-surface-variant">
                   Client will share documents via WhatsApp
                   {selected.whatsappDocNote && `: ${selected.whatsappDocNote}`}
                 </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-on-surface-variant font-medium">Status</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[selected.status]}`}>
+                <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${CONSULTATION_STATUS_COLORS[selected.status]}`}>
                   {CONSULTATION_STATUS_LABELS[selected.status]}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-on-surface-variant font-medium">Confirmation</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${selected.lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
+                <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${selected.lawyerConfirmed ? "bg-success/15 text-success" : "bg-yellow-500/15 text-yellow-600"}`}>
                   {selected.lawyerConfirmed ? "Confirmed by you" : "Not yet confirmed"}
                 </span>
               </div>
@@ -303,7 +303,7 @@ export default function LawyerAppointmentsPage() {
                     type="button"
                     disabled={confirmingId === selected._id}
                     onClick={() => handleConfirm(selected._id)}
-                    className="w-full rounded-lg bg-secondary/20 py-2 text-sm font-semibold text-secondary hover:bg-secondary/30 disabled:opacity-50 transition-colors"
+                    className="btn btn-secondary btn-block"
                   >
                     {confirmingId === selected._id ? "Confirming..." : "Confirm Booking"}
                   </button>
@@ -313,7 +313,7 @@ export default function LawyerAppointmentsPage() {
                     type="button"
                     disabled={updatingId === selected._id}
                     onClick={() => handleStatusChange(selected._id, "completed")}
-                    className="flex-1 rounded-lg bg-success/15 py-2 text-sm font-semibold text-success hover:bg-success/25 disabled:opacity-50 transition-colors"
+                    className="btn btn-secondary flex-1 text-success"
                   >
                     Mark Completed
                   </button>
@@ -321,7 +321,7 @@ export default function LawyerAppointmentsPage() {
                     type="button"
                     disabled={updatingId === selected._id}
                     onClick={() => handleStatusChange(selected._id, "cancelled")}
-                    className="flex-1 rounded-lg bg-error/10 py-2 text-sm font-semibold text-error hover:bg-error/20 disabled:opacity-50 transition-colors"
+                    className="btn btn-secondary flex-1 text-error"
                   >
                     Cancel
                   </button>
@@ -346,9 +346,9 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function StatsCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+    <div className="card p-4">
       <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+      <p className="mt-1 font-display text-2xl font-semibold text-heading">
         {value}
       </p>
     </div>

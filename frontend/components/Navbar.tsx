@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   LogOut,
@@ -23,14 +24,23 @@ const roleDashboardPath = {
   client: "/dashboard/client",
 } as const;
 
+const menuItemClass =
+  "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface";
+
 export function Navbar() {
   const { t, localePath } = useLanguage();
   const { user, status, logout } = useAuth();
+  const pathname = usePathname() ?? "/";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   const dashboardHref = user ? roleDashboardPath[user.role] : "/login";
+
+  // Current section, ignoring the /bn prefix
+  const basePath = pathname.replace(/^\/bn(?=\/|$)/, "") || "/";
+  const isCurrent = (href: string) =>
+    basePath === href || basePath.startsWith(`${href}/`);
 
   const initials = useMemo(() => {
     if (!user?.name) {
@@ -60,11 +70,21 @@ export function Navbar() {
     setIsProfileMenuOpen(false);
   }, [status]);
 
+  const handleLogout = async () => {
+    setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    await logout();
+    window.location.href = localePath("/");
+  };
+
   return (
-    <header className="glass-nav fixed inset-x-0 top-0 z-50 w-full">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-17 sm:gap-4 sm:px-6 lg:px-8">
-        <Link href={localePath("/")} className="flex items-center gap-2 sm:gap-3">
-          <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg sm:h-11 sm:w-11 sm:rounded-xl ring-1 ring-outline-variant bg-surface-container">
+    <header className="site-header fixed inset-x-0 top-0 z-50 w-full">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:h-17 sm:px-6 lg:px-8">
+        <Link
+          href={localePath("/")}
+          className="flex min-w-0 items-center gap-2.5 sm:gap-3"
+        >
+          <span className="relative inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-md border border-outline-variant bg-surface-raised sm:h-10 sm:w-10">
             <Image
               src="/logo.jpg"
               alt="Islam and Associates International Law Offices"
@@ -74,155 +94,155 @@ export function Navbar() {
               priority
             />
           </span>
-          <span className="text-base font-semibold tracking-wide text-on-surface sm:text-lg">
+          <span className="truncate font-display text-[0.95rem] font-bold text-heading sm:text-lg">
             {t("site.firmName")}
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={localePath(link.href)}
-              className="text-sm font-medium text-on-surface-variant transition hover:text-secondary"
+              aria-current={isCurrent(link.href) ? "page" : undefined}
+              className="nav-link"
             >
               {t(link.labelKey) ?? link.fallback}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 sm:gap-3 md:flex">
-          <LanguageToggle />
-          <ThemeToggle />
-          {user ? (
-            <div ref={profileMenuRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setIsProfileMenuOpen((open) => !open)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full ring-1 ring-outline-variant transition hover:ring-2 hover:ring-secondary"
-                aria-label={t("nav.openProfileMenu")}
-                aria-haspopup="menu"
-                aria-expanded={isProfileMenuOpen}
-              >
-                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-semibold text-on-secondary">
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">
+            <LanguageToggle />
+            <ThemeToggle />
+            {user ? (
+              <div ref={profileMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen((open) => !open)}
+                  className="monogram h-10 w-10 text-xs"
+                  aria-label={t("nav.openProfileMenu")}
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileMenuOpen}
+                >
                   {initials || <UserRound className="h-4 w-4" />}
-                </span>
-              </button>
+                </button>
 
-              {isProfileMenuOpen ? (
-                <div className="absolute right-0 mt-3 w-56 overflow-hidden rounded-2xl border border-outline-variant bg-surface p-2 shadow-2xl">
-                  <Link
-                    href={dashboardHref}
-                    onClick={() => setIsProfileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                    {t("nav.dashboard")}
-                  </Link>
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsProfileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
-                  >
-                    <UserCircle2 className="h-4 w-4" />
-                    {t("nav.profile")}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setIsProfileMenuOpen(false);
-                      await logout();
-                      window.location.href = localePath("/");
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    {t("nav.logout")}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="rounded-md bg-secondary px-3 py-2 text-xs font-semibold text-primary shadow-sm transition hover:bg-secondary/90 sm:px-4 sm:py-2 sm:text-sm"
-            >
-              {t("common.login")}
-            </Link>
-          )}
+                {isProfileMenuOpen ? (
+                  <div className="card absolute right-0 mt-2 w-56 p-1.5 shadow-xl">
+                    <Link
+                      href={dashboardHref}
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className={menuItemClass}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      {t("nav.dashboard")}
+                    </Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className={menuItemClass}
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      {t("nav.profile")}
+                    </Link>
+                    <hr className="rule mx-2 my-1" />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={menuItemClass}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      {t("nav.logout")}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Link href="/login" className="btn btn-primary btn-sm">
+                {t("common.login")}
+              </Link>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon lg:hidden"
+            onClick={() => setIsMobileMenuOpen((open) => !open)}
+            aria-label={isMobileMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
+            aria-haspopup="menu"
+            aria-expanded={isMobileMenuOpen}
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface-variant transition hover:border-secondary hover:text-secondary md:hidden"
-          onClick={() => setIsMobileMenuOpen((open) => !open)}
-          aria-label={isMobileMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
-          aria-haspopup="menu"
-          aria-expanded={isMobileMenuOpen}
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </button>
       </div>
 
       {isMobileMenuOpen ? (
-        <div className="border-t border-outline-variant bg-surface/98 px-3 py-3 shadow-2xl shadow-slate-900/10 backdrop-blur md:hidden">
-          <nav className="mx-auto flex max-h-[calc(100dvh-6.5rem)] max-w-7xl flex-col gap-1 overflow-y-auto pb-24">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={localePath(link.href)}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
-              >
-                {t(link.labelKey) ?? link.fallback}
-              </Link>
-            ))}
+        <div className="border-t border-outline-variant bg-surface-raised lg:hidden">
+          <nav
+            aria-label="Main"
+            className="mx-auto flex max-h-[calc(100dvh-3.5rem)] max-w-7xl flex-col overflow-y-auto px-4 pb-6 pt-2 sm:max-h-[calc(100dvh-4.25rem)] sm:px-6"
+          >
+            {navLinks.map((link) => {
+              const current = isCurrent(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={localePath(link.href)}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-current={current ? "page" : undefined}
+                  className={`flex min-h-12 items-center border-b border-outline-variant py-3 pl-3 text-base transition-colors ${
+                    current
+                      ? "border-l-2 border-l-secondary font-semibold text-on-surface"
+                      : "border-l-2 border-l-transparent text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  {t(link.labelKey) ?? link.fallback}
+                </Link>
+              );
+            })}
 
-            <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="mt-4 flex items-center gap-2 md:hidden">
               <LanguageToggle />
               <ThemeToggle />
             </div>
 
             {user ? (
-              <div className="mt-3 rounded-2xl border border-outline-variant bg-surface p-4">
+              <div className="mt-4 md:hidden">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/15 text-sm font-semibold text-secondary ring-1 ring-secondary/20">
-                    {initials || <UserRound className="h-5 w-5" />}
+                  <span className="monogram h-10 w-10 text-xs">
+                    {initials || <UserRound className="h-4 w-4" />}
                   </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-on-surface">
-                      {user.email}
-                    </p>
-                  </div>
+                  <p className="min-w-0 truncate text-sm font-semibold text-on-surface">
+                    {user.email}
+                  </p>
                 </div>
 
-                <div className="mt-4 grid gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <Link
                     href={dashboardHref}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
+                    className="btn btn-secondary"
                   >
                     {t("nav.dashboard")}
                   </Link>
                   <Link
                     href="/profile"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
+                    className="btn btn-secondary"
                   >
                     {t("nav.profile")}
                   </Link>
                   <button
                     type="button"
-                    onClick={async () => {
-                      setIsMobileMenuOpen(false);
-                      await logout();
-                      window.location.href = localePath("/");
-                    }}
-                    className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
+                    onClick={handleLogout}
+                    className="btn btn-ghost col-span-2"
                   >
                     {t("nav.logout")}
                   </button>
@@ -232,7 +252,7 @@ export function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="mt-3 inline-flex items-center justify-center rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-secondary/90"
+                className="btn btn-primary btn-block mt-4 md:hidden"
               >
                 {t("common.login")}
               </Link>

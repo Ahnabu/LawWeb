@@ -7,6 +7,8 @@ import { apiFetch } from "../../../lib/http";
 interface AdminStats {
   totalCases: number;
   activeCases: number;
+  // Total/active exclude archived cases; archived ones are counted here
+  archivedCases?: number;
   totalLawyers: number;
   totalClients: number;
   todayConsultations: number;
@@ -38,68 +40,61 @@ export default function AdminDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={`stat-skeleton-${index}`}
-              className="h-24 animate-pulse rounded-lg border border-outline-variant bg-surface-container"
-            />
-          ))}
-        </div>
-        <div className="space-y-4">
-          <div className="h-6 w-48 animate-pulse rounded bg-surface-container" />
-          <div className="h-4 w-full animate-pulse rounded bg-surface-container" />
-          <div className="h-4 w-4/5 animate-pulse rounded bg-surface-container" />
+      <div className="space-y-6" aria-busy="true">
+        <div className="card h-24 bg-surface-container" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="card h-64 bg-surface-container" />
+          <div className="card h-64 bg-surface-container" />
         </div>
       </div>
     );
   }
-  if (error) return <div className="text-error">Error: {error}</div>;
+  if (error) return <p className="notice notice-error" role="alert">Error: {error}</p>;
   if (!stats) return null;
 
   return (
-    <div className="space-y-8">
-      {/* Stats */}
+    <div className="space-y-6">
+      {/* Key figures: one quiet ledger strip instead of a wall of cards */}
       {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="card grid grid-cols-2 gap-px overflow-hidden bg-outline-variant lg:grid-cols-4">
           <StatsCard label="Total Cases" value={stats.totalCases} />
           <StatsCard label="Active Cases" value={stats.activeCases} />
           <StatsCard label="Total Lawyers" value={stats.totalLawyers} />
           <StatsCard label="Total Clients" value={stats.totalClients} />
-        </div>
+        </dl>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="card p-5 sm:p-6">
           <h3 className="font-display text-lg font-semibold text-on-surface">
             Today&apos;s snapshot
           </h3>
-          <p className="mt-3 text-sm text-on-surface-variant">
+          <p className="mt-1 text-sm text-on-surface-variant">
             Review the current platform activity and identify immediate follow-up items.
           </p>
-          <div className="mt-6 space-y-3">
+          <dl className="mt-4 divide-y divide-outline-variant">
             <SummaryRow
               label="Consultations today"
               value={stats.todayConsultations}
             />
             <SummaryRow label="Active cases" value={stats.activeCases} />
+            <SummaryRow label="Archived cases" value={stats.archivedCases ?? 0} />
             <SummaryRow label="Verified lawyers" value={stats.totalLawyers} />
             <SummaryRow label="Registered clients" value={stats.totalClients} />
-          </div>
+          </dl>
         </div>
 
-        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
+        <div className="card p-5 sm:p-6">
           <h3 className="font-display text-lg font-semibold text-on-surface">
             Recommended actions
           </h3>
-          <p className="mt-3 text-sm text-on-surface-variant">
+          <p className="mt-1 text-sm text-on-surface-variant">
             Focus on case backlog, monitor consultation volume, and verify any new lawyer accounts.
           </p>
-          <ul className="mt-6 space-y-3 text-sm text-on-surface-variant">
-            <li className="rounded-xl bg-surface p-4">Review new client registrations and verify any flagged accounts.</li>
-            <li className="rounded-xl bg-surface p-4">Check active cases for upcoming court dates and next steps.</li>
-            <li className="rounded-xl bg-surface p-4">Use the dashboard sidebar to manage lawyers, users, and cases.</li>
+          <ul className="mt-4 divide-y divide-outline-variant text-sm text-on-surface">
+            <li className="flex gap-3 py-3"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />Review new client registrations and verify any flagged accounts.</li>
+            <li className="flex gap-3 py-3"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />Check active cases for upcoming court dates and next steps.</li>
+            <li className="flex gap-3 py-3"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />Use the dashboard sidebar to manage lawyers, users, and cases.</li>
           </ul>
         </div>
       </section>
@@ -109,20 +104,20 @@ export default function AdminDashboardPage() {
 
 function StatsCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
-      <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+    <div className="bg-surface-raised px-5 py-4">
+      <dt className="text-sm text-on-surface-variant">{label}</dt>
+      <dd className="mt-1 font-display text-2xl font-bold text-on-surface tabular-nums">
         {value}
-      </p>
+      </dd>
     </div>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-surface p-4">
-      <span className="text-sm text-on-surface-variant">{label}</span>
-      <span className="font-semibold text-on-surface">{value}</span>
+    <div className="flex items-center justify-between py-3">
+      <dt className="text-sm text-on-surface-variant">{label}</dt>
+      <dd className="font-semibold text-on-surface tabular-nums">{value}</dd>
     </div>
   );
 }

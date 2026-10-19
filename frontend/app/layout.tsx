@@ -6,6 +6,7 @@ import { ContentProvider } from '../components/ContentProvider'
 import { ThemeProvider } from '../components/ThemeProvider'
 import { AuthProvider } from '../components/AuthProvider'
 import { SonnerToaster } from '../components/SonnerToaster'
+import { ConfirmDialogHost } from '../components/ConfirmDialog'
 import { getPublishedContent } from '../lib/content'
 import { getPageMetadata } from '../lib/seo'
 import { getSiteUrl } from '../lib/locale'
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </ContentProvider>
           </AuthProvider>
           <SonnerToaster />
+          <ConfirmDialogHost />
           <Analytics />
           <SpeedInsights />
         </ThemeProvider>

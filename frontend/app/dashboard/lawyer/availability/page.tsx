@@ -136,7 +136,7 @@ export default function LawyerAvailabilityPage() {
           {Array.from({ length: 5 }).map((_, index) => (
             <div
               key={`availability-skeleton-${index}`}
-              className="h-16 animate-pulse rounded-lg border border-outline-variant bg-surface-container"
+              className="card h-16 animate-pulse"
             />
           ))}
         </div>
@@ -147,7 +147,7 @@ export default function LawyerAvailabilityPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h2 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+        <h2 className="font-display text-2xl font-semibold text-heading">
           Availability
         </h2>
         <p className="text-sm text-on-surface-variant">
@@ -157,7 +157,7 @@ export default function LawyerAvailabilityPage() {
         </p>
       </header>
 
-      <section className="rounded-lg border border-outline-variant bg-surface-container p-6">
+      <section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-on-surface">
@@ -194,7 +194,7 @@ export default function LawyerAvailabilityPage() {
           return (
             <div
               key={day}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-outline-variant bg-surface-container p-4"
+              className="card flex flex-wrap items-center justify-between gap-4 p-4"
             >
               <div>
                 <p className="text-sm font-semibold text-on-surface">
@@ -218,7 +218,7 @@ export default function LawyerAvailabilityPage() {
                   Start
                   <input
                     type="time"
-                    className="ml-2 rounded-lg border border-outline bg-surface px-2 py-1 text-sm"
+                    className="field field-sm ml-2 w-auto"
                     value={values.startTime}
                     onChange={(event) =>
                       handleScheduleChange(key, {
@@ -232,7 +232,7 @@ export default function LawyerAvailabilityPage() {
                   End
                   <input
                     type="time"
-                    className="ml-2 rounded-lg border border-outline bg-surface px-2 py-1 text-sm"
+                    className="field field-sm ml-2 w-auto"
                     value={values.endTime}
                     onChange={(event) =>
                       handleScheduleChange(key, { endTime: event.target.value })
@@ -253,7 +253,7 @@ export default function LawyerAvailabilityPage() {
         <button
           type="button"
           onClick={handleSave}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50"
+          className="btn btn-primary"
           disabled={isSaving || hasErrors || !availability}
         >
           {isSaving ? "Saving..." : "Save Changes"}

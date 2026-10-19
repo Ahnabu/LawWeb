@@ -14,6 +14,9 @@ import {
 import { API_BASE_URL } from "../../../../lib/api";
 import { SecuritySettingsCard } from "../../../../components/SecuritySettingsCard";
 import { apiFetch } from "../../../../lib/http";
+import { RichTextEditor } from "../../../../components/RichTextEditor";
+import { RichText } from "../../../../components/RichText";
+import { BIO_MAX as BIO_MAX_LENGTH } from "../../../../lib/richText";
 
 const PRACTICE_AREA_OPTIONS = [
   "Civil Law", "Criminal Law", "Corporate Law", "Family Law",
@@ -184,7 +187,7 @@ export default function LawyerProfilePage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+          <h3 className="font-display text-2xl font-semibold text-heading">
             My Profile
           </h3>
           <p className="text-sm text-on-surface-variant">
@@ -195,7 +198,7 @@ export default function LawyerProfilePage() {
           <button
             type="button"
             onClick={() => setEditMode(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+            className="btn btn-secondary"
           >
             <Pencil className="h-4 w-4" />
             Edit Profile
@@ -205,7 +208,7 @@ export default function LawyerProfilePage() {
             <button
               type="button"
               onClick={() => setEditMode(false)}
-              className="rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+              className="btn btn-secondary"
             >
               Cancel
             </button>
@@ -213,7 +216,7 @@ export default function LawyerProfilePage() {
               type="button"
               disabled={isSaving}
               onClick={handleSave}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="btn btn-primary"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
@@ -222,9 +225,9 @@ export default function LawyerProfilePage() {
       </header>
 
       {/* Profile image */}
-      <section className="flex items-center gap-5 rounded-lg border border-outline-variant bg-surface-container p-5">
+      <section className="card flex items-center gap-5 p-5">
         <div className="relative shrink-0">
-          <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-outline-variant bg-surface">
+          <div className="h-20 w-20 overflow-hidden rounded-full border border-outline-variant bg-surface-raised">
             {(imagePreview || profile.profileImageUrl) ? (
               <Image
                 src={imagePreview ?? profile.profileImageUrl!}
@@ -234,7 +237,7 @@ export default function LawyerProfilePage() {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-primary/10 text-2xl font-bold text-primary">
+              <div className="monogram h-full w-full rounded-none border-0 text-2xl">
                 {profile.firstName?.[0] || "?"}
               </div>
             )}
@@ -254,7 +257,7 @@ export default function LawyerProfilePage() {
           <p className="text-xs text-on-surface-variant">
             {profile.designation?.en || "Lawyer"}
           </p>
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-outline px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface transition-colors">
+          <label className="btn btn-secondary btn-sm cursor-pointer">
             <Camera className="h-3.5 w-3.5" />
             {isUploadingImage ? "Uploading..." : "Change Photo"}
             <input
@@ -359,7 +362,7 @@ export default function LawyerProfilePage() {
               />
             ) : (
               <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${profile.isActive ? "bg-success/15 text-success" : "bg-error/15 text-error"}`}
+                className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${profile.isActive ? "bg-success/15 text-success" : "bg-error/15 text-error"}`}
               >
                 {profile.isActive ? "Yes" : "No"}
               </span>
@@ -376,49 +379,53 @@ export default function LawyerProfilePage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-on-surface-variant">
+            <p id="bio-en-label" className="label">
               English
-            </label>
+            </p>
             {editMode ? (
-              <textarea
-                rows={4}
+              <RichTextEditor
+                ariaLabelledBy="bio-en-label"
                 value={profile.bio.en}
-                onChange={(e) =>
+                onChange={(html) =>
                   setProfile((p) => ({
                     ...p,
-                    bio: { ...p.bio, en: e.target.value },
+                    bio: { ...p.bio, en: html },
                   }))
                 }
+                maxLength={BIO_MAX_LENGTH}
                 placeholder="Professional summary in English..."
-                className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none"
               />
             ) : (
-              <p className="text-sm text-on-surface-variant">
-                {profile.bio.en || "—"}
-              </p>
+              <RichText
+                value={profile.bio.en}
+                fallback={<p className="text-sm text-on-surface-variant">—</p>}
+              />
             )}
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-on-surface-variant">
+            <p id="bio-bn-label" className="label">
               Bengali
-            </label>
+            </p>
             {editMode ? (
-              <textarea
-                rows={4}
+              <RichTextEditor
+                ariaLabelledBy="bio-bn-label"
+                lang="bn"
                 value={profile.bio.bn}
-                onChange={(e) =>
+                onChange={(html) =>
                   setProfile((p) => ({
                     ...p,
-                    bio: { ...p.bio, bn: e.target.value },
+                    bio: { ...p.bio, bn: html },
                   }))
                 }
+                maxLength={BIO_MAX_LENGTH}
                 placeholder="বাংলায় পেশাদার সারসংক্ষেপ..."
-                className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none resize-none"
               />
             ) : (
-              <p className="text-sm text-on-surface-variant">
-                {profile.bio.bn || "—"}
-              </p>
+              <RichText
+                lang="bn"
+                value={profile.bio.bn}
+                fallback={<p className="text-sm text-on-surface-variant">—</p>}
+              />
             )}
           </div>
         </div>
@@ -439,11 +446,11 @@ export default function LawyerProfilePage() {
                 type="button"
                 disabled={!editMode}
                 onClick={() => editMode && toggleArea(area)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                className={`chip transition-colors ${
                   active
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-outline text-on-surface-variant"
-                } ${editMode ? "cursor-pointer hover:border-primary" : "cursor-default"}`}
+                    ? "chip-active"
+                    : ""
+                } ${editMode ? "cursor-pointer hover:border-outline" : "cursor-default"}`}
               >
                 {area}
               </button>
@@ -462,7 +469,7 @@ export default function LawyerProfilePage() {
           {profile.education.map((edu, i) => (
             <div
               key={i}
-              className="flex items-center justify-between rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm"
+              className="panel flex items-center justify-between px-4 py-2.5 text-sm"
             >
               <div>
                 <p className="font-medium text-on-surface">{edu.degree}</p>
@@ -478,7 +485,7 @@ export default function LawyerProfilePage() {
                   type="button"
                   aria-label="Remove education"
                   onClick={() => removeEducation(i)}
-                  className="ml-2 rounded-full p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
+                  className="btn btn-ghost btn-icon ml-1 hover:text-error"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -496,25 +503,25 @@ export default function LawyerProfilePage() {
                 value={newEdu.degree}
                 onChange={(e) => setNewEdu((n) => ({ ...n, degree: e.target.value }))}
                 placeholder="Degree"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <input
                 value={newEdu.institution}
                 onChange={(e) => setNewEdu((n) => ({ ...n, institution: e.target.value }))}
                 placeholder="Institution"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <input
                 type="number"
                 title="Year"
                 value={newEdu.year}
                 onChange={(e) => setNewEdu((n) => ({ ...n, year: Number(e.target.value) }))}
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <button
                 type="button"
                 onClick={addEducation}
-                className="inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                className="btn btn-secondary"
               >
                 <Plus className="h-4 w-4" />
                 Add
@@ -525,13 +532,13 @@ export default function LawyerProfilePage() {
                 value={newEdu.description?.en || ""}
                 onChange={(e) => setNewEdu((n) => ({ ...n, description: { en: e.target.value, bn: n.description?.bn || "" } }))}
                 placeholder="Description (English) - optional"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <input
                 value={newEdu.description?.bn || ""}
                 onChange={(e) => setNewEdu((n) => ({ ...n, description: { en: n.description?.en || "", bn: e.target.value } }))}
                 placeholder="বর্ণনা (বাংলা) - ঐচ্ছিক"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
             </div>
           </div>
@@ -548,7 +555,7 @@ export default function LawyerProfilePage() {
           {profile.certifications.map((cert, i) => (
             <div
               key={i}
-              className="flex items-center justify-between rounded-lg border border-outline-variant bg-surface px-4 py-2.5 text-sm"
+              className="panel flex items-center justify-between px-4 py-2.5 text-sm"
             >
               <div>
                 <p className="font-medium text-on-surface">{cert.name}</p>
@@ -564,7 +571,7 @@ export default function LawyerProfilePage() {
                   type="button"
                   aria-label="Remove certification"
                   onClick={() => removeCertification(i)}
-                  className="ml-2 rounded-full p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
+                  className="btn btn-ghost btn-icon ml-1 hover:text-error"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -582,25 +589,25 @@ export default function LawyerProfilePage() {
                 value={newCert.name}
                 onChange={(e) => setNewCert((n) => ({ ...n, name: e.target.value }))}
                 placeholder="Certificate name"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <input
                 value={newCert.issuingBody}
                 onChange={(e) => setNewCert((n) => ({ ...n, issuingBody: e.target.value }))}
                 placeholder="Issuing body"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <input
                 type="number"
                 title="Year"
                 value={newCert.year}
                 onChange={(e) => setNewCert((n) => ({ ...n, year: Number(e.target.value) }))}
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <button
                 type="button"
                 onClick={addCertification}
-                className="inline-flex items-center gap-1 rounded-lg bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                className="btn btn-secondary"
               >
                 <Plus className="h-4 w-4" />
                 Add
@@ -611,13 +618,13 @@ export default function LawyerProfilePage() {
                 value={newCert.description?.en || ""}
                 onChange={(e) => setNewCert((n) => ({ ...n, description: { en: e.target.value, bn: n.description?.bn || "" } }))}
                 placeholder="Description (English) - optional"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
               <input
                 value={newCert.description?.bn || ""}
                 onChange={(e) => setNewCert((n) => ({ ...n, description: { en: n.description?.en || "", bn: e.target.value } }))}
                 placeholder="বর্ণনা (বাংলা) - ঐচ্ছিক"
-                className="rounded-lg border border-outline bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                className="field w-auto"
               />
             </div>
           </div>
@@ -639,11 +646,11 @@ export default function LawyerProfilePage() {
                 type="button"
                 disabled={!editMode}
                 onClick={() => editMode && toggleLanguage(lang)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                className={`chip transition-colors ${
                   active
-                    ? "border-secondary bg-secondary/10 text-secondary"
-                    : "border-outline text-on-surface-variant"
-                } ${editMode ? "cursor-pointer hover:border-secondary" : "cursor-default"}`}
+                    ? "chip-active"
+                    : ""
+                } ${editMode ? "cursor-pointer hover:border-outline" : "cursor-default"}`}
               >
                 {lang}
               </button>
@@ -698,11 +705,11 @@ function CollapsibleSection({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container">
+    <section className="card overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-5 hover:bg-surface-container-high transition-colors"
+        className="flex w-full items-center justify-between p-5 transition-colors hover:bg-surface-container"
       >
         <h3 className="text-sm font-semibold text-on-surface">
           {title}
@@ -744,7 +751,7 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={label}
-          className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+          className="field"
         />
       ) : (
         <p className="font-medium text-on-surface">{value || "—"}</p>

@@ -7,7 +7,7 @@ interface WhatsAppCtaProps {
   inline?: boolean
 }
 
-function WhatsAppMark({ className }: { className?: string }) {
+export function WhatsAppMark({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -29,10 +29,14 @@ export function WhatsAppCta({ inline }: WhatsAppCtaProps) {
       href={whatsappHref(t('site.whatsappMessage'))}
       target="_blank"
       rel="noreferrer"
-      className={inline ? 'inline-flex items-center justify-center gap-2 rounded-md border border-whatsapp/20 bg-whatsapp/10 px-4 py-3 text-sm font-semibold text-whatsapp transition hover:bg-whatsapp/20' : 'fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-whatsapp text-white shadow-lg shadow-whatsapp/30 transition hover:scale-[1.05] hover:bg-whatsapp/90'}
+      className={
+        inline
+          ? 'btn btn-secondary'
+          : 'fixed bottom-4 right-4 z-50 inline-flex h-13 w-13 items-center justify-center rounded-full border border-[#1da851] bg-[linear-gradient(180deg,#2fdc6f_0%,#1fbf5a_100%)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.3),0_1px_2px_rgb(0_0_0/0.15),0_6px_16px_-6px_rgb(0_0_0/0.35)] transition-shadow duration-150 ease-out hover:shadow-[inset_0_1px_0_rgb(255_255_255/0.3),0_2px_4px_rgb(0_0_0/0.18),0_10px_22px_-8px_rgb(0_0_0/0.4)] active:translate-y-px sm:bottom-5 sm:right-5'
+      }
       aria-label={t('common.chatWhatsApp')}
     >
-      <WhatsAppMark className={inline ? 'h-4 w-4' : 'h-6 w-6'} />
+      <WhatsAppMark className={inline ? 'h-4 w-4 text-[#1fae55]' : 'h-6 w-6'} />
       {inline ? t('common.messageWhatsApp') : null}
     </a>
   )

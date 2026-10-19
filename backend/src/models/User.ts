@@ -22,6 +22,17 @@ export interface IUser extends Document<mongoose.Types.ObjectId> {
   passwordChangedAt?: Date;
   // Bumped whenever every existing session must die (password change/reset)
   tokenVersion: number;
+  // Admin block: a blocked account cannot log in or use any session
+  isBlocked: boolean;
+  blockedAt?: Date;
+  blockedReason?: string;
+  // Lawyers only: soft delete. The account is kept (blocked) so history and
+  // restore keep working; deletionPending stays set until clean-up has finished
+  deletedAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId | null;
+  deletionPending?: boolean;
+  // Lawyers only: position on public pages (ascending), set by admin drag-and-drop
+  sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
@@ -48,6 +59,13 @@ const UserSchema: Schema = new Schema(
     passwordResetSentAt: { type: Date, select: false },
     passwordChangedAt: { type: Date },
     tokenVersion: { type: Number, default: 0 },
+    isBlocked: { type: Boolean, default: false, index: true },
+    blockedAt: { type: Date },
+    blockedReason: { type: String, trim: true },
+    deletedAt: { type: Date, default: null, index: true },
+    deletedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    deletionPending: { type: Boolean },
+    sortOrder: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

@@ -6,7 +6,7 @@ import { useContentList, useSiteSettings } from './contentHooks'
 import { practiceAreas } from '../lib/data'
 import type { SocialLink } from '../lib/content'
 
-const socialLabels: Record<SocialLink['platform'], string> = {
+export const socialLabels: Record<SocialLink['platform'], string> = {
   facebook: 'Facebook',
   linkedin: 'LinkedIn',
   youtube: 'YouTube',
@@ -15,7 +15,7 @@ const socialLabels: Record<SocialLink['platform'], string> = {
 }
 
 // Brand glyphs (lucide-react v1 dropped brand icons), drawn in the same stroke style.
-const socialIcons: Record<SocialLink['platform'], React.ReactNode> = {
+export const socialIcons: Record<SocialLink['platform'], React.ReactNode> = {
   facebook: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />,
   linkedin: (
     <>
@@ -47,7 +47,7 @@ const socialIcons: Record<SocialLink['platform'], React.ReactNode> = {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface">
+    <h3 className="font-body text-sm font-semibold text-on-surface">
       {children}
     </h3>
   )
@@ -59,6 +59,7 @@ const quickLinks = [
   { labelKey: 'nav.lawyers', href: '/lawyers' },
   { labelKey: 'nav.appointment', href: '/appointment' },
   { labelKey: 'nav.caseTracker', href: '/track-case' },
+  { labelKey: 'nav.contact', href: '/contact' },
 ]
 
 export function Footer() {
@@ -67,30 +68,25 @@ export function Footer() {
   const areas = useContentList('practice-areas', 'areas', practiceAreas)
 
   return (
-    <footer className="surface-inlay border-t border-outline-variant px-4 sm:px-6 py-8 sm:py-12 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-8 sm:gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg font-semibold text-on-surface">
-            <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-secondary/10 text-sm sm:text-base text-secondary ring-1 ring-secondary/20">⚖️</span>
-            {t('site.firmName')}
-          </div>
-          <p className="max-w-sm text-xs sm:text-sm leading-6 text-on-surface-variant">
-            {t('site.address')}
-          </p>
-          <p className="text-xs sm:text-sm leading-6 text-on-surface-variant">
+    <footer className="border-t border-outline-variant bg-surface-container px-4 pb-8 pt-12 shadow-[inset_0_1px_0_var(--highlight)] sm:px-6 sm:pt-14 lg:px-8">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="space-y-3 text-sm leading-6 text-on-surface-variant">
+          <p className="font-display text-lg font-bold text-heading">{t('site.firmName')}</p>
+          {/* <p className="max-w-sm">{t('site.address')}</p> */}
+          <p>
             {t('site.phoneLabel')}: {settings.phoneDisplay} | {t('site.faxLabel')}: {settings.fax}
           </p>
           {settings.email && (
-            <p className="text-xs sm:text-sm leading-6 text-on-surface-variant">
+            <p>
               {t('site.emailLabel')}:{' '}
-              <a href={`mailto:${settings.email}`} className="transition hover:text-secondary">
+              <a href={`mailto:${settings.email}`} className="text-on-surface underline-offset-4 transition-colors hover:underline">
                 {settings.email}
               </a>
             </p>
           )}
           {settings.socials.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs sm:text-sm">
-              <span className="text-on-surface-variant">{t('site.followUs')}:</span>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <span className="mr-1">{t('site.followUs')}:</span>
               {settings.socials.map((social) => (
                 <a
                   key={`${social.platform}-${social.url}`}
@@ -99,7 +95,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   aria-label={socialLabels[social.platform]}
                   title={socialLabels[social.platform]}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary/10 text-secondary ring-1 ring-secondary/20 transition hover:bg-secondary hover:text-on-secondary"
+                  className="btn btn-secondary btn-icon text-on-surface-variant"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -119,32 +115,38 @@ export function Footer() {
           )}
         </div>
 
-        <div>
+        <nav aria-label={t('common.quickLinks')}>
           <SectionHeading>{t('common.quickLinks')}</SectionHeading>
-          <ul className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
+          <ul className="mt-3 space-y-1 text-sm">
             {quickLinks.map((item) => (
               <li key={item.href}>
-                <Link href={localePath(item.href)} className="text-on-surface-variant transition hover:text-secondary">
+                <Link
+                  href={localePath(item.href)}
+                  className="inline-flex min-h-8 items-center text-on-surface-variant transition-colors hover:text-on-surface"
+                >
                   {t(item.labelKey)}
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
+        </nav>
 
         <div>
           <SectionHeading>{t('common.footerPracticeAreas')}</SectionHeading>
-          <div className="mt-3 sm:mt-4 grid gap-2 sm:gap-3 text-xs sm:text-sm text-on-surface-variant sm:grid-cols-2">
+          <ul className="mt-3 grid gap-x-4 gap-y-2 text-sm text-on-surface-variant sm:grid-cols-2">
             {areas.map((area) => (
-              <span key={area.id}>{area.title}</span>
+              <li key={area.id}>{area.title}</li>
             ))}
-          </div>
+          </ul>
         </div>
       </div>
 
-      <div className="mt-8 sm:mt-10 border-t border-outline-variant pt-4 sm:pt-6 text-xs sm:text-sm text-on-surface-variant sm:flex sm:items-center sm:justify-between">
-        <p>{t('common.footerRights')}</p>
-        <p className="mt-2 sm:mt-0">{t('common.footerTagline')}</p>
+      <div className="mx-auto mt-10 max-w-6xl">
+        <hr className="rule" />
+        <div className="pt-5 text-xs text-on-surface-variant sm:flex sm:items-center sm:justify-between sm:text-sm">
+          <p>{t('common.footerRights')}</p>
+          <p className="mt-1 sm:mt-0">{t('common.footerTagline')}</p>
+        </div>
       </div>
     </footer>
   )

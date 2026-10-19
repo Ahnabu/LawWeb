@@ -92,7 +92,7 @@ export default function ClientProfilePage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+        <h3 className="font-display text-2xl font-semibold text-heading">
           My Profile
         </h3>
         <p className="text-sm text-on-surface-variant">
@@ -102,7 +102,7 @@ export default function ClientProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
         {/* Photo card */}
-        <section className="flex flex-col items-center gap-4 rounded-lg border border-outline-variant bg-surface-container p-6">
+        <section className="card flex flex-col items-center gap-4 p-6">
           <div className="relative">
             {profileImageUrl ? (
               <Image
@@ -110,18 +110,18 @@ export default function ClientProfilePage() {
                 alt="Profile"
                 width={112}
                 height={112}
-                className="h-28 w-28 rounded-full object-cover ring-2 ring-outline-variant"
+                className="h-28 w-28 rounded-full border border-outline-variant object-cover shadow-[0_1px_2px_rgb(16_24_40/0.12)]"
               />
             ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-primary/10 ring-2 ring-outline-variant">
-                <User className="h-12 w-12 text-primary/60" />
+              <div className="monogram h-28 w-28">
+                <User className="h-12 w-12 text-outline" />
               </div>
             )}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingImage}
-              className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-primary shadow-md transition hover:opacity-90 disabled:opacity-50"
+              className="btn btn-primary absolute bottom-0 right-0 h-8 min-h-8 w-8 rounded-full p-0"
               aria-label="Change profile photo"
               title="Change photo"
             >
@@ -148,7 +148,7 @@ export default function ClientProfilePage() {
         </section>
 
         {/* Account details */}
-        <section className="space-y-5 rounded-lg border border-outline-variant bg-surface-container p-6">
+        <section className="card space-y-5 p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-on-surface">
               Account Details
@@ -160,7 +160,7 @@ export default function ClientProfilePage() {
                   setForm({ name: user?.name || "", phone: user?.phone || "" });
                   setIsEditing(true);
                 }}
-                className="rounded-lg border border-outline px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:border-primary hover:text-primary"
+                className="btn btn-secondary btn-sm"
               >
                 Edit
               </button>
@@ -170,7 +170,7 @@ export default function ClientProfilePage() {
           {isEditing ? (
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-on-surface-variant">
+                <label className="label">
                   Full Name *
                 </label>
                 <input
@@ -179,12 +179,12 @@ export default function ClientProfilePage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                  className="field"
                   placeholder="Your full name"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-on-surface-variant">
+                <label className="label">
                   Phone Number
                 </label>
                 <input
@@ -193,14 +193,14 @@ export default function ClientProfilePage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, phone: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
+                  className="field"
                   placeholder="+880..."
                 />
               </div>
               <div>
                 <label
                   htmlFor="profile-email"
-                  className="mb-1 block text-xs font-medium text-on-surface-variant"
+                  className="label"
                 >
                   Email
                 </label>
@@ -209,7 +209,7 @@ export default function ClientProfilePage() {
                   type="email"
                   value={user?.email || ""}
                   disabled
-                  className="w-full rounded-lg border border-outline bg-surface-container px-3 py-2 text-sm text-on-surface-variant opacity-60 cursor-not-allowed"
+                  className="field cursor-not-allowed opacity-60"
                 />
                 <p className="mt-1 text-xs text-on-surface-variant">
                   Email cannot be changed.
@@ -220,7 +220,7 @@ export default function ClientProfilePage() {
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:opacity-50"
+                  className="btn btn-primary"
                 >
                   <Save className="h-4 w-4" />
                   {isSaving ? "Saving..." : "Save Changes"}
@@ -228,7 +228,7 @@ export default function ClientProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="rounded-lg border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-high"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
@@ -257,7 +257,7 @@ export default function ClientProfilePage() {
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">
+      <p className="text-sm font-medium text-on-surface-variant">
         {label}
       </p>
       <p className="mt-1 font-medium text-on-surface capitalize">{value}</p>

@@ -1,11 +1,13 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { postLoginPath, safeRedirectPath, signIn } from "../../lib/auth";
+import { ACCOUNT_BLOCKED_CODE, consumeAuthNotice } from "../../lib/http";
 import { useAuth } from "../../components/AuthProvider";
+import { AuthShell } from "../../components/AuthShell";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -16,6 +18,14 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Set when the account is blocked: on a login attempt, or when an open
+  // session was ended by the block (lib/http.ts leaves the notice behind)
+  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const notice = consumeAuthNotice();
+    if (notice) setBlockedNotice(notice);
+  }, []);
 
   // No default here: without an explicit ?redirect= the user goes to their own
   // role's dashboard. The old "/dashboard/client" default was saved to
@@ -27,6 +37,7 @@ function LoginPageContent() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setBlockedNotice(null);
     setIsSubmitting(true);
 
     try {
@@ -36,7 +47,11 @@ function LoginPageContent() {
       const saved = consumePostAuthRedirect();
       router.replace(postLoginPath(data.user.role, redirectParam ?? saved));
     } catch (submitError: unknown) {
-      const err = submitError as { verificationRequired?: boolean; email?: string; message?: string };
+      const err = submitError as { verificationRequired?: boolean; email?: string; message?: string; code?: string };
+      if (err.code === ACCOUNT_BLOCKED_CODE) {
+        setBlockedNotice(err.message || "Your account has been blocked. Contact the firm for help.");
+        return;
+      }
       if (err.verificationRequired && err.email) {
         const next = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : "";
         router.push(`/verify-email?email=${encodeURIComponent(err.email)}${next}`);
@@ -53,132 +68,104 @@ function LoginPageContent() {
   };
 
   return (
-    <main className="auth-page relative min-h-screen bg-[radial-gradient(circle_at_top,rgba(201,168,76,0.18),transparent_28%),linear-gradient(180deg,#07111f_0%,#0A1628_30%,var(--clr-surface)_100%)] px-4 sm:px-6  lg:px-10 py-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/"
-            className="w-fit rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-white/70 hover:bg-white/20"
-          >
-            Back to Home
-          </Link>
-          <section className="card-elevated overflow-hidden rounded-3xl p-4 backdrop-blur-xl sm:p-8 lg:p-10 mt-2">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-secondary sm:text-xs">
-                  Islam & Associates
-                </p>
-                <p className="mt-2 max-w-lg font-display text-2xl leading-snug text-on-surface sm:text-3xl lg:text-4xl">
-                  Login to your account.
-                </p>
-                <p className="mt-3 max-w-lg text-sm leading-6 text-on-surface-variant sm:text-base">
-                  Use your verified email address and password to reach the
-                  correct dashboard automatically.
-                </p>
-              </div>
-            </div>
+    <AuthShell backHref="/" backLabel="Back to Home">
+      <h1 className="text-2xl text-heading sm:text-[1.75rem]">Login to your account.</h1>
+      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+        Use your verified email address and password to reach the
+        correct dashboard automatically.
+      </p>
 
-
-          </section>
+      {/* Role tabs removed — users are redirected to their registered dashboard automatically */}
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <label className="block">
+          <span className="label">Email Address</span>
+          <input
+            type="email"
+            placeholder="admin@lawweb.com"
+            className="field"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoComplete="email"
+          />
+        </label>
+        <div>
+          <div className="flex items-baseline justify-between gap-3">
+            <label htmlFor="login-password" className="label">Password</label>
+            <Link
+              href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
+              className="text-link text-sm font-medium"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+          <div className="relative">
+            <input
+              id="login-password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              className="field pr-12"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-on-surface-variant transition-colors hover:text-on-surface"
+              aria-label={
+                showPassword ? "Hide password" : "Show password"
+              }
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
-
-        <section className="card-elevated rounded-3xl  backdrop-blur-xl p-4">
-          <div className="grid gap-6 rounded-2xl border border-outline-variant bg-surface-container p-4">
+        {blockedNotice && (
+          <div role="alert" className="notice notice-error flex gap-3">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-                Sign In
-              </p>
-              <h2 className="mt-2 font-display text-2xl text-on-surface sm:text-3xl">
-                Welcome back
-              </h2>
-            </div>
-
-            {/* Role tabs removed — users are redirected to their registered dashboard automatically */}
-            <form className="space-y-2" onSubmit={handleSubmit}>
-              <label className="block text-sm font-medium text-on-surface-variant">
-                Email Address
-                <input
-                  type="email"
-                  placeholder="admin@lawweb.com"
-                  className="mt-2 w-full rounded-xl border border-outline bg-surface px-4 py-3.5 text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </label>
-              <label className="block text-sm font-medium text-on-surface-variant">
-                Password
-                <div className="relative mt-2">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="w-full rounded-xl border border-outline bg-surface px-4 py-3.5 pr-12 text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    className="absolute inset-y-0 right-3 flex items-center text-on-surface-variant transition hover:text-primary"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-              </label>
-              {resetDone && !error && (
-                <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success leading-6">
-                  Your password was updated. Log in with your new password.
-                </p>
-              )}
-              {error && (
-                <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger leading-6">
-                  {error}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-secondary px-6 py-3.5 text-sm font-semibold text-primary transition hover:bg-secondary/90 disabled:opacity-60"
-              >
-                {isSubmitting ? "Signing in..." : "Login"}
-              </button>
-            </form>
-            <div className="flex flex-col gap-4 text-sm text-on-surface-variant">
-              <div className="flex items-center justify-between gap-4">
-                <Link
-                  href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
-                  className="text-secondary hover:text-secondary/80"
-                >
-                  Forgot Password?
-                </Link>
-                <span className="text-right">Verified users only</span>
-              </div>
-              <div className="border-t border-outline-variant pt-4">
-                <p className="text-center leading-6">
-                  Don&apos;t have an account?{" "}
-                  <Link
-                    href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : "/register"}
-                    className="font-semibold text-secondary underline decoration-2 underline-offset-4 hover:text-primary"
-                  >
-                    Sign up here
-                  </Link>
-                </p>
-              </div>
+              <p className="font-semibold">Account blocked</p>
+              <p>{blockedNotice}</p>
             </div>
           </div>
-        </section>
-      </div>
-    </main>
+        )}
+        {resetDone && !error && !blockedNotice && (
+          <p className="notice notice-success">
+            Your password was updated. Log in with your new password.
+          </p>
+        )}
+        {error && (
+          <p className="notice notice-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn btn-primary btn-lg btn-block"
+        >
+          {isSubmitting ? "Signing in..." : "Login"}
+        </button>
+      </form>
+
+      <hr className="rule my-6" />
+      <p className="text-center text-sm leading-6 text-on-surface-variant">
+        Don&apos;t have an account?{" "}
+        <Link
+          href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : "/register"}
+          className="text-link"
+        >
+          Sign up here
+        </Link>
+      </p>
+      <p className="mt-1 text-center text-xs text-on-surface-variant">Verified users only</p>
+    </AuthShell>
   );
 }
 

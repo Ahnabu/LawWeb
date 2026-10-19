@@ -30,7 +30,7 @@ export function AuthGate({ children, allowRoles }: AuthGateProps) {
 
   if (status !== 'authenticated') {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center px-6 py-20 text-sm text-on-surface-variant">
+      <div role="status" className="flex min-h-[50vh] items-center justify-center px-6 py-20 text-sm text-on-surface-variant">
         Verifying your session...
       </div>
     )

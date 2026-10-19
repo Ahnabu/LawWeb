@@ -2,7 +2,15 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchSession, readRoleCookie, safeRedirectPath, setRoleCookie, signOut, type AuthUser } from '../lib/auth'
-import { SESSION_EXPIRED_EVENT, broadcastAuth, onAuthMessage } from '../lib/http'
+import { toast } from 'sonner'
+import {
+  ACCOUNT_BLOCKED_EVENT,
+  DEFAULT_BLOCKED_MESSAGE,
+  SESSION_EXPIRED_EVENT,
+  broadcastAuth,
+  notifyAccountBlocked,
+  onAuthMessage,
+} from '../lib/http'
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -108,10 +116,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // lib/http.ts fires this when a refresh is rejected (session revoked or expired)
     window.addEventListener(SESSION_EXPIRED_EVENT, signOutLocally)
 
+    // lib/http.ts fires this when the API answers ACCOUNT_BLOCKED. The server has
+    // already cleared the cookies; drop the local session and say why. The fixed
+    // toast id keeps parallel failing requests from stacking several toasts.
+    const onBlocked = (event: Event) => {
+      const message = (event as CustomEvent<{ message?: string }>).detail?.message || DEFAULT_BLOCKED_MESSAGE
+      signOutLocally()
+      toast.error(message, { id: 'account-blocked', duration: 10000 })
+    }
+    window.addEventListener(ACCOUNT_BLOCKED_EVENT, onBlocked)
+
     // Keep every open tab on the same session
     const unsubscribe = onAuthMessage((message) => {
       if (message.type === 'signed-out') {
         signOutLocally()
+      } else if (message.type === 'blocked') {
+        // Re-dispatch locally (no re-broadcast) so this tab shows the notice too
+        notifyAccountBlocked(message.message, false)
       } else if (message.type === 'signed-in') {
         generation.current += 1
         void loadSession()
@@ -120,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.removeEventListener(SESSION_EXPIRED_EVENT, signOutLocally)
+      window.removeEventListener(ACCOUNT_BLOCKED_EVENT, onBlocked)
       unsubscribe()
     }
   }, [loadSession, signOutLocally])

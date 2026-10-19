@@ -4,6 +4,7 @@ import ContentRevision from '../models/ContentRevision';
 import { CONTENT_PAGE_KEYS, ContentPageKey, contentPageSchemas, isContentPageKey } from '../config/contentSchemas';
 import { formatZodIssues } from '../middleware/validation';
 import { notifyContentPublished } from '../utils/revalidate';
+import { recordAudit } from '../utils/audit';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -138,6 +139,16 @@ export const saveContentDraft = async (req: AuthRequest, res: Response) => {
       { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
+    recordAudit(req, {
+      action: 'content.saved',
+      category: 'content',
+      targetType: 'content_page',
+      targetId: pageKey,
+      targetLabel: pageKey,
+      summary: `Saved draft of the ${pageKey} page`,
+      metadata: { hasUnpublishedChanges: page?.hasUnpublishedChanges ?? false },
+    });
+
     res.json({ status: 200, message: 'Draft saved successfully', data: serializePage(pageKey, page) });
   } catch (error) {
     console.error('Save content draft error:', error);
@@ -199,9 +210,25 @@ export const publishContentPage = async (req: AuthRequest, res: Response) => {
       .select('_id');
     if (stale.length) await ContentRevision.deleteMany({ _id: { $in: stale.map((r) => r._id) } });
 
-    void notifyContentPublished(pageKey);
+    // Awaited: on serverless hosting, work left running after the response is sent may never finish
+    const liveUpdated = await notifyContentPublished(pageKey);
 
-    res.json({ status: 200, message: 'Page published successfully', data: serializePage(pageKey, updated) });
+    recordAudit(req, {
+      action: 'content.published',
+      category: 'content',
+      targetType: 'content_page',
+      targetId: pageKey,
+      targetLabel: pageKey,
+      summary: `Published the ${pageKey} page (version ${nextVersion})`,
+      metadata: { version: nextVersion, liveUpdated },
+    });
+
+    res.json({
+      status: 200,
+      message: 'Page published successfully',
+      data: serializePage(pageKey, updated),
+      meta: { liveUpdated },
+    });
   } catch (error) {
     console.error('Publish content page error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
@@ -225,6 +252,15 @@ export const discardContentDraft = async (req: AuthRequest, res: Response) => {
     page.draftUpdatedByName = req.user.name;
     page.markModified('draft');
     await page.save();
+
+    recordAudit(req, {
+      action: 'content.discarded',
+      category: 'content',
+      targetType: 'content_page',
+      targetId: pageKey,
+      targetLabel: pageKey,
+      summary: `Discarded unpublished changes on the ${pageKey} page`,
+    });
 
     res.json({ status: 200, message: 'Draft changes discarded', data: serializePage(pageKey, page) });
   } catch (error) {
@@ -291,6 +327,16 @@ export const restoreContentRevision = async (req: AuthRequest, res: Response) =>
       },
       { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
+
+    recordAudit(req, {
+      action: 'content.reverted',
+      category: 'content',
+      targetType: 'content_page',
+      targetId: pageKey,
+      targetLabel: pageKey,
+      summary: `Restored version ${revision.version} of the ${pageKey} page to draft`,
+      metadata: { version: revision.version },
+    });
 
     res.json({
       status: 200,

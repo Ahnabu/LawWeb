@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, ExternalLink, History, Languages, Loader2, RotateCcw, Save, Send } from "lucide-react";
-import type { PageContent, SiteSettingsOverride, StringOverride, StringOverrides } from "../../../../../lib/content";
+import { ArrowLeft, Eye, ExternalLink, History, Loader2, RotateCcw, Save, Send } from "lucide-react";
+import { CONTENT_REVALIDATE_SECONDS, type PageContent, type SiteSettingsOverride, type StringOverride, type StringOverrides } from "../../../../../lib/content";
 import { getPageDef } from "../../../../../lib/contentRegistry";
 import { localizePath } from "../../../../../lib/locale";
 import {
@@ -25,6 +25,7 @@ import {
 } from "../../../../../lib/adminContent";
 import { ImageFieldEditor, ListEditor, SiteSettingsEditor, TextFieldEditor } from "../../../../../components/ContentEditorFields";
 import { ContentHistory } from "../../../../../components/ContentHistory";
+import { confirmDialog } from "../../../../../components/ConfirmDialog";
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -106,7 +107,7 @@ export default function AdminContentEditorPage() {
     return (
       <div className="space-y-4">
         <BackLink dirty={false} />
-        <div className="rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">Unknown content page.</div>
+        <p className="notice notice-error" role="alert">Unknown content page.</p>
       </div>
     );
   }
@@ -116,31 +117,54 @@ export default function AdminContentEditorPage() {
     toast.error(e instanceof Error ? e.message : fallback);
   };
 
-  const saveDraft = async (): Promise<boolean> => {
+  // Returns the saved page, or null when saving failed (error already shown)
+  const saveDraft = async (): Promise<AdminContentPage | null> => {
     setErrors([]);
     try {
-      applyPage(await saveContentDraft(def.key, cleaned));
-      return true;
+      const saved = await saveContentDraft(def.key, cleaned);
+      applyPage(saved);
+      return saved;
     } catch (e) {
       handleError(e, "Failed to save draft");
-      return false;
+      return null;
     }
   };
 
   const save = async () => {
     setBusy("save");
-    if (await saveDraft()) toast.success("Draft saved. Publish to make it live.");
+    const saved = await saveDraft();
+    if (saved) {
+      if (saved.hasUnpublishedChanges) toast.success("Draft saved. Publish to make it live.");
+      else toast.info("Draft saved. It matches the live version, so there is nothing to publish.");
+    }
     setBusy(null);
   };
 
   const publish = async () => {
     setBusy("publish");
     try {
-      if (dirty && !(await saveDraft())) return;
-      applyPage(await publishContentPage(def.key));
-      toast.success(`${def.title} published`, def.publicPath
+      if (dirty) {
+        const saved = await saveDraft();
+        if (!saved) return;
+        if (!saved.hasUnpublishedChanges) {
+          toast.info("Nothing to publish. The live site already shows this content.");
+          return;
+        }
+      }
+      const { page: published, liveUpdated } = await publishContentPage(def.key);
+      applyPage(published);
+      const viewAction = def.publicPath
         ? { action: { label: "View page", onClick: () => window.open(def.publicPath, "_blank", "noopener") } }
-        : undefined);
+        : {};
+      if (liveUpdated) {
+        toast.success(`${def.title} published`, viewAction);
+      } else {
+        toast.warning(`${def.title} published`, {
+          ...viewAction,
+          description: `The live site picks up the change within ${Math.round(CONTENT_REVALIDATE_SECONDS / 60)} minutes.`,
+          duration: 8000,
+        });
+      }
     } catch (e) {
       handleError(e, "Failed to publish");
     } finally {
@@ -149,13 +173,14 @@ export default function AdminContentEditorPage() {
   };
 
   const discard = async () => {
-    const message = page?.hasUnpublishedChanges
-      ? "Discard all unpublished changes? The draft goes back to the live version."
-      : "Discard your unsaved edits?";
-    if (!confirm(message)) return;
+    const confirmed = await confirmDialog(page?.hasUnpublishedChanges
+      ? { title: "Discard all unpublished changes?", message: "The draft goes back to the live version.", confirmLabel: "Discard", tone: "danger" }
+      : { title: "Discard your unsaved edits?", confirmLabel: "Discard", tone: "danger" });
+    if (!confirmed) return;
     setErrors([]);
     if (!page?.hasUnpublishedChanges) {
       if (page) applyPage(page);
+      toast.success("Edits discarded");
       return;
     }
     setBusy("discard");
@@ -198,25 +223,25 @@ export default function AdminContentEditorPage() {
         <BackLink dirty={dirty} />
         {page && (
           <div className="flex flex-wrap items-center gap-2">
-            {dirty && <span className="text-xs font-medium text-yellow-700">Unsaved changes</span>}
+            {dirty && <span className="chip"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-secondary" />Unsaved changes</span>}
             <button onClick={() => setShowHistory((v) => !v)} aria-pressed={showHistory}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${showHistory ? "border-secondary bg-secondary/10 text-secondary" : "border-outline-variant text-on-surface-variant hover:bg-surface-container"}`}>
-              <History className="h-3.5 w-3.5" /> History
+              className="chip">
+              <History className="h-3.5 w-3.5" aria-hidden="true" /> History
             </button>
             <button onClick={preview} disabled={busy !== null} title={dirty ? "Saves your edits as a draft, then opens the preview" : "Open the site showing the saved drafts"}
-              className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
+              className="btn btn-ghost btn-sm">
               {busy === "preview" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />} {dirty ? "Save & Preview" : "Preview"}
             </button>
             <button onClick={discard} disabled={!canPublish || busy !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
+              className="btn btn-ghost btn-sm">
               {busy === "discard" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Discard
             </button>
             <button onClick={save} disabled={!dirty || busy !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
+              className="btn btn-secondary btn-sm">
               {busy === "save" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Draft
             </button>
             <button onClick={publish} disabled={!canPublish || busy !== null}
-              className="flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-1.5 text-xs font-semibold text-primary hover:opacity-90 disabled:opacity-50 transition">
+              className="btn btn-primary btn-sm">
               {busy === "publish" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Publish
             </button>
           </div>
@@ -224,37 +249,37 @@ export default function AdminContentEditorPage() {
       </div>
 
       <header className="space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">{def.title}</h3>
           {def.publicPath && (
             <a href={def.publicPath} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-semibold text-secondary hover:underline">
-              View live page <ExternalLink className="h-3 w-3" />
+              className="text-link inline-flex items-center gap-1 text-sm">
+              View live page <ExternalLink className="h-3 w-3" aria-hidden="true" />
             </a>
           )}
           {def.publicPath && (
             <a href={localizePath(def.publicPath, "bn")} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-semibold text-secondary hover:underline">
-              Bangla page <ExternalLink className="h-3 w-3" />
+              className="text-link inline-flex items-center gap-1 text-sm">
+              Bangla page <ExternalLink className="h-3 w-3" aria-hidden="true" />
             </a>
           )}
         </div>
         <p className="text-sm text-on-surface-variant">{def.description}</p>
         {page && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-on-surface-variant">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm text-on-surface-variant">
             <span>
               {page.version === 0
                 ? "Never published — the site shows the default content"
                 : `Live: version ${page.version}${page.publishedAt ? `, ${formatDateTime(page.publishedAt)}` : ""}${page.publishedByName ? ` by ${page.publishedByName}` : ""}`}
             </span>
             {page.hasUnpublishedChanges && page.draftUpdatedAt && (
-              <span className="font-semibold text-yellow-700">
+              <span className="font-semibold text-gold-ink">
                 Draft saved {formatDateTime(page.draftUpdatedAt)}{page.draftUpdatedByName && ` by ${page.draftUpdatedByName}`} — not published yet
               </span>
             )}
             {bangla && (
-              <span className={`flex items-center gap-1 ${bangla.missing || bangla.outdated ? "font-semibold text-orange-600" : ""}`}>
-                <Languages className="h-3.5 w-3.5" /> Bangla {bangla.percent}%{bangla.missing > 0 && ` · ${bangla.missing} missing`}{bangla.outdated > 0 && ` · ${bangla.outdated} outdated`}
+              <span className={bangla.missing || bangla.outdated ? "font-semibold text-gold-ink" : ""}>
+                Bangla {bangla.percent}%{bangla.missing > 0 && ` · ${bangla.missing} missing`}{bangla.outdated > 0 && ` · ${bangla.outdated} outdated`}
               </span>
             )}
           </div>
@@ -262,7 +287,7 @@ export default function AdminContentEditorPage() {
       </header>
 
       {errors.length > 0 && (
-        <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+        <div className="notice notice-error" role="alert">
           <p className="font-semibold">Please fix these fields:</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
             {errors.map((err, i) => <li key={i}>{describeFieldPath(def, err.field)}: {err.message}</li>)}
@@ -275,18 +300,18 @@ export default function AdminContentEditorPage() {
       )}
 
       {loading ? (
-        <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-40 animate-pulse rounded-xl border border-outline-variant bg-surface-container" />)}</div>
+        <div className="space-y-4" aria-busy="true">{[0, 1, 2].map((i) => <div key={i} className="card h-40 bg-surface-container" />)}</div>
       ) : loadError ? (
-        <div className="rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">{loadError}</div>
+        <p className="notice notice-error" role="alert">{loadError}</p>
       ) : (
         def.sections.map((section) => {
           const list = section.list;
           const listState = list ? getListItems(data, list) : null;
           return (
-            <section key={section.title} className="space-y-4 rounded-xl border border-outline-variant bg-surface-container p-5">
+            <section key={section.title} className="card space-y-5 p-5 sm:p-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{section.title}</p>
-                {section.description && <p className="mt-1 text-xs text-on-surface-variant">{section.description}</p>}
+                <h4 className="font-display text-lg font-semibold text-on-surface">{section.title}</h4>
+                {section.description && <p className="mt-1 text-sm text-on-surface-variant">{section.description}</p>}
               </div>
 
               {section.settings && (
@@ -317,11 +342,23 @@ export default function AdminContentEditorPage() {
 }
 
 function BackLink({ dirty }: { dirty: boolean }) {
+  const router = useRouter();
+  const href = "/dashboard/admin/content";
+  const leave = async (e: React.MouseEvent) => {
+    if (!dirty) return;
+    e.preventDefault();
+    const confirmed = await confirmDialog({
+      title: "Leave without saving?",
+      message: "You have unsaved changes on this page.",
+      confirmLabel: "Leave",
+      tone: "danger",
+    });
+    if (confirmed) router.push(href);
+  };
   return (
-    <Link href="/dashboard/admin/content"
-      onClick={(e) => { if (dirty && !confirm("You have unsaved changes. Leave without saving?")) e.preventDefault(); }}
-      className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-on-surface transition">
-      <ArrowLeft className="h-4 w-4" /> Back to Content
+    <Link href={href} onClick={leave}
+      className="btn btn-ghost btn-sm -ml-3">
+      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to Content
     </Link>
   );
 }

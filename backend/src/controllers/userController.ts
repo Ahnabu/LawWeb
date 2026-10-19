@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
 import { cloudinary } from '../config/multer.config';
+import { recordAudit } from '../utils/audit';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -36,6 +37,16 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
       .select('name email phone role isVerified profileImageUrl');
     if (!user) return res.status(404).json({ status: 404, message: 'User not found' });
 
+    recordAudit(req, {
+      action: 'profile.updated',
+      category: 'profile',
+      targetType: 'user',
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} updated their profile`,
+      metadata: { fields: Object.keys(update) },
+    });
+
     res.json({ status: 200, message: 'Profile updated successfully', data: user });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -60,6 +71,15 @@ export const uploadMyProfileImage = async (req: AuthRequest, res: Response) => {
 
     const imageUrl: string = (req.file as any).path;
     await User.findByIdAndUpdate(userId, { $set: { profileImageUrl: imageUrl } });
+
+    recordAudit(req, {
+      action: 'profile.photo_updated',
+      category: 'profile',
+      targetType: 'user',
+      targetId: userId,
+      targetLabel: req.user?.name,
+      summary: `${req.user?.name ?? 'User'} uploaded a new profile photo`,
+    });
 
     res.json({ status: 200, message: 'Profile image uploaded successfully', data: { profileImageUrl: imageUrl } });
   } catch (error) {

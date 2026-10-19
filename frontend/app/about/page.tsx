@@ -17,121 +17,87 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen bg-surface text-on-surface">
       <Navbar />
-      <section className="bg-primary px-6 py-20 text-white sm:px-8 lg:px-10">
+      <section className="page-hero px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-            {t('about.heroLabel')}
-          </p>
-          <h1 className="mt-4 font-display text-5xl font-bold leading-tight">
-            {t('about.heroTitle')}
-          </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+          <p className="text-sm font-semibold text-secondary">{t('about.heroLabel')}</p>
+          <h1 className="mt-3 max-w-3xl text-white">{t('about.heroTitle')}</h1>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-white/80 sm:text-lg sm:leading-8">
             {t('about.heroSubtitle')}
           </p>
         </div>
       </section>
 
-      <section className="bg-surface px-6 py-16 sm:px-8 lg:px-10">
-        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="card-elevated space-y-6 p-10">
-            <h2 className="font-display text-3xl font-semibold text-on-surface">
-              {t('about.overviewTitle')}
-            </h2>
-            <p className="text-base leading-7 text-on-surface-variant">
-              {t('about.overviewText')}
-            </p>
-            <div className="rounded-xl bg-secondary/10 p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-                {t('about.promiseTitle')}
-              </p>
-              <p className="mt-4 text-lg font-semibold leading-7 text-on-surface">
+      {/* Overview + certifications */}
+      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-start gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-14">
+          <div>
+            <h2 className="text-heading">{t('about.overviewTitle')}</h2>
+            <p className="mt-4 max-w-prose text-base leading-7 text-on-surface-variant">{t('about.overviewText')}</p>
+            <figure className="mt-8 max-w-prose border-l-2 border-secondary pl-5">
+              <figcaption className="kicker">{t('about.promiseTitle')}</figcaption>
+              <blockquote className="mt-2 font-display text-lg leading-8 text-on-surface">
                 {t('about.promiseText')}
-              </p>
-            </div>
+              </blockquote>
+            </figure>
           </div>
-          <div className="card-elevated p-10">
-            <h3 className="font-display text-2xl font-semibold text-on-surface">
-              {t('about.certificationsTitle')}
-            </h3>
-            <ul className="mt-6 space-y-3 text-on-surface-variant">
+          <div className="card p-6 sm:p-7">
+            <h3 className="text-heading">{t('about.certificationsTitle')}</h3>
+            <ul className="mt-4 divide-y divide-outline-variant text-sm leading-6 text-on-surface-variant">
               {certifications.map((item) => (
-                <li key={item.id}>{item.label}</li>
+                <li key={item.id} className="py-3">
+                  {item.label}
+                </li>
               ))}
             </ul>
           </div>
         </div>
       </section>
 
-      <section className="bg-surface-container px-6 py-16 sm:px-8 lg:px-10">
+      {/* Timeline */}
+      <section className="border-y border-outline-variant bg-surface-container px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <h2 className="font-display text-3xl font-semibold text-on-surface">
-            {t('about.timelineTitle')}
-          </h2>
-          <div className="mt-12 space-y-8">
+          <h2 className="text-heading">{t('about.timelineTitle')}</h2>
+          <ol className="mt-10 max-w-3xl border-l border-outline">
             {timeline.map((item) => (
-              <div
-                key={item.id}
-                className="card-elevated grid gap-4 p-8 md:grid-cols-[150px_1fr]"
-              >
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-                  {item.year}
-                </div>
-                <div>
-                  <h3 className="font-display text-xl font-semibold text-on-surface">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 text-on-surface-variant">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
+              <li key={item.id} className="relative pb-10 pl-6 last:pb-0 sm:pl-8">
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-1.25 top-1.5 h-2.5 w-2.5 rounded-full border border-[#a8873a] bg-secondary"
+                />
+                <p className="text-sm font-semibold text-gold-ink">{item.year}</p>
+                <h3 className="mt-1 text-heading">{item.title}</h3>
+                <p className="mt-2 max-w-prose text-base leading-7 text-on-surface-variant">{item.description}</p>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      <section className="bg-surface px-6 py-16 sm:px-8 lg:px-10">
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="card-elevated p-10">
-            <h2 className="font-display text-3xl font-semibold text-on-surface">
-              {t('about.principalTitle')}
-            </h2>
-            <p className="mt-4 text-lg font-semibold text-on-surface">
-              {t('about.principalName')}
-            </p>
-            <p className="mt-3 leading-7 text-on-surface-variant">
-              {t('about.principalText')}
-            </p>
-            <div className="mt-8 space-y-4">
+      {/* Principal + mission */}
+      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-start gap-6 lg:grid-cols-2 lg:gap-8">
+          <div className="card p-6 sm:p-8">
+            <h2 className="text-2xl text-heading">{t('about.principalTitle')}</h2>
+            <p className="mt-3 text-lg font-semibold text-on-surface">{t('about.principalName')}</p>
+            <p className="mt-2 text-base leading-7 text-on-surface-variant">{t('about.principalText')}</p>
+            <ul className="panel mt-6 divide-y divide-outline-variant text-sm leading-6 text-on-surface-variant">
               {credentials.map((credential) => (
-                <p
-                  key={credential.id}
-                  className="rounded-xl bg-surface-container p-4 text-on-surface-variant"
-                >
+                <li key={credential.id} className="px-4 py-3">
                   {credential.label}
-                </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
-          <div className="card-elevated p-10">
-            <h2 className="font-display text-3xl font-semibold text-on-surface">
-              {t('about.missionTitle')}
-            </h2>
-            <div className="mt-8 space-y-6">
+          <div className="card p-6 sm:p-8">
+            <h2 className="text-2xl text-heading">{t('about.missionTitle')}</h2>
+            <dl className="mt-4 divide-y divide-outline-variant">
               {values.map((value) => (
-                <div
-                  key={value.id}
-                  className="rounded-xl bg-surface-container p-6"
-                >
-                  <h3 className="text-xl font-semibold text-on-surface">
-                    {value.title}
-                  </h3>
-                  <p className="mt-2 text-on-surface-variant">
-                    {value.description}
-                  </p>
+                <div key={value.id} className="py-4 last:pb-0">
+                  <dt className="font-display text-lg font-semibold text-on-surface">{value.title}</dt>
+                  <dd className="mt-1 text-base leading-7 text-on-surface-variant">{value.description}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </div>
         </div>
       </section>

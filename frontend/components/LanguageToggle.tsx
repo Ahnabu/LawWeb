@@ -42,7 +42,7 @@ export function LanguageToggle() {
     <button
       type="button"
       onClick={() => setLocale(nextLocale)}
-      className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container px-3 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+      className="btn btn-secondary btn-sm min-h-10 gap-2 px-3 font-medium"
       aria-label={t('common.language')}
     >
       {locale === 'en' ? <UkFlag /> : <BdFlag />}

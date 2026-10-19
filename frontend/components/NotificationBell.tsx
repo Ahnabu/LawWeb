@@ -55,46 +55,46 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={handleOpen}
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant bg-surface text-on-surface-variant shadow-sm transition hover:bg-surface-container hover:text-on-surface"
+        className="btn btn-secondary btn-icon relative text-on-surface-variant"
         aria-label="Toggle notifications"
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-4.5 w-4.5" />
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-surface-raised bg-error px-0.5 text-[10px] font-bold text-white">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-3 w-80 rounded-xl border border-outline-variant bg-surface p-4 shadow-2xl">
+        <div className="card absolute right-0 z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] p-4 shadow-xl">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-on-surface">Notifications</p>
               <p className="text-xs text-on-surface-variant">Recent activity</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="text-lg leading-none text-on-surface-variant hover:text-on-surface">×</button>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close notifications" className="btn btn-ghost btn-icon -mr-2 text-lg leading-none">×</button>
           </div>
 
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 animate-pulse rounded-xl bg-surface-container" />
+                <div key={i} className="h-14 animate-pulse rounded-lg bg-surface-container" />
               ))}
             </div>
           ) : notifications.length === 0 ? (
             <p className="py-4 text-center text-sm text-on-surface-variant">No recent activity</p>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-outline-variant">
               {notifications.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 rounded-xl bg-surface-container p-3 text-sm">
-                  <span className="mt-0.5 shrink-0 text-secondary">
+                <div key={item.id} className="flex items-start gap-3 py-3 text-sm first:pt-0 last:pb-0">
+                  <span className="mt-0.5 shrink-0 text-gold-ink">
                     {item.type === 'appointment' ? <CalendarClock className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-on-surface">{item.title}</p>
                     <p className="truncate text-xs text-on-surface-variant">{item.body}</p>
-                    <p className="mt-1 text-xs text-on-surface-variant opacity-60">{timeAgo(item.time)}</p>
+                    <p className="mt-1 text-xs text-on-surface-variant">{timeAgo(item.time)}</p>
                   </div>
                 </div>
               ))}

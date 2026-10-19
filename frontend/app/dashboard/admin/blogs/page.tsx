@@ -4,11 +4,16 @@ import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
 import {
-  Plus, X, Trash2, Newspaper, Pencil, Save, Send, Archive,
+  Plus, X, Trash2, Pencil, Save, Send, Archive,
   ArrowLeft, ChevronUp, ChevronDown, ImagePlus, Loader2,
   Heading1, Heading2, Heading3, AlignLeft, Quote, Zap, Minus, List,
 } from "lucide-react";
+import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
+import { confirmDialog } from "../../../../components/ConfirmDialog";
+import { Pagination } from "../../../../components/Pagination";
+
+const PAGE_SIZE = 20;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type BlockType = "h1" | "h2" | "h3" | "paragraph" | "quote" | "callout" | "divider" | "list";
@@ -48,6 +53,11 @@ export default function AdminBlogsPage() {
   const [blogs, setBlogs] = useState<BlogSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string|null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  // Per-status totals from the server, for the stat cards
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const requestId = useRef(0);
 
   // editor
   const [editId, setEditId] = useState<string|null>(null);
@@ -59,16 +69,24 @@ export default function AdminBlogsPage() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const fetchBlogs = useCallback(async () => {
-    setLoading(true); setError(null);
+  const fetchBlogs = useCallback(async (options: { quiet?: boolean } = {}) => {
+    const id = ++requestId.current;
+    if (!options.quiet) setLoading(true);
+    setError(null);
     try {
-      const r = await apiFetch(`${API_BASE_URL}/api/blogs/admin/all`, { credentials:"include" });
+      const qs = new URLSearchParams({ page:String(page), limit:String(PAGE_SIZE) });
+      const r = await apiFetch(`${API_BASE_URL}/api/blogs/admin/all?${qs}`, { credentials:"include" });
       if (!r.ok) throw new Error("Failed to fetch blogs");
       const d = await r.json();
-      setBlogs(d.data ?? []);
-    } catch(e) { setError(e instanceof Error ? e.message : "Error"); }
-    finally { setLoading(false); }
-  }, []);
+      if (id !== requestId.current) return;
+      const rows: BlogSummary[] = d.data ?? [];
+      const nextTotal: number = d.meta?.total ?? rows.length;
+      setBlogs(rows); setTotal(nextTotal); setCounts(d.meta?.counts ?? {});
+      // The last post on a page was deleted: step back instead of showing an empty page
+      if (rows.length === 0 && page > 1 && nextTotal > 0) setPage(p => Math.max(1, p - 1));
+    } catch(e) { if (id === requestId.current) setError(e instanceof Error ? e.message : "Error"); }
+    finally { if (id === requestId.current) setLoading(false); }
+  }, [page]);
 
   useEffect(() => { void fetchBlogs(); }, [fetchBlogs]);
 
@@ -88,17 +106,25 @@ export default function AdminBlogsPage() {
         tags:data.tags.join(", "), coverImageUrl:data.coverImageUrl??"", status:data.status });
       setBlocks((data.blocks??[]).map(b => ({ ...b, id:uid() })));
       setEditId(id); setSaved(false); setView("editor");
-    } catch(e) { alert(e instanceof Error ? e.message : "Error"); }
+    } catch(e) { toast.error(e instanceof Error ? e.message : "Failed to load blog"); }
   };
 
   // delete
   const doDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"?`)) return;
+    const confirmed = await confirmDialog({
+      title: `Delete "${title}"?`,
+      message: "The post will be removed from the site. This cannot be undone.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       const r = await apiFetch(`${API_BASE_URL}/api/blogs/${id}`, { method:"DELETE", credentials:"include" });
       if (!r.ok) throw new Error("Delete failed");
       setBlogs(p => p.filter(b => b._id !== id));
-    } catch(e) { alert(e instanceof Error ? e.message : "Delete failed"); }
+      void fetchBlogs({ quiet:true });
+      toast.success("Blog post deleted");
+    } catch(e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
   };
 
   // block operations
@@ -127,7 +153,8 @@ export default function AdminBlogsPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.message);
       setForm(f => ({ ...f, coverImageUrl: d.url }));
-    } catch(e) { alert(e instanceof Error ? e.message : "Upload failed"); }
+      toast.success("Cover image uploaded");
+    } catch(e) { toast.error(e instanceof Error ? e.message : "Upload failed"); }
     finally { setUploading(false); }
   };
 
@@ -158,9 +185,13 @@ export default function AdminBlogsPage() {
       if (!r.ok) throw new Error(d.message||"Save failed");
       if (!editId) setEditId(d.data._id);
       setForm(f => ({ ...f, status:d.data.status }));
-      setSaved(true); void fetchBlogs();
+      setSaved(true); void fetchBlogs({ quiet:true });
       setTimeout(() => setSaved(false), 3000);
-    } catch(e) { setSaveErr(e instanceof Error ? e.message : "Save failed"); }
+      toast.success(d.data.status === "published" ? "Blog post published" : "Blog post saved");
+    } catch(e) {
+      const message = e instanceof Error ? e.message : "Save failed";
+      setSaveErr(message); toast.error(message);
+    }
     finally { setSaving(false); }
   };
 
@@ -169,98 +200,98 @@ export default function AdminBlogsPage() {
     <div className="space-y-5 max-w-3xl">
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button onClick={() => setView("list")} className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-on-surface transition">
-          <ArrowLeft className="h-4 w-4"/> Back to Blogs
+        <button onClick={() => setView("list")} className="btn btn-ghost btn-sm -ml-3">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true"/> Back to Blogs
         </button>
         <div className="flex items-center gap-2 flex-wrap">
-          {saved && <span className="text-xs font-medium text-green-600">Saved ✓</span>}
-          <button onClick={() => save("draft")} disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
-            <Save className="h-3.5 w-3.5"/> {saving?"Saving…":"Save Draft"}
-          </button>
+          {saved && <span className="text-sm font-medium text-success" role="status">Saved</span>}
           <button onClick={() => save("archived")} disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
-            <Archive className="h-3.5 w-3.5"/> Archive
+            className="btn btn-ghost btn-sm">
+            <Archive className="h-3.5 w-3.5" aria-hidden="true"/> Archive
+          </button>
+          <button onClick={() => save("draft")} disabled={saving}
+            className="btn btn-secondary btn-sm">
+            <Save className="h-3.5 w-3.5" aria-hidden="true"/> {saving?"Saving…":"Save Draft"}
           </button>
           <button onClick={() => save("published")} disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-1.5 text-xs font-semibold text-primary hover:opacity-90 disabled:opacity-50 transition">
-            <Send className="h-3.5 w-3.5"/> Publish
+            className="btn btn-primary btn-sm">
+            <Send className="h-3.5 w-3.5" aria-hidden="true"/> Publish
           </button>
         </div>
       </div>
 
-      <h3 className="font-display text-xl font-semibold text-on-surface">
+      <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
         {editId ? "Edit Blog Post" : "New Blog Post"}
       </h3>
 
-      {saveErr && <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-2 text-sm text-error">{saveErr}</div>}
+      {saveErr && <p className="notice notice-error" role="alert">{saveErr}</p>}
 
       {/* Meta */}
-      <div className="rounded-xl border border-outline-variant bg-surface-container p-5 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Post Details</p>
+      <div className="card space-y-5 p-5 sm:p-6">
+        <h4 className="font-display text-lg font-semibold text-on-surface">Post Details</h4>
 
         {/* Cover image */}
         <div>
-          <p className="text-xs font-medium text-on-surface-variant mb-2">Cover Image</p>
+          <p className="label">Cover Image</p>
           {form.coverImageUrl ? (
-            <div className="relative h-48 w-full overflow-hidden rounded-xl border border-outline-variant">
+            <div className="relative h-48 w-full overflow-hidden rounded-lg border border-outline-variant">
               <Image src={form.coverImageUrl} alt="Cover" fill sizes="100vw" className="object-cover" />
-              <button onClick={() => setForm(f => ({...f, coverImageUrl:""}))}
-                className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white hover:bg-error transition">
-                <X className="h-4 w-4"/>
+              <button onClick={() => setForm(f => ({...f, coverImageUrl:""}))} aria-label="Remove cover image"
+                className="btn btn-secondary btn-sm absolute top-2 right-2">
+                <X className="h-4 w-4" aria-hidden="true"/> Remove
               </button>
             </div>
           ) : (
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-outline-variant py-8 text-sm text-on-surface-variant hover:border-secondary hover:text-secondary transition disabled:opacity-60">
-              {uploading ? <><Loader2 className="h-5 w-5 animate-spin"/> Uploading…</> : <><ImagePlus className="h-5 w-5"/> Click to upload cover image</>}
+              className="panel flex w-full items-center justify-center gap-2 py-8 text-sm text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface disabled:opacity-60">
+              {uploading ? <><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true"/> Uploading…</> : <><ImagePlus className="h-5 w-5" aria-hidden="true"/> Click to upload cover image</>}
             </button>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={e => e.target.files?.[0] && uploadCover(e.target.files[0])}/>
         </div>
 
-        <label className="block text-xs font-medium text-on-surface-variant">
-          Title <span className="text-error">*</span>
+        <label className="block">
+          <span className="label">Title <span className="text-error">*</span></span>
           <input value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))}
             placeholder="e.g. Understanding Immigration Law in Bangladesh"
-            className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-secondary"/>
+            className="field"/>
         </label>
 
-        <label className="block text-xs font-medium text-on-surface-variant">
-          Excerpt / Summary <span className="text-error">*</span>
+        <label className="block">
+          <span className="label">Excerpt / Summary <span className="text-error">*</span></span>
           <textarea value={form.excerpt} onChange={e => setForm(f=>({...f,excerpt:e.target.value}))}
             rows={3} maxLength={300} placeholder="Brief summary shown on the blog listing (max 300 chars)"
-            className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-secondary resize-none"/>
-          <span className="block text-right text-xs text-on-surface-variant mt-0.5">{form.excerpt.length}/300</span>
+            className="field min-h-0 resize-none"/>
+          <span className="hint block text-right tabular-nums">{form.excerpt.length}/300</span>
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block text-xs font-medium text-on-surface-variant">
-            Category <span className="text-error">*</span>
+          <label className="block">
+            <span className="label">Category <span className="text-error">*</span></span>
             <select value={form.category} onChange={e => setForm(f=>({...f,category:e.target.value}))}
-              className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-secondary">
+              className="field">
               {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/-/g," ").replace(/\b\w/g,l=>l.toUpperCase())}</option>)}
             </select>
           </label>
-          <label className="block text-xs font-medium text-on-surface-variant">
-            Tags <span className="text-on-surface-variant font-normal">(comma-separated)</span>
+          <label className="block">
+            <span className="label">Tags <span className="text-on-surface-variant font-normal">(comma-separated)</span></span>
             <input value={form.tags} onChange={e => setForm(f=>({...f,tags:e.target.value}))}
               placeholder="visa, immigration, tips"
-              className="mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-secondary"/>
+              className="field"/>
           </label>
         </div>
       </div>
 
       {/* Content builder */}
-      <div className="rounded-xl border border-outline-variant bg-surface-container p-5 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Content</p>
+      <div className="card space-y-4 p-5 sm:p-6">
+        <h4 className="font-display text-lg font-semibold text-on-surface">Content</h4>
 
         {/* Always-visible block toolbar */}
-        <div className="flex flex-wrap gap-2 rounded-lg border border-outline-variant bg-surface p-2">
+        <div className="panel flex flex-wrap gap-1 p-1.5" role="toolbar" aria-label="Add a block">
           {TOOLBAR.map(bt => (
             <button key={bt.type} onClick={() => addBlock(bt.type)} title={bt.tip}
-              className="flex items-center gap-1.5 rounded-md border border-outline-variant px-2.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:border-secondary hover:bg-secondary/10 hover:text-secondary transition">
+              className="btn btn-ghost btn-sm px-2.5">
               {bt.icon} {bt.label}
             </button>
           ))}
@@ -268,7 +299,7 @@ export default function AdminBlogsPage() {
 
         {blocks.length === 0 ? (
           <div className="rounded-lg border border-dashed border-outline-variant p-8 text-center">
-            <p className="text-xs text-on-surface-variant">Click a block type above to start writing your content.</p>
+            <p className="text-sm text-on-surface-variant">Click a block type above to start writing your content.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -290,62 +321,64 @@ export default function AdminBlogsPage() {
           <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">Blog Management</h3>
           <p className="text-sm text-on-surface-variant">Write and publish articles for the public blog.</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary hover:opacity-90 transition">
-          <Plus className="h-4 w-4"/> New Blog Post
+        <button onClick={openNew} className="btn btn-primary">
+          <Plus className="h-4 w-4" aria-hidden="true"/> New Blog Post
         </button>
       </header>
 
       {!loading && !error && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[["Total Posts", blogs.length],["Published", blogs.filter(b=>b.status==="published").length],["Drafts", blogs.filter(b=>b.status==="draft").length]].map(([l,v]) => (
-            <div key={l as string} className="rounded-lg border border-outline-variant bg-surface-container p-4">
-              <p className="text-sm text-on-surface-variant">{l}</p>
-              <p className="mt-2 font-display text-3xl font-bold text-on-surface">{v}</p>
+        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          {[["Total Posts", counts.all ?? 0],["Published", counts.published ?? 0],["Drafts", counts.draft ?? 0]].map(([l,v]) => (
+            <div key={l as string} className="flex items-baseline gap-1.5">
+              <dt className="text-on-surface-variant">{l}</dt>
+              <dd className="font-semibold text-on-surface tabular-nums">{v}</dd>
             </div>
           ))}
-        </div>
+        </dl>
       )}
 
       {loading ? (
-        <div className="space-y-3">{[0,1,2].map(i=><div key={i} className="h-20 animate-pulse rounded-xl border border-outline-variant bg-surface-container"/>)}</div>
+        <div className="card h-64 bg-surface-container" aria-busy="true"/>
       ) : error ? (
-        <div className="rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">{error}</div>
+        <p className="notice notice-error" role="alert">{error}</p>
       ) : blogs.length===0 ? (
-        <div className="rounded-xl border border-outline-variant bg-surface-container p-10 text-center">
-          <Newspaper className="mx-auto mb-3 h-9 w-9 text-on-surface-variant"/>
+        <div className="card p-10 text-center">
           <p className="text-sm text-on-surface-variant">No blog posts yet.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <ul className="card divide-y divide-outline-variant overflow-hidden">
           {blogs.map(blog => (
-            <div key={blog._id} className="rounded-xl border border-outline-variant bg-surface-container p-4">
+            <li key={blog._id} className="px-4 py-4 sm:px-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <p className="font-semibold text-on-surface truncate">{blog.title}</p>
                     <StatusBadge status={blog.status}/>
                   </div>
-                  <p className="text-xs text-on-surface-variant line-clamp-1">{blog.excerpt}</p>
-                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-on-surface-variant">
+                  <p className="text-sm text-on-surface-variant line-clamp-1">{blog.excerpt}</p>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-on-surface-variant">
                     <span className="capitalize">{blog.category.replace(/-/g," ")}</span>
                     <span>{blog.readingTimeMinutes} min read</span>
                     <span>By {blog.authorName}</span>
                     <span>{new Date(blog.createdAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => openEdit(blog._id)}
-                    className="flex items-center gap-1.5 rounded-lg border border-secondary/60 bg-secondary/10 px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-secondary hover:text-primary transition">
-                    <Pencil className="h-3.5 w-3.5"/> Edit
+                    className="btn btn-secondary btn-sm">
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true"/> Edit
                   </button>
-                  <button onClick={() => doDelete(blog._id, blog.title)}
-                    className="rounded-lg border border-outline-variant p-1.5 text-on-surface-variant hover:border-error/40 hover:bg-error/10 hover:text-error transition">
-                    <Trash2 className="h-4 w-4"/>
+                  <button onClick={() => doDelete(blog._id, blog.title)} aria-label={`Delete ${blog.title}`} title="Delete"
+                    className="btn btn-ghost btn-icon hover:text-error">
+                    <Trash2 className="h-4 w-4" aria-hidden="true"/>
                   </button>
                 </div>
               </div>
-            </div>
+            </li>
           ))}
+          </ul>
+          <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage}/>
         </div>
       )}
     </div>
@@ -357,17 +390,17 @@ function BlockEditor({ block, index, total, onChange, onRemove, onMove }: {
   block: Block; index: number; total: number;
   onChange: (p: Partial<Block>) => void; onRemove: () => void; onMove: (d: -1|1) => void;
 }) {
-  const base = "block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-on-surface outline-none focus:border-secondary";
+  const base = "field";
   const label: Record<BlockType, string> = { h1:"H1 Heading", h2:"H2 Heading", h3:"H3 Heading", paragraph:"Paragraph", quote:"Quote", callout:"Callout", divider:"Divider", list:"List" };
 
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface p-3 space-y-2">
+    <div className="panel space-y-3 p-3 sm:p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-secondary">{label[block.type]}</span>
-        <div className="flex items-center gap-1">
-          <button onClick={() => onMove(-1)} disabled={index===0} className="rounded p-1 text-on-surface-variant hover:bg-surface-container disabled:opacity-30"><ChevronUp className="h-3.5 w-3.5"/></button>
-          <button onClick={() => onMove(1)} disabled={index===total-1} className="rounded p-1 text-on-surface-variant hover:bg-surface-container disabled:opacity-30"><ChevronDown className="h-3.5 w-3.5"/></button>
-          <button onClick={onRemove} className="rounded p-1 text-on-surface-variant hover:bg-error/10 hover:text-error"><X className="h-3.5 w-3.5"/></button>
+        <span className="text-sm font-semibold text-on-surface">{label[block.type]}</span>
+        <div className="-my-1 flex items-center">
+          <button onClick={() => onMove(-1)} disabled={index===0} aria-label="Move up" className="btn btn-ghost btn-icon"><ChevronUp className="h-4 w-4" aria-hidden="true"/></button>
+          <button onClick={() => onMove(1)} disabled={index===total-1} aria-label="Move down" className="btn btn-ghost btn-icon"><ChevronDown className="h-4 w-4" aria-hidden="true"/></button>
+          <button onClick={onRemove} aria-label="Remove block" className="btn btn-ghost btn-icon hover:text-error"><X className="h-4 w-4" aria-hidden="true"/></button>
         </div>
       </div>
 
@@ -377,26 +410,26 @@ function BlockEditor({ block, index, total, onChange, onRemove, onMove }: {
       {block.type==="h2" && <input value={block.content??""} onChange={e=>onChange({content:e.target.value})} placeholder="Heading 2…" className={`${base} text-xl font-bold`}/>}
       {block.type==="h3" && <input value={block.content??""} onChange={e=>onChange({content:e.target.value})} placeholder="Heading 3…" className={`${base} text-lg font-semibold`}/>}
 
-      {block.type==="paragraph" && <textarea value={block.content??""} onChange={e=>onChange({content:e.target.value})} rows={5} placeholder="Write your paragraph…" className={`${base} resize-y text-sm`}/>}
+      {block.type==="paragraph" && <textarea value={block.content??""} onChange={e=>onChange({content:e.target.value})} rows={5} placeholder="Write your paragraph…" className={base}/>}
 
-      {block.type==="quote" && <textarea value={block.content??""} onChange={e=>onChange({content:e.target.value})} rows={3} placeholder="Quote text…" className={`${base} resize-y text-sm italic border-l-4 border-l-secondary pl-4`}/>}
+      {block.type==="quote" && <textarea value={block.content??""} onChange={e=>onChange({content:e.target.value})} rows={3} placeholder="Quote text…" className={`${base} italic border-l-4 border-l-secondary pl-4`}/>}
 
-      {block.type==="callout" && <textarea value={block.content??""} onChange={e=>onChange({content:e.target.value})} rows={2} placeholder="Callout / highlight…" className={`${base} resize-y text-sm bg-secondary/5 border-secondary/40`}/>}
+      {block.type==="callout" && <textarea value={block.content??""} onChange={e=>onChange({content:e.target.value})} rows={2} placeholder="Callout / highlight…" className={`${base} min-h-0 bg-secondary/5 border-secondary/40`}/>}
 
       {block.type==="list" && (
         <div className="space-y-2">
           {(block.items??[]).map((item,i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="text-secondary font-bold shrink-0">•</span>
+              <span className="text-gold-ink font-bold shrink-0" aria-hidden="true">•</span>
               <input value={item} onChange={e => { const n=[...(block.items??[])]; n[i]=e.target.value; onChange({items:n}); }}
-                placeholder={`Item ${i+1}`} className={`${base} text-sm flex-1`}/>
+                placeholder={`Item ${i+1}`} className={`${base} min-w-0 flex-1`}/>
               <button onClick={() => onChange({items:(block.items??[]).filter((_,j)=>j!==i)})} disabled={(block.items??[]).length<=1}
-                className="text-on-surface-variant hover:text-error disabled:opacity-30"><X className="h-4 w-4"/></button>
+                aria-label="Remove item" className="btn btn-ghost btn-icon shrink-0 hover:text-error"><X className="h-4 w-4" aria-hidden="true"/></button>
             </div>
           ))}
           <button onClick={() => onChange({items:[...(block.items??[]),""]}) }
-            className="flex items-center gap-1.5 text-xs text-primary hover:text-secondary transition">
-            <Plus className="h-3.5 w-3.5"/> Add item
+            className="btn btn-ghost btn-sm -ml-3">
+            <Plus className="h-3.5 w-3.5" aria-hidden="true"/> Add item
           </button>
         </div>
       )}
@@ -405,6 +438,6 @@ function BlockEditor({ block, index, total, onChange, onRemove, onMove }: {
 }
 
 function StatusBadge({ status }: { status: BlogStatus }) {
-  const map: Record<BlogStatus,string> = { published:"bg-green-500/10 text-green-700", draft:"bg-secondary/10 text-secondary", archived:"bg-outline/20 text-on-surface-variant" };
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${map[status]}`}>{status}</span>;
+  const map: Record<BlogStatus,string> = { published:"bg-success", draft:"bg-secondary", archived:"bg-outline" };
+  return <span className="chip capitalize"><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${map[status]}`}/>{status}</span>;
 }

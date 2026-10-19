@@ -17,6 +17,10 @@ export interface IConsultation extends Document {
   whatsappDocSharing: boolean;
   whatsappDocNote?: string;
   notes?: string;
+  // Why the booking was cancelled when the firm (not the client/lawyer) did it
+  cancellationReason?: string;
+  // Name of the lawyer kept after their account is deleted (lawyerId then dangles)
+  formerLawyerName?: string;
   // Set only while the booking holds its slot (scheduled/rescheduled); backs a unique index
   slotKey?: string;
   createdAt: Date;
@@ -85,6 +89,14 @@ const ConsultationSchema: Schema = new Schema(
       trim: true,
     },
     notes: {
+      type: String,
+      trim: true,
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+    },
+    formerLawyerName: {
       type: String,
       trim: true,
     },

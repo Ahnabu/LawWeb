@@ -10,7 +10,7 @@ import type { Locale } from './i18n'
 export const BN_PREFIX = '/bn'
 
 // Plain (English) paths that also exist under /bn. Keep in sync with app/bn/.
-const LOCALIZED_PATHS = ['/', '/about', '/practice-areas', '/track-case', '/blogs']
+const LOCALIZED_PATHS = ['/', '/about', '/practice-areas', '/track-case', '/blogs', '/contact']
 const LOCALIZED_PREFIXES = ['/blogs/']
 
 function isLocalizedBasePath(path: string): boolean {

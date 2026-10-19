@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import { CheckCircle2 } from 'lucide-react'
 import { API_BASE_URL } from '../lib/api'
 import {
   CONSULTATION_TYPES,
@@ -229,17 +230,12 @@ export function AppointmentBookingForm() {
 
   if (booked) {
     return (
-      <div ref={confirmationRef} className="card-elevated scroll-mt-24 border-success/30 bg-success/5 p-10">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-success">Confirmation</p>
-            <h2 className="mt-4 font-display text-3xl font-semibold text-on-surface">Your consultation is booked.</h2>
-          </div>
-          <div className="inline-flex items-center gap-3 rounded-md bg-success px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-success/20">
-            ✔️ Success
-          </div>
-        </div>
-        <dl className="mt-6 grid gap-4 rounded-md bg-surface-container p-5 text-sm sm:grid-cols-3">
+      <div ref={confirmationRef} className="card scroll-mt-24 p-5 sm:p-8">
+        <p className="inline-flex items-center gap-2 text-sm font-semibold text-success">
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Confirmation
+        </p>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-heading">Your consultation is booked.</h2>
+        <dl className="panel mt-6 grid gap-4 p-5 text-sm sm:grid-cols-3">
           <div>
             <dt className="text-on-surface-variant">Lawyer</dt>
             <dd className="mt-1 font-semibold text-on-surface">{booked.lawyerName}</dd>
@@ -253,21 +249,21 @@ export function AppointmentBookingForm() {
             <dd className="mt-1 font-semibold text-on-surface">{booked.time} · {booked.meetingMode}</dd>
           </div>
         </dl>
-        <p className="mt-6 text-sm leading-7 text-on-surface-variant">
+        <p className="mt-6 max-w-prose text-sm leading-7 text-on-surface-variant">
           {booked.lawyerName} will review and confirm your appointment. You can follow its status, and
           get notified once it&apos;s confirmed, from your appointments dashboard.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/dashboard/client/appointments"
-            className="inline-flex justify-center rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90"
+            className="btn btn-primary"
           >
             View My Appointments
           </Link>
           <button
             type="button"
             onClick={bookAnother}
-            className="rounded-md border border-outline-variant px-6 py-3 text-sm font-semibold text-on-surface transition hover:border-secondary hover:text-secondary"
+            className="btn btn-secondary"
           >
             Book Another Consultation
           </button>
@@ -284,39 +280,39 @@ export function AppointmentBookingForm() {
       : 'Submit Appointment Request'
 
   return (
-    <div className="card-elevated p-10">
+    <div className="card p-5 sm:p-8">
       <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* Identity comes from the session, not the form */}
         {status === 'unauthenticated' && (
-          <div className="rounded-md border border-secondary/30 bg-secondary/10 px-4 py-3 text-sm text-on-surface">
+          <div className="notice notice-info">
             Bookings are made from a client account. Fill in the form, and you&apos;ll be asked to log in (or{' '}
-            <Link href={`/register?redirect=${encodeURIComponent(PAGE_PATH)}`} className="font-semibold text-secondary hover:underline">
+            <Link href={`/register?redirect=${encodeURIComponent(PAGE_PATH)}`} className="text-link">
               create an account
             </Link>
             ) when you submit. Your answers are kept.
           </div>
         )}
         {wrongRole && (
-          <div className="rounded-md border border-error/30 bg-error/10 px-4 py-3 text-sm text-on-surface">
+          <div className="notice notice-error">
             Only client accounts can book consultations. You&apos;re signed in as {user?.role === 'admin' ? 'an admin' : 'a lawyer'}.
           </div>
         )}
         {isClient && user && (
           <div className="grid gap-6 md:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+            <label className="block text-sm font-semibold text-on-surface">
               Full Name
-              <input type="text" value={user.name} readOnly disabled className="w-full opacity-70" />
+              <input type="text" value={user.name} readOnly disabled className="field mt-1.5" />
             </label>
-            <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+            <label className="block text-sm font-semibold text-on-surface">
               Email Address
-              <input type="email" value={user.email} readOnly disabled className="w-full opacity-70" />
+              <input type="email" value={user.email} readOnly disabled className="field mt-1.5" />
             </label>
           </div>
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+            <label className="block text-sm font-semibold text-on-surface">
               Select Lawyer *
               <select
                 value={form.lawyerId}
@@ -326,7 +322,7 @@ export function AppointmentBookingForm() {
                   setField('date', '')
                   setField('time', '')
                 }}
-                className={`w-full ${fieldErrors.lawyerId ? '!border-error' : ''}`}
+                className={`field mt-1.5 ${fieldErrors.lawyerId ? 'field-invalid' : ''}`}
               >
                 <option value="">
                   {lawyersLoading ? 'Loading lawyers...' : lawyers.length ? 'Choose a lawyer...' : 'No lawyers available'}
@@ -350,12 +346,12 @@ export function AppointmentBookingForm() {
               <p className="text-xs text-error">Not accepting new clients — existing clients can still book.</p>
             )}
           </div>
-          <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+          <label className="block text-sm font-semibold text-on-surface">
             Consultation Type *
             <select
               value={form.consultationType}
               onChange={(e) => setField('consultationType', e.target.value)}
-              className="w-full"
+              className="field mt-1.5"
             >
               {CONSULTATION_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -366,7 +362,7 @@ export function AppointmentBookingForm() {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+            <label className="block text-sm font-semibold text-on-surface">
               Preferred Date *
               <input
                 type="date"
@@ -374,7 +370,7 @@ export function AppointmentBookingForm() {
                 value={form.date}
                 disabled={!form.lawyerId}
                 onChange={(e) => setField('date', e.target.value)}
-                className={`w-full ${fieldErrors.date ? '!border-error' : ''}`}
+                className={`field mt-1.5 ${fieldErrors.date ? 'field-invalid' : ''}`}
               />
             </label>
             {fieldErrors.date && <p className="text-xs text-error">{fieldErrors.date}</p>}
@@ -385,12 +381,12 @@ export function AppointmentBookingForm() {
               <p className="text-xs text-error">The lawyer is unavailable on this day. Please choose another date.</p>
             )}
           </div>
-          <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+          <label className="block text-sm font-semibold text-on-surface">
             Consultation Mode *
             <select
               value={form.meetingMode}
               onChange={(e) => setField('meetingMode', e.target.value)}
-              className="w-full"
+              className="field mt-1.5"
             >
               {MEETING_MODES.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -399,8 +395,8 @@ export function AppointmentBookingForm() {
           </label>
         </div>
 
-        <fieldset className="space-y-3 rounded-md border border-outline-variant bg-surface-container p-4 text-sm text-on-surface-variant">
-          <legend className="text-sm font-semibold">Preferred Time Slot *</legend>
+        <fieldset className="panel space-y-3 p-4 text-sm text-on-surface-variant">
+          <legend className="px-1 text-sm font-semibold text-on-surface">Preferred Time Slot *</legend>
           {!form.lawyerId || !form.date ? (
             <p>Select a lawyer and date to see open times.</p>
           ) : dayOff ? (
@@ -421,11 +417,7 @@ export function AppointmentBookingForm() {
                       disabled={!slot.available}
                       aria-pressed={selected}
                       onClick={() => setField('time', slot.time)}
-                      className={`rounded-md border px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                        selected
-                          ? 'border-secondary bg-secondary/10 font-semibold text-secondary'
-                          : 'border-outline-variant bg-surface enabled:hover:border-secondary enabled:hover:text-secondary'
-                      }`}
+                      className="chip disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {slot.time}
                       {slot.reason === 'booked' ? ' · Booked' : slot.reason === 'past' ? ' · Passed' : ''}
@@ -440,7 +432,7 @@ export function AppointmentBookingForm() {
         </fieldset>
 
         <div className="space-y-2">
-          <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+          <label className="block text-sm font-semibold text-on-surface">
             Practice Area / Legal Issue *
             <input
               type="text"
@@ -448,14 +440,14 @@ export function AppointmentBookingForm() {
               placeholder="e.g. Property dispute, Immigration, Contract review"
               value={form.subject}
               onChange={(e) => setField('subject', e.target.value)}
-              className={`w-full ${fieldErrors.subject ? '!border-error' : ''}`}
+              className={`field mt-1.5 ${fieldErrors.subject ? 'field-invalid' : ''}`}
             />
           </label>
           {fieldErrors.subject && <p className="text-xs text-error">{fieldErrors.subject}</p>}
         </div>
 
         <div className="space-y-2">
-          <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+          <label className="block text-sm font-semibold text-on-surface">
             Brief Description of Issue *
             <textarea
               rows={4}
@@ -463,25 +455,25 @@ export function AppointmentBookingForm() {
               placeholder="Describe your legal matter"
               value={form.description}
               onChange={(e) => setField('description', e.target.value)}
-              className={`w-full ${fieldErrors.description ? '!border-error' : ''}`}
+              className={`field mt-1.5 ${fieldErrors.description ? 'field-invalid' : ''}`}
             />
           </label>
           <p className="text-xs text-on-surface-variant">{form.description.length}/{DESCRIPTION_MAX}</p>
           {fieldErrors.description && <p className="text-xs text-error">{fieldErrors.description}</p>}
         </div>
 
-        <label className="space-y-2 text-sm font-medium text-on-surface-variant">
+        <label className="block text-sm font-semibold text-on-surface">
           Phone Number
           <input
             type="tel"
             placeholder="+880 17XXXXXXXX"
             value={form.clientPhone}
             onChange={(e) => setField('clientPhone', e.target.value)}
-            className="w-full"
+            className="field mt-1.5"
           />
         </label>
 
-        <div className="space-y-3 rounded-md border border-outline-variant bg-surface-container p-4">
+        <div className="panel space-y-3 p-4">
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -492,14 +484,14 @@ export function AppointmentBookingForm() {
             <span className="text-sm text-on-surface">I plan to share case documents with the lawyer via WhatsApp</span>
           </label>
           {form.whatsappDocSharing && (
-            <label className="space-y-2 text-xs font-medium text-on-surface-variant">
+            <label className="block text-sm font-semibold text-on-surface">
               Document note (optional)
               <input
                 type="text"
                 placeholder="e.g. ID documents, property deed, contract"
                 value={form.whatsappDocNote}
                 onChange={(e) => setField('whatsappDocNote', e.target.value)}
-                className="w-full"
+                className="field mt-1.5"
               />
             </label>
           )}
@@ -508,7 +500,7 @@ export function AppointmentBookingForm() {
         <button
           type="submit"
           disabled={submitting || status === 'loading' || wrongRole}
-          className="w-full rounded-md bg-secondary px-6 py-4 text-sm font-semibold text-primary transition hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-primary btn-lg btn-block"
         >
           {submitLabel}
         </button>

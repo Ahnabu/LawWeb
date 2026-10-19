@@ -9,6 +9,7 @@ import {
 } from '../controllers/blogController';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 import { uploadBlogCover } from '../config/multer.config';
+import { recordAudit } from '../utils/audit';
 
 const router = express.Router();
 
@@ -29,6 +30,13 @@ router.delete('/:blogId', deleteBlog);
 router.post('/upload/cover', uploadBlogCover.single('cover'), (req, res) => {
   const file = req.file as Express.Multer.File & { path?: string };
   if (!file) return res.status(400).json({ status: 400, message: 'No file uploaded' });
+  recordAudit(req, {
+    action: 'blog.cover_uploaded',
+    category: 'blog',
+    targetType: 'image',
+    summary: 'Uploaded a blog cover image',
+    metadata: { url: file.path },
+  });
   res.json({ status: 200, message: 'Image uploaded', url: file.path });
 });
 

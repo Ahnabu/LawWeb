@@ -1,13 +1,26 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Case from '../models/Case';
 import User from '../models/User';
+import { recordAudit } from '../utils/audit';
+import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
 
 interface AuthRequest extends Request {
   user?: any;
 }
 
 // Lawyer/firm-only fields that must never reach a client
-const CLIENT_HIDDEN_FIELDS = '-internalNotes';
+const CLIENT_HIDDEN_FIELDS = '-internalNotes -archiveNote -archivedBy -formerLawyer.email -formerLawyer.barId';
+
+// Legacy documents may lack isArchived, so "active" means "not explicitly archived"
+const ACTIVE_FILTER = { isArchived: { $ne: true } };
+
+// archived=false (default) | true | all
+const archivedFilterFromQuery = (value: unknown): Record<string, unknown> => {
+  if (value === 'all') return {};
+  if (value === 'true') return { isArchived: true };
+  return ACTIVE_FILTER;
+};
 
 export const createCase = async (req: AuthRequest, res: Response) => {
   try {
@@ -31,6 +44,13 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 400, message: 'Missing required fields' });
     }
 
+    // Description and client-visible notes are rich text: store allowlisted HTML only
+    const descriptionResult = normalizeRichText(description, 'Description', RICH_TEXT_LIMITS.caseDescription);
+    if (!descriptionResult.ok) return res.status(400).json({ status: 400, message: descriptionResult.message });
+    if (!descriptionResult.value) return res.status(400).json({ status: 400, message: 'Missing required fields' });
+    const notesResult = normalizeRichText(notes, 'Notes', RICH_TEXT_LIMITS.caseNotes);
+    if (!notesResult.ok) return res.status(400).json({ status: 400, message: notesResult.message });
+
     // Lawyers create cases assigned to themselves; admins can specify any lawyerId
     const assignedLawyerId = userRole === 'lawyer' ? userId : lawyerId;
 
@@ -42,6 +62,9 @@ export const createCase = async (req: AuthRequest, res: Response) => {
     if (!lawyer || lawyer.role !== 'lawyer') {
       return res.status(404).json({ status: 404, message: 'Lawyer not found' });
     }
+    if (lawyer.isBlocked) {
+      return res.status(400).json({ status: 400, message: 'This lawyer account is blocked and cannot take new cases' });
+    }
 
     const caseDoc = new Case({
       clientId: clientId || null,
@@ -52,7 +75,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       lawyerId: assignedLawyerId,
       type,
       title,
-      description,
+      description: descriptionResult.value,
       priority: priority || 'medium',
       stage: stage || 'intake',
       isOnline: isOnline ?? true,
@@ -72,11 +95,21 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       witnessNames: witnessNames || [],
       evidenceSummary: evidenceSummary || undefined,
       internalNotes: internalNotes || undefined,
-      notes: notes || undefined,
+      notes: notesResult.value || undefined,
       totalPayment: totalPayment || 0,
     });
 
     await caseDoc.save();
+
+    recordAudit(req, {
+      action: 'case.created',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Created case ${caseDoc.caseNumber} for ${clientName}`,
+      metadata: { type, lawyerId: String(assignedLawyerId) },
+    });
 
     res.status(201).json({
       status: 201,
@@ -99,21 +132,29 @@ export const getMyCases = async (req: AuthRequest, res: Response) => {
     }
 
     let cases;
+    let counts: { active: number; archived: number } | undefined;
 
     if (userRole === 'client') {
+      // Clients keep their full history; archived cases come back flagged with isArchived
       cases = await Case.find({ clientId: userId })
         .select(CLIENT_HIDDEN_FIELDS)
         .populate('lawyerId', 'name email barId phone')
         .sort({ createdAt: -1 });
-    } else if (userRole === 'lawyer') {
-      cases = await Case.find({ lawyerId: userId })
-        .populate('clientId', 'name email phone')
+    } else if (userRole === 'lawyer' || userRole === 'admin') {
+      const scope: Record<string, unknown> = userRole === 'lawyer' ? { lawyerId: userId } : {};
+      const listQuery = Case.find({ ...scope, ...archivedFilterFromQuery(req.query.archived) })
+        .populate('archivedBy', 'name role')
         .sort({ createdAt: -1 });
-    } else if (userRole === 'admin') {
-      cases = await Case.find()
-        .populate('lawyerId', 'name email barId')
-        .populate('clientId', 'name email')
-        .sort({ createdAt: -1 });
+      if (userRole === 'lawyer') listQuery.populate('clientId', 'name email phone');
+      else listQuery.populate('lawyerId', 'name email barId').populate('clientId', 'name email');
+
+      const [list, activeCount, archivedCount] = await Promise.all([
+        listQuery,
+        Case.countDocuments({ ...scope, ...ACTIVE_FILTER }),
+        Case.countDocuments({ ...scope, isArchived: true }),
+      ]);
+      cases = list;
+      counts = { active: activeCount, archived: archivedCount };
     } else {
       return res.status(403).json({ status: 403, message: 'Unauthorized' });
     }
@@ -122,6 +163,7 @@ export const getMyCases = async (req: AuthRequest, res: Response) => {
       status: 200,
       message: 'Cases retrieved successfully',
       data: cases,
+      ...(counts ? { meta: { counts } } : {}),
     });
   } catch (error) {
     console.error('Get cases error:', error);
@@ -135,9 +177,14 @@ export const getCaseById = async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role;
     const { caseId } = req.params;
 
+    if (!mongoose.isValidObjectId(caseId)) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+
     const caseDoc = await Case.findById(caseId)
       .populate('lawyerId', 'name email barId phone')
-      .populate('clientId', 'name email phone');
+      .populate('clientId', 'name email phone')
+      .populate('archivedBy', 'name role');
 
     if (!caseDoc) {
       return res.status(404).json({ status: 404, message: 'Case not found' });
@@ -154,9 +201,12 @@ export const getCaseById = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ status: 403, message: 'Access denied' });
     }
 
-    const data = caseDoc.toObject();
+    const data = caseDoc.toObject() as unknown as Record<string, any>;
     if (userRole === 'client') {
-      delete (data as { internalNotes?: string }).internalNotes;
+      delete data.internalNotes;
+      delete data.archiveNote;
+      delete data.archivedBy;
+      if (data.formerLawyer) data.formerLawyer = { name: data.formerLawyer.name };
     }
 
     res.json({
@@ -198,10 +248,19 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ status: 403, message: 'Only the assigned lawyer or admin can update this case' });
     }
 
+    if (caseDoc.isArchived) {
+      return res.status(409).json({ status: 409, message: 'Restore the case to edit it' });
+    }
+
+    const previousStatus = caseDoc.status;
     if (status) caseDoc.status = status;
     if (stage) caseDoc.stage = stage;
     if (priority) caseDoc.priority = priority;
-    if (notes !== undefined) caseDoc.notes = notes;
+    if (notes !== undefined) {
+      const result = normalizeRichText(notes, 'Notes', RICH_TEXT_LIMITS.caseNotes);
+      if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+      caseDoc.notes = result.value;
+    }
     if (internalNotes !== undefined) caseDoc.internalNotes = internalNotes;
     if (nextCourtDate !== undefined) caseDoc.nextCourtDate = nextCourtDate ? new Date(nextCourtDate) : undefined;
     if (courtName !== undefined) caseDoc.courtName = courtName;
@@ -224,7 +283,11 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     // Append a new document reference
     if (documentEntry) caseDoc.documents.push({ ...documentEntry, date: documentEntry.date ? new Date(documentEntry.date) : new Date() });
     if (title && userRole === 'admin') caseDoc.title = title;
-    if (description && userRole === 'admin') caseDoc.description = description;
+    if (description && userRole === 'admin') {
+      const result = normalizeRichText(description, 'Description', RICH_TEXT_LIMITS.caseDescription);
+      if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+      if (result.value) caseDoc.description = result.value;
+    }
 
     if (totalPayment !== undefined) caseDoc.totalPayment = totalPayment;
     if (paymentEntry) {
@@ -249,7 +312,28 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    const changed = caseDoc.modifiedPaths().filter((p) => !p.includes('.'));
     await caseDoc.save();
+
+    const statusChanged = caseDoc.status !== previousStatus;
+    recordAudit(req, {
+      action: statusChanged ? 'case.status_changed' : 'case.updated',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: statusChanged
+        ? `Changed case ${caseDoc.caseNumber} status from ${previousStatus} to ${caseDoc.status}`
+        : `Updated case ${caseDoc.caseNumber}`,
+      metadata: {
+        fields: changed,
+        ...(statusChanged ? { from: previousStatus, to: caseDoc.status } : {}),
+        ...(hearingEntry ? { hearingAdded: true } : {}),
+        ...(documentEntry ? { documentAdded: true } : {}),
+        ...(paymentEntry ? { paymentAdded: paymentEntry.amount } : {}),
+        ...(deletePaymentId ? { paymentDeleted: true } : {}),
+      },
+    });
 
     res.json({
       status: 200,
@@ -271,14 +355,33 @@ export const deleteCase = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ status: 403, message: 'Only admins can delete cases' });
     }
 
-    const caseDoc = await Case.findByIdAndDelete(caseId);
-    if (!caseDoc) {
+    if (!mongoose.isValidObjectId(caseId)) {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
 
+    const caseDoc = await Case.findById(caseId).select('caseNumber isArchived');
+    if (!caseDoc) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+    // Same rule as the admin endpoint: only archived cases can be removed for good
+    if (!caseDoc.isArchived) {
+      return res.status(409).json({ status: 409, message: 'Archive the case before deleting it' });
+    }
+
+    await Case.deleteOne({ _id: caseDoc._id, isArchived: true });
+
+    recordAudit(req, {
+      action: 'case.deleted',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Permanently deleted case ${caseDoc.caseNumber}`,
+    });
+
     res.json({
       status: 200,
-      message: 'Case deleted successfully',
+      message: `Case ${caseDoc.caseNumber} permanently deleted`,
       data: null,
     });
   } catch (error) {
@@ -299,8 +402,10 @@ export const trackCasePublic = async (req: Request, res: Response) => {
     }
 
     const caseDoc = await Case.findOne({ caseNumber, clientEmail: email })
-      .populate('lawyerId', 'name barId')
-      .select('caseNumber title type status stage priority courtName jurisdiction nextCourtDate filingDate notes lawyerId createdAt updatedAt')
+      // A removed lawyer populates as null; the page then shows formerLawyer.name
+      .populate({ path: 'lawyerId', select: 'name barId', match: { deletedAt: null } })
+      // Archived cases stay trackable; only the former lawyer's name is exposed, never their contact details
+      .select('caseNumber title type status stage priority courtName jurisdiction nextCourtDate filingDate notes lawyerId isArchived archivedAt formerLawyer.name createdAt updatedAt')
       .lean();
 
     if (!caseDoc) {
@@ -333,8 +438,21 @@ export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ status: 403, message: 'Access denied' });
     }
 
+    if (caseDoc.isArchived) {
+      return res.status(409).json({ status: 409, message: 'Restore the case to edit it' });
+    }
+
     caseDoc.isFeatured = !caseDoc.isFeatured;
     await caseDoc.save();
+
+    recordAudit(req, {
+      action: caseDoc.isFeatured ? 'case.featured' : 'case.unfeatured',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `${caseDoc.isFeatured ? 'Featured' : 'Unfeatured'} case ${caseDoc.caseNumber}`,
+    });
 
     res.json({
       status: 200,
@@ -343,6 +461,107 @@ export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Toggle featured case error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// Lawyers may archive their own cases. Restoring is limited to what they archived
+// themselves: a case the admin archived (or one archived because its lawyer was
+// deleted) is an admin decision, so only an admin can bring it back.
+export const archiveMyCase = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    const { caseId } = req.params;
+    if (!mongoose.isValidObjectId(caseId)) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 500) : '';
+
+    const caseDoc = await Case.findById(caseId);
+    if (!caseDoc) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+    if (caseDoc.lawyerId?.toString() !== userId?.toString()) {
+      return res.status(403).json({ status: 403, message: 'Only the assigned lawyer can archive this case' });
+    }
+    if (caseDoc.isArchived) {
+      return res.status(409).json({ status: 409, message: 'This case is already archived' });
+    }
+
+    caseDoc.isArchived = true;
+    caseDoc.archivedAt = new Date();
+    caseDoc.archivedBy = userId;
+    caseDoc.archiveReason = 'manual';
+    caseDoc.archiveNote = note || undefined;
+    await caseDoc.save();
+    await caseDoc.populate([
+      { path: 'clientId', select: 'name email phone' },
+      { path: 'archivedBy', select: 'name role' },
+    ]);
+
+    recordAudit(req, {
+      action: 'case.archived',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Archived case ${caseDoc.caseNumber}`,
+      metadata: note ? { note: note.slice(0, 200) } : undefined,
+    });
+
+    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: caseDoc });
+  } catch (error) {
+    console.error('Archive case error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+export const restoreMyCase = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    const { caseId } = req.params;
+    if (!mongoose.isValidObjectId(caseId)) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+
+    const caseDoc = await Case.findById(caseId);
+    if (!caseDoc) {
+      return res.status(404).json({ status: 404, message: 'Case not found' });
+    }
+    if (caseDoc.lawyerId?.toString() !== userId?.toString()) {
+      return res.status(403).json({ status: 403, message: 'Only the assigned lawyer can restore this case' });
+    }
+    if (!caseDoc.isArchived) {
+      return res.status(409).json({ status: 409, message: 'This case is not archived' });
+    }
+    if (caseDoc.archiveReason !== 'manual' || caseDoc.archivedBy?.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        status: 403,
+        code: 'ADMIN_RESTORE_ONLY',
+        message: 'This case was archived by an administrator. Ask an admin to restore it.',
+      });
+    }
+
+    caseDoc.isArchived = false;
+    caseDoc.archivedAt = undefined;
+    caseDoc.archivedBy = undefined;
+    caseDoc.archiveReason = undefined;
+    caseDoc.archiveNote = undefined;
+    await caseDoc.save();
+    await caseDoc.populate('clientId', 'name email phone');
+
+    recordAudit(req, {
+      action: 'case.restored',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Restored case ${caseDoc.caseNumber}`,
+    });
+
+    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: caseDoc });
+  } catch (error) {
+    console.error('Restore case error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };
