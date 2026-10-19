@@ -3,6 +3,8 @@ import User from '../models/User';
 import Case from '../models/Case';
 import Consultation from '../models/Consultation';
 import { ACTIVE_STATUSES, businessNow, parseDateOnly } from '../utils/schedule';
+import { parsePagination, toCountMap } from '../utils/pagination';
+import { recordAudit } from '../utils/audit';
 
 // Dashboard stats and appointments. Cases, lawyers and users live in
 // adminCaseController, adminLawyerController and adminUserController.
@@ -23,7 +25,7 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
       Case.countDocuments({ isArchived: { $ne: true } }),
       Case.countDocuments({ isArchived: { $ne: true }, status: 'active' }),
       Case.countDocuments({ isArchived: true }),
-      User.countDocuments({ role: 'lawyer' }),
+      User.countDocuments({ role: 'lawyer', deletedAt: null }),
       User.countDocuments({ role: 'client', isVerified: true }),
       Consultation.countDocuments({
         date: { $gte: today, $lt: tomorrow },
@@ -51,28 +53,32 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
 
 export const getAllConsultationsAdmin = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, page = '1', limit = '20' } = req.query;
+    const { status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query);
 
     const filter: Record<string, any> = {};
-    if (status) filter.status = status;
+    if (typeof status === 'string' && status) filter.status = status;
 
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const [consultations, total] = await Promise.all([
+    const [consultations, total, byStatus] = await Promise.all([
       Consultation.find(filter)
         .populate('clientId', 'name email phone')
-        .populate('lawyerId', 'name email barId')
-        .sort({ date: -1 })
+        // A removed lawyer populates as null; the list then shows formerLawyerName
+        .populate({ path: 'lawyerId', select: 'name email barId', match: { deletedAt: null } })
+        .sort({ date: -1, time: -1, _id: -1 })
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limit),
       Consultation.countDocuments(filter),
+      Consultation.aggregate<{ _id: string; n: number }>([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
     ]);
+
+    const counts = toCountMap(byStatus);
 
     res.json({
       status: 200,
       message: 'Consultations retrieved successfully',
       data: consultations,
-      meta: { total, page: Number(page), limit: Number(limit) },
+      // counts ignore the status filter, for the stat cards
+      meta: { total, page, limit, counts: { all: Object.values(counts).reduce((a, b) => a + b, 0), ...counts } },
     });
   } catch (error) {
     console.error('Admin get consultations error:', error);
@@ -115,6 +121,7 @@ export const updateConsultationStatusAdmin = async (req: AuthRequest, res: Respo
       }
     }
 
+    const previousStatus = consultation.status;
     consultation.status = status;
     if (notes !== undefined) consultation.notes = notes;
     // save() (not findByIdAndUpdate) so the slot guard in the model stays in sync
@@ -123,6 +130,17 @@ export const updateConsultationStatusAdmin = async (req: AuthRequest, res: Respo
       { path: 'clientId', select: 'name email phone' },
       { path: 'lawyerId', select: 'name email barId' },
     ]);
+
+    const client = consultation.clientId as unknown as { name?: string } | null;
+    recordAudit(req, {
+      action: status === 'cancelled' ? 'consultation.cancelled' : 'consultation.status_changed',
+      category: 'consultation',
+      targetType: 'consultation',
+      targetId: consultation._id,
+      targetLabel: `${client?.name ?? 'Client'} - ${consultation.date.toISOString().slice(0, 10)} ${consultation.time}`,
+      summary: `Changed appointment status from ${previousStatus} to ${status}`,
+      metadata: { from: previousStatus, to: status, notesChanged: notes !== undefined },
+    });
 
     res.json({
       status: 200,

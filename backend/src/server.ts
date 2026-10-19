@@ -18,6 +18,7 @@ import adminRoutes from "./routes/admin";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blogs";
 import contentRoutes from "./routes/content";
+import contactRoutes from "./routes/contact";
 import { requireTrustedOrigin, sanitizeInput } from "./middleware/security";
 
 // Use Google public DNS so mongodb+srv SRV lookups resolve reliably in local/cloud environments
@@ -142,6 +143,18 @@ if (process.env.NODE_ENV === "production") {
   });
   ["/api/auth/forgot-password", "/api/auth/resend-verification-code"].forEach((path) => app.use(path, emailLimiter));
 
+  // Public Contact page form: stops message floods from one IP
+  app.use(
+    "/api/contact",
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 5,
+      standardHeaders: "draft-7",
+      legacyHeaders: false,
+      message: { message: "Too many messages sent. Please try again later or call us." },
+    }),
+  );
+
   // Public case lookup (case number + email)
   app.use(
     "/api/cases/track",
@@ -215,7 +228,7 @@ app.use(async (req, res, next) => {
 app.get("/", (_req, res) => {
   res.json({
     status: "OK",
-    name: "LawWeb API",
+    name: "Islam & Associates International API",
     database: mongoose.connection.readyState === 1 ? "connected" : "connecting/disconnected",
     timestamp: new Date().toISOString(),
   });
@@ -238,6 +251,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/content", contentRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Error handling middleware
 app.use(

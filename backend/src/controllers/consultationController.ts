@@ -4,6 +4,7 @@ import Consultation from '../models/Consultation';
 import Case from '../models/Case';
 import User from '../models/User';
 import LawyerAvailability from '../models/LawyerAvailability';
+import { recordAudit } from '../utils/audit';
 import {
   ACTIVE_STATUSES,
   WeekSchedule,
@@ -144,6 +145,16 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
 
     await consultation.save();
 
+    recordAudit(req, {
+      action: 'consultation.booked',
+      category: 'consultation',
+      targetType: 'consultation',
+      targetId: consultation._id,
+      targetLabel: `${date} ${slotLabel} with ${lawyer.name}`,
+      summary: `Booked an appointment with ${lawyer.name} on ${date} at ${slotLabel}`,
+      metadata: { lawyerId: String(lawyer._id), consultationType, meetingMode: consultation.meetingMode },
+    });
+
     res.status(201).json({
       message: 'Consultation booked successfully',
       consultation: {
@@ -224,8 +235,19 @@ export const cancelConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: `A ${consultation.status} consultation cannot be cancelled` });
     }
 
+    const previousStatus = consultation.status;
     consultation.status = 'cancelled';
     await consultation.save();
+
+    recordAudit(req, {
+      action: 'consultation.cancelled',
+      category: 'consultation',
+      targetType: 'consultation',
+      targetId: consultation._id,
+      targetLabel: `${consultation.date.toISOString().slice(0, 10)} ${consultation.time}`,
+      summary: `Cancelled the appointment on ${consultation.date.toISOString().slice(0, 10)} at ${consultation.time}`,
+      metadata: { from: previousStatus, to: 'cancelled', by: req.user.role },
+    });
 
     res.json({
       message: 'Consultation cancelled successfully',
@@ -256,6 +278,15 @@ export const confirmConsultation = async (req: AuthRequest, res: Response) => {
 
     consultation.lawyerConfirmed = true;
     await consultation.save();
+
+    recordAudit(req, {
+      action: 'consultation.confirmed',
+      category: 'consultation',
+      targetType: 'consultation',
+      targetId: consultation._id,
+      targetLabel: `${consultation.date.toISOString().slice(0, 10)} ${consultation.time}`,
+      summary: `Confirmed the appointment on ${consultation.date.toISOString().slice(0, 10)} at ${consultation.time}`,
+    });
 
     res.json({ message: 'Consultation confirmed', consultation });
   } catch (error) {
@@ -409,12 +440,23 @@ export const updateConsultationStatus = async (req: AuthRequest, res: Response) 
       }
     }
 
+    const previousStatus = consultation.status;
     consultation.status = status;
     if (notes) {
       consultation.notes = notes;
     }
 
     await consultation.save();
+
+    recordAudit(req, {
+      action: status === 'cancelled' ? 'consultation.cancelled' : 'consultation.completed',
+      category: 'consultation',
+      targetType: 'consultation',
+      targetId: consultation._id,
+      targetLabel: `${consultation.date.toISOString().slice(0, 10)} ${consultation.time}`,
+      summary: `Marked the appointment on ${consultation.date.toISOString().slice(0, 10)} at ${consultation.time} as ${status}`,
+      metadata: { from: previousStatus, to: status, notesAdded: Boolean(notes) },
+    });
 
     res.json({
       message: 'Consultation updated successfully',

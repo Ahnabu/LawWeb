@@ -87,25 +87,23 @@ export function ConfirmDialogHost() {
   const Icon = danger ? AlertTriangle : HelpCircle;
 
   return (
-    <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 p-4" onMouseDown={() => close(false)}>
+    <div className="fixed inset-0 z-200 flex items-center justify-center bg-[rgb(10_22_40/0.55)] p-4" onMouseDown={() => close(false)}>
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby={pending.message ? "confirm-dialog-message" : undefined}
         onMouseDown={(e) => e.stopPropagation()}
-        className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-5 shadow-2xl ${pending.details ? "max-w-md" : "max-w-sm"}`}
+        className={`card max-h-[90vh] w-full overflow-y-auto p-5 shadow-2xl sm:p-6 ${pending.details ? "max-w-md" : "max-w-sm"}`}
       >
-        <div className="flex gap-4">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${danger ? "bg-error/10" : "bg-secondary/10"}`}>
-            <Icon className={`h-5 w-5 ${danger ? "text-error" : "text-secondary"}`} />
-          </div>
+        <div className="flex gap-3">
+          <Icon aria-hidden="true" className={`mt-0.5 h-5 w-5 shrink-0 ${danger ? "text-error" : "text-gold-ink"}`} />
           <div className="min-w-0">
             <h3 id="confirm-dialog-title" className="font-display text-lg font-semibold text-on-surface">
               {pending.title}
             </h3>
             {pending.message && (
-              <p id="confirm-dialog-message" className="mt-1 text-sm text-on-surface-variant">
+              <p id="confirm-dialog-message" className="mt-1 text-sm leading-6 text-on-surface-variant">
                 {pending.message}
               </p>
             )}
@@ -122,16 +120,16 @@ export function ConfirmDialogHost() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && phraseOk) close(true);
               }}
-              className="mt-1.5 w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface outline-none focus:border-secondary"
+              className="field mt-1.5"
               autoComplete="off"
             />
           </label>
         )}
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
             onClick={() => close(false)}
-            className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant transition hover:bg-surface-container"
+            className="btn btn-ghost"
           >
             {pending.cancelLabel ?? "Cancel"}
           </button>
@@ -140,7 +138,7 @@ export function ConfirmDialogHost() {
             type="button"
             onClick={() => close(true)}
             disabled={!phraseOk}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${danger ? "bg-error text-white" : "bg-secondary text-primary"}`}
+            className={`btn ${danger ? "btn-danger" : "btn-primary"}`}
           >
             {pending.confirmLabel ?? "Confirm"}
           </button>

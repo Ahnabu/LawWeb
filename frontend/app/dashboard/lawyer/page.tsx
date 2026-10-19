@@ -103,8 +103,8 @@ export default function LawyerDashboardPage() {
       )}
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
-          <h3 className="font-display text-lg font-semibold text-on-surface">
+        <div className="card p-5 sm:p-6">
+          <h3 className="font-display text-lg font-semibold text-heading">
             Appointment overview
           </h3>
           <p className="mt-3 text-sm text-on-surface-variant">
@@ -122,8 +122,8 @@ export default function LawyerDashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-outline-variant bg-surface-container p-6">
-          <h3 className="font-display text-lg font-semibold text-on-surface">
+        <div className="card p-5 sm:p-6">
+          <h3 className="font-display text-lg font-semibold text-heading">
             Case workload
           </h3>
           <p className="mt-3 text-sm text-on-surface-variant">
@@ -136,8 +136,8 @@ export default function LawyerDashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-outline-variant bg-surface-container p-6">
-        <h3 className="font-display text-lg font-semibold text-on-surface">
+      <section className="card p-5 sm:p-6">
+        <h3 className="font-display text-lg font-semibold text-heading">
           Next steps
         </h3>
         <p className="mt-3 text-sm leading-7 text-on-surface-variant">
@@ -150,9 +150,9 @@ export default function LawyerDashboardPage() {
 
 function StatsCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+    <div className="card p-4">
       <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+      <p className="mt-1 font-display text-2xl font-semibold text-heading">
         {value}
       </p>
     </div>
@@ -161,7 +161,7 @@ function StatsCard({ label, value }: { label: string; value: number }) {
 
 function SummaryRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-surface p-4">
+    <div className="panel flex items-center justify-between p-4">
       <span className="text-sm text-on-surface-variant">{label}</span>
       <span className="font-semibold text-on-surface">{value}</span>
     </div>

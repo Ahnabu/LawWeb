@@ -19,6 +19,8 @@ import {
   Sun,
   Moon,
   Newspaper,
+  MessageSquare,
+  History,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useState } from "react";
@@ -38,96 +40,106 @@ const getSidebarItems = (
       {
         href: "/dashboard/client",
         label: "Dashboard",
-        icon: <LayoutDashboard className="h-5 w-5" />,
+        icon: <LayoutDashboard className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/client/appointments",
         label: "Appointments",
-        icon: <Calendar className="h-5 w-5" />,
+        icon: <Calendar className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/client/cases",
         label: "My Cases",
-        icon: <Briefcase className="h-5 w-5" />,
+        icon: <Briefcase className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/client/track-case",
         label: "Track Case",
-        icon: <FileText className="h-5 w-5" />,
+        icon: <FileText className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/client/profile",
         label: "Profile",
-        icon: <Settings className="h-5 w-5" />,
+        icon: <Settings className="h-4.5 w-4.5" />,
       },
     ],
     lawyer: [
       {
         href: "/dashboard/lawyer",
         label: "Dashboard",
-        icon: <LayoutDashboard className="h-5 w-5" />,
+        icon: <LayoutDashboard className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/lawyer/appointments",
         label: "Appointments",
-        icon: <Calendar className="h-5 w-5" />,
+        icon: <Calendar className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/lawyer/cases",
         label: "Cases",
-        icon: <Briefcase className="h-5 w-5" />,
+        icon: <Briefcase className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/lawyer/availability",
         label: "Availability",
-        icon: <FileText className="h-5 w-5" />,
+        icon: <FileText className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/lawyer/profile",
         label: "Profile",
-        icon: <Settings className="h-5 w-5" />,
+        icon: <Settings className="h-4.5 w-4.5" />,
       },
     ],
     admin: [
       {
         href: "/dashboard/admin",
         label: "Dashboard",
-        icon: <LayoutDashboard className="h-5 w-5" />,
+        icon: <LayoutDashboard className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/appointments",
         label: "Appointments",
-        icon: <Calendar className="h-5 w-5" />,
+        icon: <Calendar className="h-4.5 w-4.5" />,
+      },
+      {
+        href: "/dashboard/admin/messages",
+        label: "Messages",
+        icon: <MessageSquare className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/cases",
         label: "Cases",
-        icon: <Briefcase className="h-5 w-5" />,
+        icon: <Briefcase className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/lawyers",
         label: "Lawyers",
-        icon: <Scale className="h-5 w-5" />,
+        icon: <Scale className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/users",
         label: "Users",
-        icon: <Users className="h-5 w-5" />,
+        icon: <Users className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/blogs",
         label: "Blogs",
-        icon: <Newspaper className="h-5 w-5" />,
+        icon: <Newspaper className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/content",
         label: "Content",
-        icon: <FileText className="h-5 w-5" />,
+        icon: <FileText className="h-4.5 w-4.5" />,
+      },
+      {
+        href: "/dashboard/admin/audit-logs",
+        label: "Audit Logs",
+        icon: <History className="h-4.5 w-4.5" />,
       },
       {
         href: "/dashboard/admin/settings",
         label: "Settings",
-        icon: <Settings className="h-5 w-5" />,
+        icon: <Settings className="h-4.5 w-4.5" />,
       },
     ],
   };
@@ -179,7 +191,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
       <aside
         className={`${
           isMobile ? "fixed inset-y-0 left-0 z-40" : "relative z-10"
-        } shrink-0 transform border-r border-outline-variant bg-surface-container transition-all duration-300 ease-in-out ${
+        } shrink-0 transform border-r border-outline-variant bg-surface-container shadow-[inset_-1px_0_0_var(--highlight)] transition-all duration-200 ease-out ${
           isSidebarOpen
             ? "w-64 translate-x-0"
             : isMobile
@@ -189,9 +201,9 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
       >
         <div className="flex h-full w-64 flex-col">
           {/* Logo + collapse button */}
-          <div className="flex items-center justify-between border-b border-outline-variant px-3 py-3">
+          <div className="flex h-15 items-center justify-between border-b border-outline-variant px-3">
             <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={closeSidebarOnMobile}>
-              <span className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container ring-1 ring-outline-variant">
+              <span className="relative inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-md border border-outline-variant bg-surface-raised">
                 <Image
                   src="/logo.jpg"
                   alt="Islam and Associates International Law Offices"
@@ -200,14 +212,14 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
                   className="h-full w-full object-cover"
                 />
               </span>
-              <span className="truncate font-semibold text-on-surface text-sm leading-tight">
+              <span className="truncate font-display text-sm font-bold leading-tight text-heading">
                 Islam & Associates
               </span>
             </Link>
             <button
               type="button"
               onClick={toggleSidebar}
-              className="ml-2 shrink-0 rounded-lg p-1.5 text-on-surface-variant hover:bg-surface hover:text-on-surface transition"
+              className="btn btn-ghost btn-icon ml-2 shrink-0"
               aria-label="Collapse sidebar"
             >
               <PanelLeftClose className="h-5 w-5" />
@@ -215,7 +227,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+          <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto p-3">
             {sidebarItems.map((item) => {
               // Sub-pages (e.g. /dashboard/admin/content/about) keep their section active;
               // the role home (/dashboard/admin) only matches exactly
@@ -227,13 +239,17 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
                   key={item.href}
                   href={item.href}
                   onClick={closeSidebarOnMobile}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  aria-current={isActive ? "page" : undefined}
+                  className={`relative flex min-h-10 items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors duration-150 ${
                     isActive
-                      ? "bg-primary text-on-primary"
-                      : "text-on-surface-variant hover:bg-surface hover:text-on-surface"
+                      ? "border-outline-variant bg-surface-raised font-semibold text-on-surface shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(16_24_40/0.08)]"
+                      : "border-transparent font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
                   }`}
                 >
-                  {item.icon}
+                  {isActive && (
+                    <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-secondary" />
+                  )}
+                  <span className={isActive ? "text-gold-ink" : ""}>{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               );
@@ -242,7 +258,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
 
           {/* User Info & Logout */}
           <div className="border-t border-outline-variant p-3">
-            <div className="mb-3 px-1">
+            <div className="mb-2 px-1">
               <p className="text-xs text-on-surface-variant">Logged in as</p>
               <p className="mt-0.5 truncate text-sm font-semibold text-on-surface">
                 {user?.name || user?.email}
@@ -252,7 +268,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface hover:text-error transition"
+              className="btn btn-ghost btn-block justify-start px-3 hover:text-error"
             >
               <LogOut className="h-4 w-4" />
               <span>Logout</span>
@@ -264,44 +280,45 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Bar */}
-        <div className="shrink-0 border-b border-outline-variant bg-surface px-4 py-2.5 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
+        <div className="site-header shrink-0 px-4 sm:px-6">
+          <div className="flex h-15 items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {!isSidebarOpen && (
                 <button
                   type="button"
                   onClick={toggleSidebar}
-                  className="rounded-lg border border-outline-variant p-2 text-on-surface hover:bg-surface-container transition"
+                  className="btn btn-secondary btn-icon"
                   aria-label="Open sidebar"
                 >
                   <Menu className="h-5 w-5" />
                 </button>
               )}
-              <h3 className="font-display text-lg font-semibold text-on-surface sm:text-xl">
+              <h3 className="font-display text-lg font-semibold text-heading">
                 Dashboard
               </h3>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="rounded-lg border border-outline-variant p-2 text-on-surface-variant hover:text-primary transition"
+                className="btn btn-secondary btn-icon text-on-surface-variant"
                 aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                 title={theme === "dark" ? "Light mode" : "Dark mode"}
               >
                 {theme === "dark" ? (
-                  <Sun className="h-5 w-5" />
+                  <Sun className="h-4.5 w-4.5" />
                 ) : (
-                  <Moon className="h-5 w-5" />
+                  <Moon className="h-4.5 w-4.5" />
                 )}
               </button>
               <Link
                 href="/"
-                className="rounded-lg border border-outline-variant p-2 text-on-surface-variant hover:text-primary transition"
+                className="btn btn-secondary btn-icon text-on-surface-variant"
+                aria-label="Go to Home"
                 title="Go to Home"
               >
-                <Home className="h-5 w-5" />
+                <Home className="h-4.5 w-4.5" />
               </Link>
             </div>
           </div>
@@ -316,7 +333,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
       {/* Mobile Overlay */}
       {isSidebarOpen && isMobile && (
         <div
-          className="fixed inset-0 z-30 bg-black/30"
+          className="fixed inset-0 z-30 bg-[rgb(10_22_40/0.45)]"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}

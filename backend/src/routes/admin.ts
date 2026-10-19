@@ -19,6 +19,7 @@ import {
   reorderLawyersAdmin,
   getLawyerDeletionImpactAdmin,
   deleteLawyerAdmin,
+  restoreLawyerAdmin,
   toggleLawyerVerification,
   getLawyerDetailsAdmin,
 } from '../controllers/adminLawyerController';
@@ -48,14 +49,22 @@ import {
   getContentRevision,
   restoreContentRevision,
 } from '../controllers/contentController';
+import {
+  listContactMessagesAdmin,
+  updateContactMessageAdmin,
+  deleteContactMessageAdmin,
+} from '../controllers/contactController';
+import { listAuditLogsAdmin, getAuditLogMetaAdmin } from '../controllers/auditLogController';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 import {
   validateRequest,
   contentPageSchema,
   saveContentDraftSchema,
   contentRevisionSchema,
+  auditLogListSchema,
 } from '../middleware/validation';
 import { uploadContentImage } from '../config/multer.config';
+import { recordAudit } from '../utils/audit';
 
 const router = express.Router();
 
@@ -85,6 +94,7 @@ router.get('/lawyers/:lawyerId', getLawyerDetailsAdmin);
 router.patch('/lawyers/:lawyerId', updateLawyerAdmin);
 router.get('/lawyers/:lawyerId/deletion-impact', getLawyerDeletionImpactAdmin);
 router.delete('/lawyers/:lawyerId', deleteLawyerAdmin);
+router.patch('/lawyers/:lawyerId/restore', restoreLawyerAdmin);
 router.patch('/lawyers/:lawyerId/toggle-verification', toggleLawyerVerification);
 
 // Clients/Users
@@ -108,11 +118,27 @@ router.patch("/blogs/:blogId/publish", (req, res, next) => {
   next();
 }, updateBlog);
 
+// ── Contact messages ──────────────────────────────────────────────────────────
+router.get('/messages', listContactMessagesAdmin);
+router.patch('/messages/:messageId', updateContactMessageAdmin);
+router.delete('/messages/:messageId', deleteContactMessageAdmin);
+
+// ── Audit logs ────────────────────────────────────────────────────────────────
+router.get('/audit-logs/meta', getAuditLogMetaAdmin);
+router.get('/audit-logs', validateRequest(auditLogListSchema), listAuditLogsAdmin);
+
 // ── Content (CMS) ─────────────────────────────────────────────────────────────
 // Image upload → returns { url }. Declared before /:pageKey routes.
 router.post('/content/upload', uploadContentImage.single('image'), (req, res) => {
   const file = req.file as Express.Multer.File & { path?: string };
   if (!file) return res.status(400).json({ status: 400, message: 'No file uploaded' });
+  recordAudit(req, {
+    action: 'content.image_uploaded',
+    category: 'content',
+    targetType: 'image',
+    summary: 'Uploaded a CMS image',
+    metadata: { url: file.path },
+  });
   res.json({ status: 200, message: 'Image uploaded', url: file.path });
 });
 router.get('/content', listContentPages);

@@ -251,7 +251,7 @@ export function archivedByName(c: CaseArchiveFields): string | undefined {
 
 /** Short human label for why a case is archived */
 export function archiveReasonLabel(c: CaseArchiveFields): string {
-  if (c.archiveReason === 'lawyer-deleted') return 'Lawyer deleted'
+  if (c.archiveReason === 'lawyer-deleted') return 'Lawyer removed'
   const by = archivedByName(c)
   return by ? `Archived by ${by}` : 'Archived'
 }

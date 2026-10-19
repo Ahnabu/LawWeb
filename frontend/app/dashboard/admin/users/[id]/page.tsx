@@ -6,43 +6,37 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Ban,
-  Briefcase,
-  Calendar,
-  Clock,
-  KeyRound,
   Loader2,
-  Mail,
   Pencil,
-  Phone,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
   Trash2,
-  UserRound,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, getUserDetails, updateUser, type UserDetailsResponse } from "../../../../../lib/adminUsers";
 import { BlockUserDialog } from "../_components/BlockUserDialog";
+import { RecentActivity } from "../_components/RecentActivity";
 import { UserAvatar, UserStatusBadge, confirmAndDelete, confirmAndUnblock, performBlock } from "../_components/userActions";
 
-const CASE_STATUS_STYLES: Record<string, string> = {
-  active: "bg-blue-500/10 text-blue-600",
-  filed: "bg-secondary/10 text-secondary",
-  "hearing-scheduled": "bg-yellow-500/10 text-yellow-700",
-  "under-review": "bg-purple-500/10 text-purple-600",
-  closed: "bg-surface-container text-on-surface-variant",
-  won: "bg-green-500/10 text-green-700",
-  lost: "bg-error/10 text-error",
-  settled: "bg-green-500/10 text-green-700",
-  appealed: "bg-purple-500/10 text-purple-600",
+// Status chips are neutral with a small coloured dot
+const CASE_STATUS_DOTS: Record<string, string> = {
+  active: "bg-sky-600",
+  filed: "bg-secondary",
+  "hearing-scheduled": "bg-secondary",
+  "under-review": "bg-sky-600",
+  closed: "bg-outline",
+  won: "bg-success",
+  lost: "bg-error",
+  settled: "bg-success",
+  appealed: "bg-secondary",
 };
 
-const CONSULTATION_STATUS_STYLES: Record<string, string> = {
-  scheduled: "bg-blue-500/10 text-blue-600",
-  rescheduled: "bg-yellow-500/10 text-yellow-700",
-  completed: "bg-green-500/10 text-green-700",
-  cancelled: "bg-error/10 text-error",
+const CONSULTATION_STATUS_DOTS: Record<string, string> = {
+  scheduled: "bg-sky-600",
+  rescheduled: "bg-secondary",
+  completed: "bg-success",
+  cancelled: "bg-error",
 };
 
 const humanize = (value?: string) => (value ? value.replace(/-/g, " ") : "—");
@@ -55,8 +49,7 @@ const formatDay = (value?: string) => {
   return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 };
 
-const inputClass =
-  "mt-1 block w-full rounded-lg border border-outline bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-secondary";
+const inputClass = "field";
 
 export default function AdminUserDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -96,14 +89,10 @@ export default function AdminUserDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="h-6 w-40 animate-pulse rounded bg-surface-container" />
-        <div className="h-40 animate-pulse rounded-xl border border-outline-variant bg-surface-container" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={`skel-${i}`} className="h-20 animate-pulse rounded-xl border border-outline-variant bg-surface-container" />
-          ))}
-        </div>
+      <div className="space-y-6" aria-busy="true">
+        <div className="h-6 w-40 rounded bg-surface-container" />
+        <div className="card h-48 bg-surface-container" />
+        <div className="card h-20 bg-surface-container" />
       </div>
     );
   }
@@ -112,14 +101,14 @@ export default function AdminUserDetailsPage() {
     return (
       <div className="space-y-4">
         <BackLink href="/dashboard/admin/users" label="Back to users" />
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+        <div className="notice notice-error flex flex-wrap items-center justify-between gap-3" role="alert">
           <span>{error ?? "User not found"}</span>
           <button
             type="button"
             onClick={() => void load()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-error/40 px-3 py-1.5 text-xs font-semibold hover:bg-error/10"
+            className="btn btn-secondary btn-sm"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Retry
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Retry
           </button>
         </div>
       </div>
@@ -207,7 +196,7 @@ export default function AdminUserDetailsPage() {
       <BackLink href={backHref} label={isLawyer ? "Back to lawyers" : "Back to users"} />
 
       {/* Profile */}
-      <section className="rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5">
+      <section className="card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <UserAvatar name={user.name} imageUrl={user.profileImageUrl} size="lg" />
@@ -215,7 +204,7 @@ export default function AdminUserDetailsPage() {
               <h3 className="break-words font-display text-xl font-semibold text-on-surface sm:text-2xl">{user.name}</h3>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <UserStatusBadge user={user} />
-                <span className="rounded-full border border-outline-variant px-2.5 py-0.5 text-xs font-semibold capitalize text-on-surface-variant">
+                <span className="chip capitalize">
                   {user.role}
                 </span>
               </div>
@@ -229,9 +218,9 @@ export default function AdminUserDetailsPage() {
                 <button
                   type="button"
                   onClick={startEdit}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-2 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary"
+                  className="btn btn-secondary btn-sm"
                 >
-                  <Pencil className="h-4 w-4" /> Edit
+                  <Pencil className="h-4 w-4" aria-hidden="true" /> Edit
                 </button>
               )}
               {user.isBlocked ? (
@@ -239,18 +228,18 @@ export default function AdminUserDetailsPage() {
                   type="button"
                   disabled={isBusy}
                   onClick={() => void handleUnblock()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-green-600/40 px-3 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-500/10 disabled:opacity-40"
+                  className="btn btn-secondary btn-sm"
                 >
-                  <ShieldCheck className="h-4 w-4" /> Unblock
+                  <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" /> Unblock
                 </button>
               ) : (
                 <button
                   type="button"
                   disabled={isBusy}
                   onClick={() => setShowBlock(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-error/40 px-3 py-2 text-sm font-semibold text-error transition hover:bg-error/10 disabled:opacity-40"
+                  className="btn btn-secondary btn-sm"
                 >
-                  <Ban className="h-4 w-4" /> Block
+                  <Ban className="h-4 w-4 text-error" aria-hidden="true" /> Block
                 </button>
               )}
               {!isLawyer && (
@@ -258,9 +247,9 @@ export default function AdminUserDetailsPage() {
                   type="button"
                   disabled={isBusy}
                   onClick={() => void handleDelete()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-error px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                  className="btn btn-ghost btn-sm hover:text-error"
                 >
-                  <Trash2 className="h-4 w-4" /> Delete
+                  <Trash2 className="h-4 w-4" aria-hidden="true" /> Delete
                 </button>
               )}
             </div>
@@ -268,8 +257,8 @@ export default function AdminUserDetailsPage() {
         </div>
 
         {user.isBlocked && (
-          <div role="status" className="mt-4 flex gap-3 rounded-lg border border-error/30 bg-error/10 p-3 text-sm text-error">
-            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+          <div role="status" className="notice notice-error mt-5 flex gap-3">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
             <div className="min-w-0">
               <p className="font-semibold">Blocked{user.blockedAt ? ` on ${formatDate(user.blockedAt, true)}` : ""}</p>
               <p className="mt-0.5 break-words text-error/90">
@@ -281,15 +270,15 @@ export default function AdminUserDetailsPage() {
         )}
 
         {isAdmin && (
-          <p className="mt-4 rounded-lg border border-outline-variant bg-surface p-3 text-sm text-on-surface-variant">
+          <p className="notice mt-5 text-on-surface-variant">
             Admin accounts cannot be edited, blocked or deleted from here.
           </p>
         )}
 
         {isLawyer && canManage && !isEditing && (
-          <p className="mt-4 text-xs text-on-surface-variant">
+          <p className="mt-4 text-sm text-on-surface-variant">
             To edit or remove a lawyer, use{" "}
-            <Link href="/dashboard/admin/lawyers" className="font-semibold text-secondary hover:underline">
+            <Link href="/dashboard/admin/lawyers" className="text-link">
               Lawyer Management
             </Link>
             .
@@ -297,13 +286,13 @@ export default function AdminUserDetailsPage() {
         )}
 
         {isEditing ? (
-          <form onSubmit={handleSave} className="mt-5 space-y-4 border-t border-outline-variant pt-4">
+          <form onSubmit={handleSave} className="mt-5 space-y-5 border-t border-outline-variant pt-5">
             {formError && (
-              <div className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">{formError}</div>
+              <p className="notice notice-error" role="alert">{formError}</p>
             )}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="block text-xs font-medium text-on-surface-variant">
-                Full name <span className="text-error">*</span>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="block">
+                <span className="label">Full name <span className="text-error">*</span></span>
                 <input
                   type="text"
                   value={form.name}
@@ -313,8 +302,8 @@ export default function AdminUserDetailsPage() {
                   required
                 />
               </label>
-              <label className="block text-xs font-medium text-on-surface-variant">
-                Email <span className="text-error">*</span>
+              <label className="block">
+                <span className="label">Email <span className="text-error">*</span></span>
                 <input
                   type="email"
                   value={form.email}
@@ -323,8 +312,8 @@ export default function AdminUserDetailsPage() {
                   required
                 />
               </label>
-              <label className="block text-xs font-medium text-on-surface-variant">
-                Phone
+              <label className="block">
+                <span className="label">Phone</span>
                 <input
                   type="tel"
                   value={form.phone}
@@ -335,7 +324,7 @@ export default function AdminUserDetailsPage() {
               </label>
             </div>
             {form.email.trim().toLowerCase() !== user.email && (
-              <p className="text-xs text-on-surface-variant">
+              <p className="notice notice-info">
                 The user will log in with the new email address from now on. Existing cases keep the email they were created with.
               </p>
             )}
@@ -344,50 +333,50 @@ export default function AdminUserDetailsPage() {
                 type="button"
                 onClick={() => setIsEditing(false)}
                 disabled={isSaving}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant transition hover:bg-surface disabled:opacity-40"
+                className="btn btn-ghost"
               >
-                <X className="h-4 w-4" /> Cancel
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-primary transition hover:opacity-90 disabled:opacity-60"
+                className="btn btn-primary"
               >
-                {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isSaving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                 {isSaving ? "Saving…" : "Save changes"}
               </button>
             </div>
           </form>
         ) : (
-          <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-outline-variant pt-4 sm:grid-cols-2 lg:grid-cols-3">
-            <InfoItem icon={<Mail className="h-4 w-4" />} label="Email">
-              <a href={`mailto:${user.email}`} className="break-all hover:text-secondary">
+          <dl className="mt-5 grid gap-x-6 gap-y-4 border-t border-outline-variant pt-5 sm:grid-cols-2 lg:grid-cols-3">
+            <InfoItem label="Email">
+              <a href={`mailto:${user.email}`} className="break-all hover:text-gold-ink">
                 {user.email}
               </a>
-              <span className={`ml-2 text-xs ${user.isVerified ? "text-green-700" : "text-secondary"}`}>
+              <span className={`ml-2 text-xs ${user.isVerified ? "text-success" : "text-gold-ink"}`}>
                 {user.isVerified ? "verified" : "not verified"}
               </span>
             </InfoItem>
-            <InfoItem icon={<Phone className="h-4 w-4" />} label="Phone">
+            <InfoItem label="Phone">
               {user.phone ? (
-                <a href={`tel:${user.phone}`} className="hover:text-secondary">
+                <a href={`tel:${user.phone}`} className="hover:text-gold-ink">
                   {user.phone}
                 </a>
               ) : (
                 "—"
               )}
             </InfoItem>
-            <InfoItem icon={<Calendar className="h-4 w-4" />} label="Joined">
+            <InfoItem label="Joined">
               {formatDate(user.createdAt, true)}
             </InfoItem>
-            <InfoItem icon={<KeyRound className="h-4 w-4" />} label="Password last changed">
+            <InfoItem label="Password last changed">
               {user.passwordChangedAt ? formatDate(user.passwordChangedAt, true) : "Never"}
             </InfoItem>
-            <InfoItem icon={<Clock className="h-4 w-4" />} label="Profile updated">
+            <InfoItem label="Profile updated">
               {formatDate(user.updatedAt, true)}
             </InfoItem>
             {isLawyer && (
-              <InfoItem icon={<UserRound className="h-4 w-4" />} label="Bar ID / Specialization">
+              <InfoItem label="Bar ID / Specialization">
                 {[user.barId, user.specialization].filter(Boolean).join(" · ") || "—"}
               </InfoItem>
             )}
@@ -396,7 +385,7 @@ export default function AdminUserDetailsPage() {
       </section>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <dl className="card grid grid-cols-2 gap-px overflow-hidden bg-outline-variant lg:grid-cols-4">
         <StatCard label="Cases" value={stats.totalCases} sub={stats.archivedCases ? `${stats.archivedCases} archived` : undefined} />
         <StatCard label="Open cases" value={stats.activeCases} />
         <StatCard label="Upcoming appointments" value={stats.upcomingConsultations} />
@@ -405,37 +394,34 @@ export default function AdminUserDetailsPage() {
           value={stats.totalConsultations}
           sub={`${stats.completedConsultations} completed · ${stats.cancelledConsultations} cancelled`}
         />
-      </div>
+      </dl>
 
       {/* Cases */}
       <section className="space-y-3">
-        <h4 className="flex items-center gap-2 font-display text-lg font-semibold text-on-surface">
-          <Briefcase className="h-5 w-5 text-secondary" /> Cases
+        <h4 className="font-display text-lg font-semibold text-on-surface">
+          Cases
         </h4>
         {cases.length === 0 ? (
           <EmptyState text={isLawyer ? "No cases are assigned to this lawyer." : "No cases are linked to this client."} />
         ) : (
-          <ul className="divide-y divide-outline-variant overflow-hidden rounded-xl border border-outline-variant bg-surface">
+          <ul className="card divide-y divide-outline-variant overflow-hidden">
             {cases.map((item) => (
-              <li key={item._id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+              <li key={item._id} className="flex flex-col gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    {item.caseNumber && <span className="font-mono text-xs text-secondary">{item.caseNumber}</span>}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${
-                        CASE_STATUS_STYLES[item.status] ?? "bg-surface-container text-on-surface-variant"
-                      }`}
-                    >
+                    {item.caseNumber && <span className="font-mono text-xs text-gold-ink">{item.caseNumber}</span>}
+                    <span className="chip capitalize">
+                      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${CASE_STATUS_DOTS[item.status] ?? "bg-outline"}`} />
                       {humanize(item.status)}
                     </span>
                     {item.isArchived && (
-                      <span className="rounded-full border border-outline-variant px-2 py-0.5 text-xs font-semibold text-on-surface-variant">
+                      <span className="chip">
                         Archived
                       </span>
                     )}
                   </div>
                   <p className="mt-1 break-words font-medium text-on-surface">{item.title}</p>
-                  <p className="mt-0.5 text-xs capitalize text-on-surface-variant">
+                  <p className="mt-0.5 text-sm capitalize text-on-surface-variant">
                     {humanize(item.type)}
                     {isLawyer
                       ? item.clientName
@@ -446,7 +432,7 @@ export default function AdminUserDetailsPage() {
                         : ""}
                   </p>
                 </div>
-                <p className="shrink-0 text-xs text-on-surface-variant">Opened {formatDate(item.createdAt)}</p>
+                <p className="shrink-0 text-sm text-on-surface-variant">Opened {formatDate(item.createdAt)}</p>
               </li>
             ))}
           </ul>
@@ -455,37 +441,34 @@ export default function AdminUserDetailsPage() {
 
       {/* Appointments */}
       <section className="space-y-3">
-        <h4 className="flex items-center gap-2 font-display text-lg font-semibold text-on-surface">
-          <Calendar className="h-5 w-5 text-secondary" /> Appointments
+        <h4 className="font-display text-lg font-semibold text-on-surface">
+          Appointments
         </h4>
         {consultations.length === 0 ? (
           <EmptyState text="No appointments yet." />
         ) : (
-          <ul className="divide-y divide-outline-variant overflow-hidden rounded-xl border border-outline-variant bg-surface">
+          <ul className="card divide-y divide-outline-variant overflow-hidden">
             {consultations.map((item) => {
               const counterpart = isLawyer ? item.clientId : item.lawyerId;
               return (
-                <li key={item._id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                <li key={item._id} className="flex flex-col gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${
-                          CONSULTATION_STATUS_STYLES[item.status] ?? "bg-surface-container text-on-surface-variant"
-                        }`}
-                      >
+                      <span className="chip capitalize">
+                        <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${CONSULTATION_STATUS_DOTS[item.status] ?? "bg-outline"}`} />
                         {item.status}
                       </span>
                       {item.consultationType && (
-                        <span className="text-xs capitalize text-on-surface-variant">{humanize(item.consultationType)}</span>
+                        <span className="text-sm capitalize text-on-surface-variant">{humanize(item.consultationType)}</span>
                       )}
                     </div>
                     <p className="mt-1 break-words font-medium text-on-surface">{item.subject}</p>
-                    <p className="mt-0.5 text-xs text-on-surface-variant">
+                    <p className="mt-0.5 text-sm text-on-surface-variant">
                       {isLawyer ? "Client" : "Lawyer"}: {counterpart?.name ?? "Account removed"}
                       {item.meetingMode ? ` · ${humanize(item.meetingMode)}` : ""}
                     </p>
                   </div>
-                  <p className="shrink-0 text-xs font-medium text-on-surface sm:text-right">
+                  <p className="shrink-0 text-sm font-medium text-on-surface sm:text-right">
                     {formatDay(item.date)}
                     <span className="block font-normal text-on-surface-variant">{item.time}</span>
                   </p>
@@ -496,6 +479,8 @@ export default function AdminUserDetailsPage() {
         )}
       </section>
 
+      <RecentActivity userId={user._id} userName={user.name} />
+
       <BlockUserDialog user={showBlock ? user : null} onConfirm={handleBlockConfirm} onClose={() => setShowBlock(false)} />
     </div>
   );
@@ -503,36 +488,33 @@ export default function AdminUserDetailsPage() {
 
 function BackLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-medium text-on-surface-variant transition hover:text-secondary">
-      <ArrowLeft className="h-4 w-4" /> {label}
+    <Link href={href} className="btn btn-ghost btn-sm -ml-3">
+      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {label}
     </Link>
   );
 }
 
-function InfoItem({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+function InfoItem({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        {icon}
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm text-on-surface">{children}</dd>
+      <dt className="text-sm text-on-surface-variant">{label}</dt>
+      <dd className="mt-0.5 text-sm text-on-surface">{children}</dd>
     </div>
   );
 }
 
 function StatCard({ label, value, sub }: { label: string; value: number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-outline-variant bg-surface-container p-4">
-      <p className="text-xs text-on-surface-variant sm:text-sm">{label}</p>
-      <p className="mt-1.5 font-display text-2xl font-bold text-on-surface sm:text-3xl">{value}</p>
-      {sub && <p className="mt-1 text-xs text-on-surface-variant">{sub}</p>}
+    <div className="bg-surface-raised px-4 py-4 sm:px-5">
+      <dt className="text-sm text-on-surface-variant">{label}</dt>
+      <dd className="mt-1 font-display text-2xl font-bold text-on-surface tabular-nums">{value}</dd>
+      {sub && <dd className="mt-0.5 text-xs text-on-surface-variant">{sub}</dd>}
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-outline-variant bg-surface-container p-6 text-center text-sm text-on-surface-variant">{text}</div>
+    <div className="card p-6 text-center text-sm text-on-surface-variant">{text}</div>
   );
 }

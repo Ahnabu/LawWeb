@@ -3,6 +3,7 @@ import User from '../models/User';
 import LawyerAvailability from '../models/LawyerAvailability';
 import LawyerProfile from '../models/LawyerProfile';
 import Consultation from '../models/Consultation';
+import { recordAudit } from '../utils/audit';
 import mongoose from 'mongoose';
 import {
   ACTIVE_STATUSES,
@@ -150,6 +151,19 @@ export const updateMyAvailability = async (req: AuthRequest, res: Response) => {
       },
       { new: true, upsert: true, runValidators: true }
     );
+
+    recordAudit(req, {
+      action: 'availability.updated',
+      category: 'profile',
+      targetType: 'lawyer',
+      targetId: userId,
+      targetLabel: req.user?.name,
+      summary: `${req.user?.name ?? 'Lawyer'} updated their availability`,
+      metadata: {
+        fields: [...(normalizedSchedule ? ['schedule'] : []), ...(isAcceptingNewClients !== undefined ? ['isAcceptingNewClients'] : [])],
+        ...(isAcceptingNewClients !== undefined ? { isAcceptingNewClients } : {}),
+      },
+    });
 
     res.json({
       status: 200,

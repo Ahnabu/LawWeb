@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import Blog from '../models/Blog';
+import { parsePagination, toCountMap } from '../utils/pagination';
+import { recordAudit } from '../utils/audit';
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 interface AuthRequest extends Request {
   user?: any;
@@ -8,29 +12,46 @@ interface AuthRequest extends Request {
 // ── List blogs (admin: all; public: published only) ─────────────────────────
 export const listBlogs = async (req: Request, res: Response) => {
   try {
-    const { status, category, page = '1', limit = '20' } = req.query;
-    const filter: Record<string, any> = {};
+    const { status, category } = req.query;
+    // The sitemap asks for every published post in one request
+    const { page, limit, skip } = parsePagination(req.query, { maxLimit: 1000 });
+    const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
+
+    const scope: Record<string, any> = {};
     // The public route has no req.user; only admins may list drafts
     const isAdmin = (req as Request & { user?: { role?: string } }).user?.role === 'admin';
-    if (!isAdmin) filter.status = 'published';
-    else if (typeof status === 'string') filter.status = status;
-    if (typeof category === 'string') filter.category = category;
+    if (!isAdmin) scope.status = 'published';
+    if (typeof category === 'string' && category && category !== 'all') scope.category = category;
+    if (search) {
+      const rx = new RegExp(escapeRegex(search), 'i');
+      scope.$or = [{ title: rx }, { excerpt: rx }, { tags: rx }];
+    }
+    const filter: Record<string, any> =
+      isAdmin && typeof status === 'string' && status ? { ...scope, status } : scope;
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const [blogs, total] = await Promise.all([
+    const [blogs, total, byStatus] = await Promise.all([
       Blog.find(filter)
         .select('title slug excerpt category tags status authorName readingTimeMinutes publishedAt coverImageUrl createdAt')
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limit),
       Blog.countDocuments(filter),
+      // Admin stat cards: per-status totals that ignore the status filter
+      isAdmin ? Blog.aggregate<{ _id: string; n: number }>([{ $match: scope }, { $group: { _id: '$status', n: { $sum: 1 } } }]) : [],
     ]);
+
+    const counts = toCountMap(byStatus);
 
     res.json({
       status: 200,
       message: 'Blogs retrieved successfully',
       data: blogs,
-      meta: { total, page: Number(page), limit: Number(limit) },
+      meta: {
+        total,
+        page,
+        limit,
+        ...(isAdmin ? { counts: { all: Object.values(counts).reduce((a, b) => a + b, 0), ...counts } } : {}),
+      },
     });
   } catch (error) {
     console.error('List blogs error:', error);
@@ -84,6 +105,15 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
     });
 
     await blog.save();
+    recordAudit(req, {
+      action: 'blog.created',
+      category: 'blog',
+      targetType: 'blog',
+      targetId: blog._id,
+      targetLabel: blog.title,
+      summary: `Created ${blog.status} blog post "${blog.title}"`,
+      metadata: { status: blog.status },
+    });
     res.status(201).json({ status: 201, message: 'Blog created successfully', data: blog });
   } catch (error) {
     console.error('Create blog error:', error);
@@ -99,6 +129,7 @@ export const updateBlog = async (req: AuthRequest, res: Response) => {
 
     const blog = await Blog.findById(blogId);
     if (!blog) return res.status(404).json({ status: 404, message: 'Blog not found' });
+    const previousStatus = blog.status;
 
     if (title !== undefined) blog.title = title;
     if (excerpt !== undefined) blog.excerpt = excerpt;
@@ -108,7 +139,23 @@ export const updateBlog = async (req: AuthRequest, res: Response) => {
     if (status !== undefined) blog.status = status;
     if (coverImageUrl !== undefined) blog.coverImageUrl = coverImageUrl;
 
+    const changed = blog.modifiedPaths().filter((p) => !p.includes('.'));
+    const statusChanged = blog.isModified('status');
     await blog.save();
+    const published = statusChanged && blog.status === 'published';
+    recordAudit(req, {
+      action: published ? 'blog.published' : statusChanged ? 'blog.status_changed' : 'blog.updated',
+      category: 'blog',
+      targetType: 'blog',
+      targetId: blog._id,
+      targetLabel: blog.title,
+      summary: published
+        ? `Published blog post "${blog.title}"`
+        : statusChanged
+          ? `Changed blog post "${blog.title}" to ${blog.status}`
+          : `Updated blog post "${blog.title}"`,
+      metadata: { fields: changed, ...(statusChanged ? { from: previousStatus, to: blog.status } : {}) },
+    });
     res.json({ status: 200, message: 'Blog updated successfully', data: blog });
   } catch (error) {
     console.error('Update blog error:', error);
@@ -121,6 +168,14 @@ export const deleteBlog = async (req: AuthRequest, res: Response) => {
   try {
     const blog = await Blog.findByIdAndDelete(req.params.blogId);
     if (!blog) return res.status(404).json({ status: 404, message: 'Blog not found' });
+    recordAudit(req, {
+      action: 'blog.deleted',
+      category: 'blog',
+      targetType: 'blog',
+      targetId: blog._id,
+      targetLabel: blog.title,
+      summary: `Deleted blog post "${blog.title}"`,
+    });
     res.json({ status: 200, message: 'Blog deleted successfully' });
   } catch (error) {
     console.error('Delete blog error:', error);

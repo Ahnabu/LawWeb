@@ -54,7 +54,7 @@ export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogPro
 
   return (
     <div
-      className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-200 flex items-center justify-center bg-[rgb(10_22_40/0.55)] p-4"
       onMouseDown={() => !isSubmitting && onClose()}
     >
       <div
@@ -62,12 +62,10 @@ export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogPro
         aria-modal="true"
         aria-labelledby="block-user-title"
         onMouseDown={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-outline-variant bg-surface p-5 shadow-2xl"
+        className="card max-h-[90vh] w-full max-w-md overflow-y-auto p-5 shadow-2xl sm:p-6"
       >
-        <div className="flex gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-error/10">
-            <Ban className="h-5 w-5 text-error" />
-          </div>
+        <div className="flex gap-3">
+          <Ban aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-error" />
           <div className="min-w-0">
             <h3 id="block-user-title" className="font-display text-lg font-semibold text-on-surface">
               Block {user.name}?
@@ -82,8 +80,10 @@ export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogPro
           <li>Their cases and appointments are kept. You can unblock them at any time.</li>
         </ul>
 
-        <label className="mt-4 block text-sm text-on-surface-variant">
-          Reason <span className="text-xs">(optional, kept for admins)</span>
+        <label className="mt-5 block">
+          <span className="label">
+            Reason <span className="font-normal text-on-surface-variant">(optional, kept for admins)</span>
+          </span>
           <textarea
             ref={reasonRef}
             value={reason}
@@ -94,19 +94,19 @@ export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogPro
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit();
             }}
             placeholder="e.g. Repeated abusive messages to staff"
-            className="mt-1.5 w-full resize-y rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface outline-none focus:border-secondary"
+            className="field min-h-0"
           />
-          <span className="mt-1 block text-right text-xs">
+          <span className="hint block text-right tabular-nums">
             {reason.length}/{MAX_REASON}
           </span>
         </label>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant transition hover:bg-surface-container disabled:opacity-40"
+            className="btn btn-ghost"
           >
             Cancel
           </button>
@@ -114,9 +114,9 @@ export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogPro
             type="button"
             onClick={() => void submit()}
             disabled={isSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-error px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-danger"
           >
-            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
             {isSubmitting ? "Blocking…" : "Block user"}
           </button>
         </div>

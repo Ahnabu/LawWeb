@@ -13,48 +13,48 @@ function ProfileContent() {
     return null
   }
 
+  const details = [
+    { label: 'Email', value: user.email },
+    { label: 'Role', value: user.role },
+    { label: 'Phone', value: user.phone || 'Not added' },
+    { label: 'Bar ID', value: user.barId || 'Not applicable' },
+  ]
+
   return (
-    <section className="px-4 sm:px-6 py-12 sm:py-16 lg:px-8">
-      <div className="mx-auto max-w-4xl card-elevated p-6 sm:p-10">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+    <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+      <div className="card mx-auto max-w-3xl p-6 sm:p-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/15 text-xl font-semibold text-secondary ring-1 ring-secondary/20">
+            <span className="monogram h-14 w-14 text-lg">
               {user.name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Profile</p>
-              <h1 className="mt-2 font-display text-3xl font-semibold text-on-surface">{user.name}</h1>
-              <p className="mt-2 text-sm text-on-surface-variant">{user.role}</p>
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm text-on-surface-variant">Profile</p>
+              <h1 className="text-2xl text-heading sm:text-3xl">{user.name}</h1>
+              <p className="mt-0.5 text-sm capitalize text-on-surface-variant">{user.role}</p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <Link href={`/dashboard/${user.role}`} className="inline-flex items-center justify-center rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90">
+          <div className="flex gap-2">
+            <Link href={`/dashboard/${user.role}`} className="btn btn-primary">
               Dashboard
             </Link>
-            <button type="button" onClick={() => void logout()} className="inline-flex items-center justify-center rounded-full border border-outline-variant px-5 py-3 text-sm font-semibold text-on-surface-variant transition hover:border-secondary hover:text-secondary">
+            <button type="button" onClick={() => void logout()} className="btn btn-secondary">
               Logout
             </button>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl bg-surface-container p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-secondary">Email</p>
-            <p className="mt-2 text-sm font-semibold text-on-surface">{user.email}</p>
-          </div>
-          <div className="rounded-2xl bg-surface-container p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-secondary">Role</p>
-            <p className="mt-2 text-sm font-semibold text-on-surface">{user.role}</p>
-          </div>
-          <div className="rounded-2xl bg-surface-container p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-secondary">Phone</p>
-            <p className="mt-2 text-sm font-semibold text-on-surface">{user.phone || 'Not added'}</p>
-          </div>
-          <div className="rounded-2xl bg-surface-container p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-secondary">Bar ID</p>
-            <p className="mt-2 text-sm font-semibold text-on-surface">{user.barId || 'Not applicable'}</p>
-          </div>
-        </div>
+        <dl className="panel mt-8 grid sm:grid-cols-2">
+          {details.map((item, index) => (
+            <div
+              key={item.label}
+              className={`px-5 py-4 ${index > 0 ? 'border-t border-outline-variant' : ''} ${index === 1 ? 'sm:border-t-0 sm:border-l' : ''} ${index === 3 ? 'sm:border-l' : ''}`}
+            >
+              <dt className="text-sm text-on-surface-variant">{item.label}</dt>
+              <dd className="mt-1 break-words text-sm font-semibold text-on-surface">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   )

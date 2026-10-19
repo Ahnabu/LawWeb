@@ -6,6 +6,8 @@ import { API_BASE_URL } from "../../../../lib/api";
 import { apiFetch } from "../../../../lib/http";
 import { ArchivedBadge } from "../../../../components/CaseArchive";
 import { formatCaseDate } from "../../../../lib/cases";
+import { RichText } from "../../../../components/RichText";
+import { isRichTextEmpty } from "../../../../lib/richText";
 
 type CaseStatus =
   | "active"
@@ -41,7 +43,7 @@ interface TrackedCase {
 
 const STATUS_COLORS: Record<CaseStatus, string> = {
   active: "bg-blue-500/15 text-blue-600",
-  filed: "bg-secondary/15 text-secondary",
+  filed: "bg-secondary/15 text-gold-ink",
   "hearing-scheduled": "bg-purple-500/15 text-purple-600",
   "under-review": "bg-yellow-500/15 text-yellow-600",
   closed: "bg-surface-container text-on-surface-variant",
@@ -53,7 +55,7 @@ const STATUS_COLORS: Record<CaseStatus, string> = {
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-error/15 text-error",
-  medium: "bg-secondary/15 text-secondary",
+  medium: "bg-secondary/15 text-gold-ink",
   low: "bg-success/15 text-success",
 };
 
@@ -95,7 +97,7 @@ export default function TrackCasePage() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-error/30 bg-error/10 p-4 text-sm text-error">
+      <div className="notice notice-error">
         {error}
       </div>
     );
@@ -104,7 +106,7 @@ export default function TrackCasePage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+        <h3 className="font-display text-2xl font-semibold text-heading">
           Track Your Case
         </h3>
         <p className="text-sm text-on-surface-variant">
@@ -119,7 +121,7 @@ export default function TrackCasePage() {
           placeholder="Search by Case ID or Title..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-2.5 pl-10 text-sm text-on-surface placeholder-on-surface-variant outline-none transition focus:border-secondary focus:ring-1 focus:ring-secondary/30"
+          className="field pl-10"
         />
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
       </div>
@@ -129,12 +131,12 @@ export default function TrackCasePage() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-24 animate-pulse rounded-lg border border-outline-variant bg-surface-container"
+              className="card h-24 animate-pulse"
             />
           ))}
         </div>
       ) : filteredCases.length === 0 ? (
-        <div className="rounded-lg border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
+        <div className="panel p-8 text-center text-sm text-on-surface-variant">
           {cases.length === 0
             ? "No cases found. Contact your lawyer to start a case."
             : "No cases match your search."}
@@ -147,13 +149,13 @@ export default function TrackCasePage() {
               <button
                 key={c._id}
                 onClick={() => setSelectedCase(c)}
-                className={`w-full rounded-lg border p-4 text-left transition ${
+                className={`w-full rounded-lg border p-4 text-left transition-[border-color,box-shadow] duration-150 ${
                   selectedCase?._id === c._id
-                    ? "border-secondary bg-secondary/10"
-                    : "border-outline-variant bg-surface-container hover:border-secondary/50"
+                    ? "border-secondary bg-surface-raised shadow-[inset_0_1px_0_var(--highlight),0_0_0_1px_var(--clr-secondary)]"
+                    : "border-outline-variant bg-surface-raised shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(16_24_40/0.06)] hover:border-outline"
                 }`}
               >
-                <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                <p className="text-sm font-semibold text-on-surface-variant">
                   {c.caseNumber}
                 </p>
                 <p className="mt-1 truncate font-semibold text-on-surface">
@@ -161,7 +163,7 @@ export default function TrackCasePage() {
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[c.status]}`}
+                    className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[c.status]}`}
                   >
                     {c.status.replace(/-/g, " ")}
                   </span>
@@ -175,32 +177,32 @@ export default function TrackCasePage() {
           {selectedCase && (
             <div className="space-y-4 lg:col-span-2">
               {/* Header */}
-              <div className="rounded-lg border border-outline-variant bg-surface-container p-6">
+              <div className="card p-5 sm:p-6">
                 <div className="space-y-4">
                   {selectedCase.isArchived && (
-                    <div className="rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface-variant">
+                    <div className="notice text-on-surface-variant">
                       This case was archived on {formatCaseDate(selectedCase.archivedAt)} and is no longer
                       active. Contact the firm if you have questions about it.
                     </div>
                   )}
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+                      <p className="text-sm font-semibold text-gold-ink">
                         Case Details
                       </p>
-                      <h2 className="mt-2 font-display text-2xl font-semibold text-on-surface">
+                      <h2 className="mt-2 font-display text-2xl font-semibold text-heading">
                         {selectedCase.title}
                       </h2>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedCase.isArchived && <ArchivedBadge className="py-1" />}
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[selectedCase.status]}`}
+                        className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[selectedCase.status]}`}
                       >
                         {selectedCase.status.replace(/-/g, " ")}
                       </span>
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${PRIORITY_COLORS[selectedCase.priority]}`}
+                        className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold ${PRIORITY_COLORS[selectedCase.priority]}`}
                       >
                         {selectedCase.priority.charAt(0).toUpperCase() +
                           selectedCase.priority.slice(1)}{" "}
@@ -243,21 +245,19 @@ export default function TrackCasePage() {
               </div>
 
               {/* Description */}
-              {selectedCase.description && (
-                <div className="rounded-lg border border-outline-variant bg-surface-container p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+              {!isRichTextEmpty(selectedCase.description) && (
+                <div className="card p-5 sm:p-6">
+                  <p className="text-sm font-semibold text-gold-ink">
                     Description
                   </p>
-                  <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
-                    {selectedCase.description}
-                  </p>
+                  <RichText value={selectedCase.description} className="mt-3" />
                 </div>
               )}
 
               {/* More Details */}
               <div className="grid gap-4 sm:grid-cols-2">
                 {selectedCase.courtName && (
-                  <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+                  <div className="card p-4">
                     <p className="text-xs text-on-surface-variant">Court Name</p>
                     <p className="mt-2 font-semibold text-on-surface">
                       {selectedCase.courtName}
@@ -265,7 +265,7 @@ export default function TrackCasePage() {
                   </div>
                 )}
                 {selectedCase.jurisdiction && (
-                  <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+                  <div className="card p-4">
                     <p className="text-xs text-on-surface-variant">Jurisdiction</p>
                     <p className="mt-2 font-semibold text-on-surface">
                       {selectedCase.jurisdiction}
@@ -273,7 +273,7 @@ export default function TrackCasePage() {
                   </div>
                 )}
                 {selectedCase.opposingParty && (
-                  <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+                  <div className="card p-4">
                     <p className="text-xs text-on-surface-variant">Opposing Party</p>
                     <p className="mt-2 font-semibold text-on-surface">
                       {selectedCase.opposingParty}
@@ -281,7 +281,7 @@ export default function TrackCasePage() {
                   </div>
                 )}
                 {selectedCase.filingDate && (
-                  <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+                  <div className="card p-4">
                     <p className="text-xs text-on-surface-variant">Filed Date</p>
                     <p className="mt-2 font-semibold text-on-surface">
                       {new Date(selectedCase.filingDate).toLocaleDateString()}
@@ -291,14 +291,12 @@ export default function TrackCasePage() {
               </div>
 
               {/* Notes */}
-              {selectedCase.notes && (
-                <div className="rounded-lg border border-outline-variant bg-surface-container p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+              {!isRichTextEmpty(selectedCase.notes) && (
+                <div className="card p-5 sm:p-6">
+                  <p className="text-sm font-semibold text-gold-ink">
                     Lawyer Notes
                   </p>
-                  <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
-                    {selectedCase.notes}
-                  </p>
+                  <RichText value={selectedCase.notes} className="mt-3" />
                 </div>
               )}
             </div>

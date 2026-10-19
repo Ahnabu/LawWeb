@@ -26,6 +26,11 @@ export interface IUser extends Document<mongoose.Types.ObjectId> {
   isBlocked: boolean;
   blockedAt?: Date;
   blockedReason?: string;
+  // Lawyers only: soft delete. The account is kept (blocked) so history and
+  // restore keep working; deletionPending stays set until clean-up has finished
+  deletedAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId | null;
+  deletionPending?: boolean;
   // Lawyers only: position on public pages (ascending), set by admin drag-and-drop
   sortOrder: number;
   createdAt: Date;
@@ -57,6 +62,9 @@ const UserSchema: Schema = new Schema(
     isBlocked: { type: Boolean, default: false, index: true },
     blockedAt: { type: Date },
     blockedReason: { type: String, trim: true },
+    deletedAt: { type: Date, default: null, index: true },
+    deletedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    deletionPending: { type: Boolean },
     sortOrder: { type: Number, default: 0 },
   },
   { timestamps: true }

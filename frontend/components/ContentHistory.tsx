@@ -82,50 +82,50 @@ export function ContentHistory({ def, page, current, dirty, onRestored }: {
   const changes = compared ? diffPageData(def, compared.data, current) : [];
 
   return (
-    <section className="space-y-3 rounded-xl border border-outline-variant bg-surface-container p-5">
+    <section className="card space-y-4 p-5 sm:p-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Version history</p>
-        <p className="mt-1 text-xs text-on-surface-variant">
+        <h4 className="font-display text-lg font-semibold text-on-surface">Version history</h4>
+        <p className="mt-1 text-sm text-on-surface-variant">
           Every publish is saved (the latest 20). Restoring copies a version into the draft; publish it to make it live.
         </p>
       </div>
 
       {loading ? (
-        <div className="h-16 animate-pulse rounded-lg bg-surface" />
+        <div className="panel h-16" aria-busy="true" />
       ) : error ? (
-        <p className="text-sm text-error">{error}</p>
+        <p className="notice notice-error" role="alert">{error}</p>
       ) : revisions.length === 0 ? (
         <p className="text-sm text-on-surface-variant">Nothing published yet. Versions appear here after the first publish.</p>
       ) : (
-        <ul className="divide-y divide-outline-variant rounded-lg border border-outline-variant bg-surface">
+        <ul className="divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant">
           {revisions.map((revision) => (
-            <li key={revision._id} className="space-y-2 p-3">
+            <li key={revision._id} className="space-y-2 px-4 py-3 even:bg-surface-container/50">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-semibold text-on-surface">Version {revision.version}</span>
                   {revision.version === page.version && (
-                    <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold text-green-700">Live</span>
+                    <span className="chip"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-success" />Live</span>
                   )}
-                  <span className="text-xs text-on-surface-variant">
+                  <span className="text-sm text-on-surface-variant">
                     {formatDateTime(revision.createdAt)}{revision.publishedByName && ` by ${revision.publishedByName}`}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button type="button" onClick={() => compare(revision.version)} disabled={busy !== null}
-                    className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-2.5 py-1 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
-                    {busy === `compare-${revision.version}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitCompare className="h-3 w-3" />}
+                    className="btn btn-ghost btn-sm">
+                    {busy === `compare-${revision.version}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <GitCompare className="h-3.5 w-3.5" aria-hidden="true" />}
                     {compared?.version === revision.version ? "Hide" : "Compare"}
                   </button>
                   <button type="button" onClick={() => restore(revision.version)} disabled={busy !== null}
-                    className="flex items-center gap-1.5 rounded-lg border border-outline-variant px-2.5 py-1 text-xs font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50 transition">
-                    {busy === `restore-${revision.version}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    className="btn btn-secondary btn-sm">
+                    {busy === `restore-${revision.version}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
                     Restore
                   </button>
                 </div>
               </div>
 
               {compared?.version === revision.version && (
-                <div className="rounded-lg bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
+                <div className="panel px-4 py-3 text-sm text-on-surface-variant">
                   {changes.length === 0 ? (
                     <p>Same as the editor&apos;s current content.</p>
                   ) : (

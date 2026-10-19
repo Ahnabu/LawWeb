@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Ban, Eye, Mail, Phone, RotateCcw, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { Ban, Eye, RotateCcw, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   formatDate,
   listUsers,
@@ -12,6 +12,7 @@ import {
   type UserStatusFilter,
 } from "../../../../lib/adminUsers";
 import { BlockUserDialog } from "./_components/BlockUserDialog";
+import { Pagination } from "../../../../components/Pagination";
 import { UserAvatar, UserStatusBadge, confirmAndDelete, confirmAndUnblock, performBlock } from "./_components/userActions";
 
 const LIMIT = 20;
@@ -24,11 +25,12 @@ const FILTERS: { key: UserStatusFilter; label: string; hint: string }[] = [
   { key: "unverified", label: "Unverified", hint: "Email not confirmed yet" },
 ];
 
-const FILTER_ACCENTS: Record<UserStatusFilter, string> = {
-  all: "text-on-surface",
-  active: "text-green-700",
-  blocked: "text-error",
-  unverified: "text-secondary",
+// Small status dot inside each filter chip
+const FILTER_DOTS: Record<UserStatusFilter, string | null> = {
+  all: null,
+  active: "bg-success",
+  blocked: "bg-error",
+  unverified: "bg-secondary",
 };
 
 const EMPTY_COUNTS: UserCounts = { all: 0, active: 0, blocked: 0, unverified: 0 };
@@ -93,7 +95,6 @@ export default function AdminUsersPage() {
     void fetchUsers();
   }, [fetchUsers]);
 
-  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
   const changeStatus = (next: UserStatusFilter) => {
     setStatus(next);
@@ -138,8 +139,8 @@ export default function AdminUsersPage() {
         </p>
       </header>
 
-      {/* Status filters double as the stat cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="tablist" aria-label="Filter by account status">
+      {/* Status filters, each with its count */}
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter by account status">
         {FILTERS.map((filter) => {
           const selected = status === filter.key;
           return (
@@ -149,19 +150,14 @@ export default function AdminUsersPage() {
               role="tab"
               aria-selected={selected}
               onClick={() => changeStatus(filter.key)}
-              className={`rounded-xl border p-4 text-left transition ${
-                selected
-                  ? "border-secondary bg-secondary/10 ring-1 ring-secondary"
-                  : "border-outline-variant bg-surface-container hover:border-secondary/60"
-              }`}
+              title={filter.hint}
+              className={`chip ${selected ? "chip-active" : ""}`}
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant sm:text-sm sm:normal-case sm:tracking-normal">
-                {filter.label}
-              </p>
-              <p className={`mt-1.5 font-display text-2xl font-bold sm:text-3xl ${FILTER_ACCENTS[filter.key]}`}>
-                {counts[filter.key]}
-              </p>
-              <p className="mt-1 hidden text-xs text-on-surface-variant sm:block">{filter.hint}</p>
+              {FILTER_DOTS[filter.key] && (
+                <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${FILTER_DOTS[filter.key]}`} />
+              )}
+              {filter.label}
+              <span className="tabular-nums opacity-70">{counts[filter.key]}</span>
             </button>
           );
         })}
@@ -170,27 +166,27 @@ export default function AdminUsersPage() {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" aria-hidden="true" />
           <input
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name, email or phone"
             aria-label="Search users"
-            className="w-full rounded-lg border border-outline-variant bg-surface py-2.5 pl-9 pr-9 text-sm text-on-surface outline-none transition focus:border-secondary"
+            className="field pl-9 pr-11"
           />
           {searchInput && (
             <button
               type="button"
               onClick={() => setSearchInput("")}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-on-surface-variant hover:bg-surface-container"
+              className="btn btn-ghost btn-icon absolute right-1 top-1/2 h-9 min-h-0 w-9 -translate-y-1/2"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
-        <label className="flex items-center gap-2 text-sm text-on-surface-variant">
+        <label className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
           Sort
           <select
             value={sort}
@@ -198,7 +194,7 @@ export default function AdminUsersPage() {
               setSort(e.target.value as UserSort);
               setPage(1);
             }}
-            className="rounded-lg border border-outline-variant bg-surface px-3 py-2.5 text-sm text-on-surface outline-none focus:border-secondary"
+            className="field w-auto"
           >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
@@ -208,25 +204,20 @@ export default function AdminUsersPage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={`skel-${i}`} className="h-16 animate-pulse rounded-xl border border-outline-variant bg-surface-container" />
-          ))}
-        </div>
+        <div className="card h-80 bg-surface-container" aria-busy="true" />
       ) : error ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+        <div className="notice notice-error flex flex-wrap items-center justify-between gap-3" role="alert">
           <span>{error}</span>
           <button
             type="button"
             onClick={() => void fetchUsers()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-error/40 px-3 py-1.5 text-xs font-semibold hover:bg-error/10"
+            className="btn btn-secondary btn-sm"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Retry
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Retry
           </button>
         </div>
       ) : users.length === 0 ? (
-        <div className="rounded-xl border border-outline-variant bg-surface-container p-8 text-center">
-          <Users className="mx-auto mb-3 h-8 w-8 text-on-surface-variant" />
+        <div className="card p-10 text-center">
           <p className="text-sm text-on-surface-variant">
             {hasQuery
               ? `No ${activeFilter && status !== "all" ? activeFilter.label.toLowerCase() + " " : ""}clients${search ? ` match "${search}"` : ""}.`
@@ -240,7 +231,7 @@ export default function AdminUsersPage() {
                 setSearch("");
                 changeStatus("all");
               }}
-              className="mt-3 text-sm font-semibold text-secondary hover:underline"
+              className="btn btn-secondary btn-sm mt-4"
             >
               Clear filters
             </button>
@@ -248,39 +239,39 @@ export default function AdminUsersPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-xl border border-outline-variant">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
               <thead className="border-b border-outline-variant bg-surface-container">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-on-surface-variant sm:px-4">
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-on-surface-variant sm:px-4">
                     Client
                   </th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-on-surface-variant md:table-cell">
+                  <th className="hidden px-4 py-3 text-left text-sm font-semibold text-on-surface-variant md:table-cell">
                     Contact
                   </th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-on-surface-variant sm:table-cell">
+                  <th className="hidden px-4 py-3 text-left text-sm font-semibold text-on-surface-variant sm:table-cell">
                     Status
                   </th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-on-surface-variant lg:table-cell">
+                  <th className="hidden px-4 py-3 text-left text-sm font-semibold text-on-surface-variant lg:table-cell">
                     Joined
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-on-surface-variant sm:px-4">
+                  <th className="px-3 py-3 text-right text-sm font-semibold text-on-surface-variant sm:px-4">
                     <span className="sr-only sm:not-sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant bg-surface">
+              <tbody className="divide-y divide-outline-variant">
                 {users.map((user) => {
                   const busy = busyId === user._id;
                   return (
-                    <tr key={user._id} className={`transition hover:bg-surface-container/50 ${busy ? "opacity-60" : ""}`}>
-                      <td className="px-3 py-3 sm:px-4">
+                    <tr key={user._id} className={`transition-colors hover:bg-surface-container/60 ${busy ? "opacity-60" : ""}`}>
+                      <td className="px-3 py-3.5 sm:px-4">
                         <div className="flex min-w-0 items-center gap-3">
                           <UserAvatar name={user.name} imageUrl={user.profileImageUrl} />
                           <div className="min-w-0">
                             <Link
                               href={`/dashboard/admin/users/${user._id}`}
-                              className="block truncate font-medium text-on-surface hover:text-secondary"
+                              className="block truncate font-semibold text-on-surface hover:text-gold-ink"
                             >
                               {user.name}
                             </Link>
@@ -292,13 +283,9 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="hidden px-4 py-3 md:table-cell">
-                        <p className="flex items-center gap-1.5 text-on-surface-variant">
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{user.email}</span>
-                        </p>
+                        <p className="truncate text-on-surface">{user.email}</p>
                         {user.phone && (
-                          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-on-surface-variant">
-                            <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <p className="mt-0.5 text-on-surface-variant tabular-nums">
                             {user.phone}
                           </p>
                         )}
@@ -309,16 +296,16 @@ export default function AdminUsersPage() {
                           <p className="mt-1 text-xs text-on-surface-variant">since {formatDate(user.blockedAt)}</p>
                         )}
                       </td>
-                      <td className="hidden px-4 py-3 text-xs text-on-surface-variant lg:table-cell">{formatDate(user.createdAt)}</td>
+                      <td className="hidden px-4 py-3 text-on-surface-variant lg:table-cell">{formatDate(user.createdAt)}</td>
                       <td className="px-3 py-3 sm:px-4">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end">
                           <Link
                             href={`/dashboard/admin/users/${user._id}`}
                             title="View details"
                             aria-label={`View details for ${user.name}`}
-                            className="rounded-lg p-2 text-on-surface-variant transition hover:bg-surface-container hover:text-secondary"
+                            className="btn btn-ghost btn-icon"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4" aria-hidden="true" />
                           </Link>
                           {user.isBlocked ? (
                             <button
@@ -327,9 +314,9 @@ export default function AdminUsersPage() {
                               onClick={() => void handleUnblock(user)}
                               title="Unblock"
                               aria-label={`Unblock ${user.name}`}
-                              className="rounded-lg p-2 text-green-700 transition hover:bg-green-500/10 disabled:opacity-40"
+                              className="btn btn-ghost btn-icon text-success hover:text-success"
                             >
-                              <ShieldCheck className="h-4 w-4" />
+                              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                             </button>
                           ) : (
                             <button
@@ -338,9 +325,9 @@ export default function AdminUsersPage() {
                               onClick={() => setBlockTarget(user)}
                               title="Block"
                               aria-label={`Block ${user.name}`}
-                              className="rounded-lg p-2 text-on-surface-variant transition hover:bg-error/10 hover:text-error disabled:opacity-40"
+                              className="btn btn-ghost btn-icon hover:text-error"
                             >
-                              <Ban className="h-4 w-4" />
+                              <Ban className="h-4 w-4" aria-hidden="true" />
                             </button>
                           )}
                           <button
@@ -349,9 +336,9 @@ export default function AdminUsersPage() {
                             onClick={() => void handleDelete(user)}
                             title="Delete"
                             aria-label={`Delete ${user.name}`}
-                            className="rounded-lg p-2 text-on-surface-variant transition hover:bg-error/10 hover:text-error disabled:opacity-40"
+                            className="btn btn-ghost btn-icon hover:text-error"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -362,34 +349,7 @@ export default function AdminUsersPage() {
             </table>
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-3 text-sm text-on-surface-variant sm:flex-row">
-            <span>
-              Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)} of {total}
-            </span>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container disabled:opacity-40"
-                >
-                  Previous
-                </button>
-                <span>
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
+          <Pagination page={page} pageSize={LIMIT} total={total} onPageChange={setPage} />
         </>
       )}
 

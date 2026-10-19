@@ -218,8 +218,17 @@ export interface AdminLawyer extends AdminUser {
   isBlocked?: boolean
   blockedAt?: string
   blockedReason?: string
+  /** Set once the lawyer is removed (soft-deleted); null or absent for current lawyers */
+  deletedAt?: string | null
+  /** Removal clean-up (archiving cases, cancelling appointments) has not finished yet */
+  deletionPending?: boolean
   designation: { en: string; bn: string }
   updatedAt?: string
+}
+
+export interface AdminLawyerCounts {
+  current: number
+  removed: number
 }
 
 export interface AdminLawyerDetails extends AdminLawyer {
@@ -257,6 +266,9 @@ export interface LawyerDeletionSummary {
   cancelledConsultations: number
   notifiedClients: number
   emailFailures: number
+  cancelFailures: number
+  /** Some clean-up is left; calling remove again finishes it */
+  pending: boolean
 }
 
 /** Server message + payload, so callers can toast exactly what the API said */
@@ -277,9 +289,17 @@ async function adminRequest<T>(path: string, init: RequestInit = {}, fallback = 
   return { message: body?.message || '', data: body?.data as T }
 }
 
-export async function getAdminLawyers(): Promise<AdminLawyer[]> {
-  const { data } = await adminRequest<AdminLawyer[]>('/api/admin/lawyers', {}, 'Failed to fetch lawyers')
-  return data ?? []
+/** Current lawyers in public order, or removed ones (newest removal first) */
+export async function getAdminLawyers(
+  options: { removed?: boolean } = {}
+): Promise<{ lawyers: AdminLawyer[]; counts: AdminLawyerCounts | null }> {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers${options.removed ? '?removed=true' : ''}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body?.message || 'Failed to fetch lawyers')
+  return { lawyers: body?.data ?? [], counts: body?.meta?.counts ?? null }
 }
 
 export function getAdminLawyerDetails(lawyerId: string) {
@@ -323,11 +343,20 @@ export function getLawyerDeletionImpact(lawyerId: string) {
   )
 }
 
+/** Soft delete. Also finishes the clean-up of a lawyer whose removal is still pending. */
 export function deleteAdminLawyer(lawyerId: string) {
   return adminRequest<LawyerDeletionSummary>(
     `/api/admin/lawyers/${lawyerId}`,
     { method: 'DELETE' },
     'Failed to remove lawyer'
+  )
+}
+
+export function restoreAdminLawyer(lawyerId: string) {
+  return adminRequest<AdminLawyer>(
+    `/api/admin/lawyers/${lawyerId}/restore`,
+    { method: 'PATCH' },
+    'Failed to restore lawyer'
   )
 }
 

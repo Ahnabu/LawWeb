@@ -5,6 +5,7 @@ import Case from '../models/Case';
 import Consultation from '../models/Consultation';
 import { ACTIVE_STATUSES, businessNow } from '../utils/schedule';
 import { revokeAllSessions } from '../utils/session';
+import { recordAudit } from '../utils/audit';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -73,6 +74,9 @@ const invalidId = (res: Response) => res.status(400).json({ status: 400, message
 const notFound = (res: Response) => res.status(404).json({ status: 404, message: 'User not found' });
 const adminRefused = (res: Response, action: string) =>
   res.status(403).json({ status: 403, message: `Admin accounts cannot be ${action} from here.` });
+// A removed lawyer stays blocked until restored from Lawyer Management
+const removedLawyerRefused = (res: Response, name: string) =>
+  res.status(409).json({ status: 409, message: `${name} was removed from the firm. Restore them from Lawyer Management first.` });
 
 const blockState = (user: { _id: unknown; isBlocked?: boolean; blockedAt?: Date; blockedReason?: string }) => ({
   _id: user._id,
@@ -262,6 +266,16 @@ export const updateUserAdmin = async (req: AuthRequest, res: Response) => {
 
     if (!updated) return notFound(res);
 
+    recordAudit(req, {
+      action: 'user.updated',
+      category: 'user',
+      targetType: 'user',
+      targetId: updated._id,
+      targetLabel: updated.name,
+      summary: `Updated client ${updated.name}`,
+      metadata: { fields: [...Object.keys(updates), ...Object.keys(unset)] },
+    });
+
     res.json({ status: 200, message: 'User updated successfully', data: updated });
   } catch (error) {
     console.error('Admin update user error:', error);
@@ -282,9 +296,10 @@ export const blockUserAdmin = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 400, message: 'You cannot block your own account.' });
     }
 
-    const target = await User.findById(userId).select('role name isBlocked').lean();
+    const target = await User.findById(userId).select('role name isBlocked deletedAt').lean();
     if (!target) return notFound(res);
     if (target.role === 'admin') return adminRefused(res, 'blocked');
+    if (target.deletedAt) return removedLawyerRefused(res, target.name);
 
     const rawReason = (req.body as { reason?: unknown } | undefined)?.reason;
     const reason = typeof rawReason === 'string' ? rawReason.trim().slice(0, MAX_REASON_LENGTH) : '';
@@ -303,6 +318,16 @@ export const blockUserAdmin = async (req: AuthRequest, res: Response) => {
     if (!updated) return notFound(res);
 
     await revokeAllSessions(userId);
+
+    recordAudit(req, {
+      action: target.isBlocked ? 'user.block_updated' : 'user.blocked',
+      category: 'user',
+      targetType: target.role,
+      targetId: userId,
+      targetLabel: target.name,
+      summary: target.isBlocked ? `Updated block on ${target.name}` : `Blocked ${target.role} ${target.name}`,
+      metadata: { role: target.role, reason: reason || undefined },
+    });
 
     res.json({
       status: 200,
@@ -323,9 +348,10 @@ export const unblockUserAdmin = async (req: AuthRequest, res: Response) => {
     const { userId } = req.params;
     if (!isValidId(userId)) return invalidId(res);
 
-    const target = await User.findById(userId).select('role name isBlocked').lean();
+    const target = await User.findById(userId).select('role name isBlocked deletedAt').lean();
     if (!target) return notFound(res);
     if (target.role === 'admin') return adminRefused(res, 'unblocked');
+    if (target.deletedAt) return removedLawyerRefused(res, target.name);
 
     const updated = await User.findByIdAndUpdate(
       userId,
@@ -336,6 +362,18 @@ export const unblockUserAdmin = async (req: AuthRequest, res: Response) => {
       .lean();
 
     if (!updated) return notFound(res);
+
+    if (target.isBlocked) {
+      recordAudit(req, {
+        action: 'user.unblocked',
+        category: 'user',
+        targetType: target.role,
+        targetId: userId,
+        targetLabel: target.name,
+        summary: `Unblocked ${target.role} ${target.name}`,
+        metadata: { role: target.role },
+      });
+    }
 
     res.json({
       status: 200,
@@ -394,6 +432,16 @@ export const deleteUserAdmin = async (req: AuthRequest, res: Response) => {
 
     await revokeAllSessions(objectId);
     await User.deleteOne({ _id: objectId });
+
+    recordAudit(req, {
+      action: 'user.deleted',
+      category: 'user',
+      targetType: 'client',
+      targetId: userId,
+      targetLabel: `${target.name} (${target.email})`,
+      summary: `Deleted client account ${target.name}`,
+      metadata: { cancelledConsultations, detachedCases: detached.modifiedCount },
+    });
 
     res.json({
       status: 200,

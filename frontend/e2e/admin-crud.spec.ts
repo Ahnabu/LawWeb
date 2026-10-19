@@ -300,9 +300,10 @@ test("cases: CREATE", async () => {
   await page.getByPlaceholder("client@email.com").fill(CLIENT_EMAIL || "e2e-test-client@example.com");
   await page.getByLabel(/Assign Lawyer/).selectOption(lawyerId);
   await page.getByLabel(/Case Type/).selectOption("corporate");
-  await page.getByPlaceholder("Describe the case...").fill("Automated end-to-end test case. Safe to delete.");
+  // Description and notes are rich-text editors (contenteditable, role=textbox)
+  await page.getByRole("textbox", { name: /^Description/ }).fill("Automated end-to-end test case. Safe to delete.");
   await page.getByLabel(/Next Court Date/).fill("2026-12-15");
-  await page.getByPlaceholder("Additional notes...").fill("E2E note");
+  await page.getByRole("textbox", { name: /^Notes/ }).fill("E2E note");
   await page.getByRole("button", { name: "Create Case" }).click();
   await expect(page.getByRole("heading", { name: "Add New Case" })).toBeHidden();
   await expect(toast(/case/i)).toBeVisible();
@@ -492,17 +493,17 @@ test("content: UPDATE draft → persists → discard restores (live site untouch
   note(`Content: tested on "${title}". Publish was NOT exercised to avoid changing the live site.`);
 });
 
-// ── Delete lawyer last (cases/appointments reference it) ─────────────────────
-test("lawyers: DELETE (warning lists impact, needs email typed, cancel keeps it)", async () => {
+// ── Remove lawyer last (cases/appointments reference it) ─────────────────────
+test("lawyers: REMOVE (warning lists impact, needs email typed, cancel keeps it)", async () => {
   await goto("/dashboard/admin/lawyers", "Lawyer Management");
-  await lawyerCard().getByTitle("Delete lawyer").click();
+  await lawyerCard().getByTitle("Remove lawyer from the firm").click();
   await expect(dialog()).toContainText(lawyer.name);
   await expect(dialog()).toContainText(/archive/i);
   await dialog().getByRole("button", { name: "Cancel" }).click();
   await expect(lawyerCard()).toBeVisible();
 
-  await lawyerCard().getByTitle("Delete lawyer").click();
-  const confirm = dialog().getByRole("button", { name: "Delete lawyer" });
+  await lawyerCard().getByTitle("Remove lawyer from the firm").click();
+  const confirm = dialog().getByRole("button", { name: "Remove lawyer" });
   await expect(confirm).toBeDisabled();
   await dialog().getByRole("textbox").fill(lawyer.email);
   await confirm.click();
@@ -511,9 +512,9 @@ test("lawyers: DELETE (warning lists impact, needs email typed, cancel keeps it)
   await expect(page.getByText(lawyer.email)).toHaveCount(0);
 });
 
-test("integrity: deleted lawyer's case is archived and appointment cancelled", async () => {
+test("integrity: removed lawyer's case is archived and appointment cancelled", async () => {
   const api = await adminApi();
-  const archived = await (await api.get("/api/admin/cases?archived=true&limit=200")).json();
+  const archived = await (await api.get("/api/admin/cases?archived=true&limit=100")).json();
   const moved = (archived.data ?? []).find((c: { _id: string }) => c._id === caseId);
   expect(moved, "case should be in the archive").toBeTruthy();
   expect(moved.archiveReason).toBe("lawyer-deleted");
@@ -528,7 +529,7 @@ test("integrity: deleted lawyer's case is archived and appointment cancelled", a
 
   await goto("/dashboard/admin/cases", /^Cases$/);
   await page.getByRole("tab", { name: /Archived/ }).click();
-  await expect(caseCard()).toContainText(/Lawyer deleted/i);
+  await expect(caseCard()).toContainText(/Lawyer removed/i);
 });
 
 test("cases: DELETE an archived case via admin API", async () => {

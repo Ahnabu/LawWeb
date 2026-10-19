@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import LawyerProfile from '../models/LawyerProfile';
 import User from '../models/User';
 import { cloudinary } from '../config/multer.config';
+import { recordAudit } from '../utils/audit';
+import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -66,6 +68,15 @@ export const uploadProfileImage = async (req: AuthRequest, res: Response) => {
       { new: true, upsert: true, returnDocument: 'after' }
     );
 
+    recordAudit(req, {
+      action: 'profile.photo_updated',
+      category: 'profile',
+      targetType: 'lawyer',
+      targetId: userId,
+      targetLabel: req.user?.name,
+      summary: `${req.user?.name ?? 'Lawyer'} uploaded a new profile photo`,
+    });
+
     res.json({ status: 200, message: 'Profile image uploaded successfully', data: { profileImageUrl: imageUrl } });
   } catch (error) {
     console.error('Upload profile image error:', error);
@@ -91,11 +102,36 @@ export const updateMyLawyerProfile = async (req: AuthRequest, res: Response) => 
       }
     }
 
+    // The bio is rich text: store only allowlisted HTML, measured on visible text
+    if (updates.bio !== undefined) {
+      const raw = updates.bio as Record<string, unknown> | null;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return res.status(400).json({ status: 400, message: 'bio must be an object with en and bn' });
+      }
+      const bio: { en: string; bn: string } = { en: '', bn: '' };
+      for (const lang of ['en', 'bn'] as const) {
+        const result = normalizeRichText(raw[lang], lang === 'en' ? 'English bio' : 'Bengali bio', RICH_TEXT_LIMITS.bio);
+        if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+        bio[lang] = result.value;
+      }
+      updates.bio = bio;
+    }
+
     const profile = await LawyerProfile.findOneAndUpdate(
       { userId },
       { $set: updates },
       { new: true, upsert: true, runValidators: true }
     );
+
+    recordAudit(req, {
+      action: 'profile.updated',
+      category: 'profile',
+      targetType: 'lawyer',
+      targetId: userId,
+      targetLabel: req.user?.name,
+      summary: `${req.user?.name ?? 'Lawyer'} updated their public profile`,
+      metadata: { fields: Object.keys(updates) },
+    });
 
     res.json({ status: 200, message: 'Profile updated successfully', data: profile });
   } catch (error) {

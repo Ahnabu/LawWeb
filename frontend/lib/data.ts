@@ -4,7 +4,7 @@ export const navLinks = [
   { labelKey: 'nav.practiceAreas', fallback: 'Practice Areas', href: '/practice-areas' },
   { labelKey: 'nav.blogs', fallback: 'Blog', href: '/blogs' },
   { labelKey: 'nav.appointment', fallback: 'Appointment', href: '/appointment' },
-  { labelKey: 'nav.contact', fallback: 'Contact', href: '/#contact' },
+  { labelKey: 'nav.contact', fallback: 'Contact', href: '/contact' },
 ]
 
 // Default for the CMS "practice-areas" page's `areas` list (Home, Footer and

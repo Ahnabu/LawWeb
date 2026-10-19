@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User';
 import Case from '../models/Case';
+import { parsePagination, toCountMap } from '../utils/pagination';
+import { changedFields, recordAudit } from '../utils/audit';
+import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -14,7 +17,8 @@ const ACTIVE_FILTER = { isArchived: { $ne: true } };
 const ARCHIVED_FILTER = { isArchived: true };
 
 const CASE_POPULATE = [
-  { path: 'lawyerId', select: 'name email barId isBlocked' },
+  // A removed lawyer populates as null, so the list falls back to the formerLawyer copy
+  { path: 'lawyerId', select: 'name email barId isBlocked', match: { deletedAt: null } },
   { path: 'clientId', select: 'name email' },
   { path: 'archivedBy', select: 'name role' },
 ];
@@ -32,35 +36,35 @@ const findAssignableLawyer = async (lawyerId: unknown) => {
 
 export const getAllCasesAdmin = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, type, page = '1', limit = '20' } = req.query;
+    const { status, type } = req.query;
     const archived = typeof req.query.archived === 'string' ? req.query.archived : 'false';
     const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
+    const { page, limit, skip } = parsePagination(req.query);
 
-    const base: Record<string, any> = {};
-    if (typeof status === 'string' && status) base.status = status;
-    if (typeof type === 'string' && type) base.type = type;
+    // Everything except the status filter, so the per-status counts stay stable while filtering
+    const scope: Record<string, any> = {};
+    if (typeof type === 'string' && type) scope.type = type;
     if (search) {
       const rx = new RegExp(escapeRegex(search), 'i');
-      base.$or = [{ caseNumber: rx }, { title: rx }, { clientName: rx }, { clientEmail: rx }];
+      scope.$or = [{ caseNumber: rx }, { title: rx }, { clientName: rx }, { clientEmail: rx }];
     }
+    const base: Record<string, any> = typeof status === 'string' && status ? { ...scope, status } : { ...scope };
 
-    const filter: Record<string, any> =
-      archived === 'all'
-        ? { ...base }
-        : archived === 'true'
-          ? { ...base, ...ARCHIVED_FILTER }
-          : { ...base, ...ACTIVE_FILTER };
+    const archiveFilter = archived === 'all' ? {} : archived === 'true' ? ARCHIVED_FILTER : ACTIVE_FILTER;
+    const filter: Record<string, any> = { ...base, ...archiveFilter };
 
-    const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.min(200, Math.max(1, Number(limit) || 20));
-    const skip = (pageNum - 1) * limitNum;
-
-    const [cases, total, activeCount, archivedCount] = await Promise.all([
-      Case.find(filter).populate(CASE_POPULATE).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+    const [cases, total, activeCount, archivedCount, byStatus] = await Promise.all([
+      Case.find(filter).populate(CASE_POPULATE).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit),
       Case.countDocuments(filter),
       Case.countDocuments({ ...base, ...ACTIVE_FILTER }),
       Case.countDocuments({ ...base, ...ARCHIVED_FILTER }),
+      Case.aggregate<{ _id: string; n: number }>([
+        { $match: { ...scope, ...archiveFilter } },
+        { $group: { _id: '$status', n: { $sum: 1 } } },
+      ]),
     ]);
+
+    const statusCounts = toCountMap(byStatus);
 
     res.json({
       status: 200,
@@ -68,10 +72,12 @@ export const getAllCasesAdmin = async (req: AuthRequest, res: Response) => {
       data: cases,
       meta: {
         total,
-        page: pageNum,
-        limit: limitNum,
+        page,
+        limit,
         // Counts honour status/type/search but not the archived switch, for the tab badges
         counts: { active: activeCount, archived: archivedCount },
+        // Counts for the current tab honour type/search but not the status filter, for the stat cards
+        statusCounts: { all: Object.values(statusCounts).reduce((a, b) => a + b, 0), ...statusCounts },
       },
     });
   } catch (error) {
@@ -88,6 +94,15 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 400, message: 'Required fields: clientEmail, clientName, lawyerId, type, title, description' });
     }
 
+    // Description and client-visible notes are rich text: store allowlisted HTML only
+    const descriptionResult = normalizeRichText(description, 'Description', RICH_TEXT_LIMITS.caseDescription);
+    if (!descriptionResult.ok) return res.status(400).json({ status: 400, message: descriptionResult.message });
+    if (!descriptionResult.value) {
+      return res.status(400).json({ status: 400, message: 'Required fields: clientEmail, clientName, lawyerId, type, title, description' });
+    }
+    const notesResult = normalizeRichText(notes, 'Notes', RICH_TEXT_LIMITS.caseNotes);
+    if (!notesResult.ok) return res.status(400).json({ status: 400, message: notesResult.message });
+
     const lawyer = await findAssignableLawyer(lawyerId);
     if (!lawyer) {
       return res.status(400).json({ status: 400, message: LAWYER_UNAVAILABLE_MESSAGE });
@@ -103,15 +118,25 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
       lawyerId,
       type,
       title,
-      description,
+      description: descriptionResult.value,
       isOnline: isOnline ?? true,
       nextCourtDate: nextCourtDate ? new Date(nextCourtDate) : undefined,
-      notes,
+      notes: notesResult.value || undefined,
       totalPayment: totalPayment || 0,
     });
 
     await newCase.save();
     await newCase.populate(CASE_POPULATE);
+
+    recordAudit(req, {
+      action: 'case.created',
+      category: 'case',
+      targetType: 'case',
+      targetId: newCase._id,
+      targetLabel: newCase.caseNumber,
+      summary: `Created case ${newCase.caseNumber} for ${clientName}`,
+      metadata: { type, lawyerId: String(lawyerId) },
+    });
 
     res.status(201).json({
       status: 201,
@@ -143,8 +168,20 @@ export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
     for (const key of ADMIN_CASE_UPDATABLE_FIELDS) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
+    // Rich-text fields: store allowlisted HTML only
+    if (updates.description !== undefined) {
+      const result = normalizeRichText(updates.description, 'Description', RICH_TEXT_LIMITS.caseDescription);
+      if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+      if (!result.value) return res.status(400).json({ status: 400, message: 'Description is required' });
+      updates.description = result.value;
+    }
+    if (updates.notes !== undefined) {
+      const result = normalizeRichText(updates.notes, 'Notes', RICH_TEXT_LIMITS.caseNotes);
+      if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+      updates.notes = result.value;
+    }
 
-    const existing = await Case.findById(caseId).select('isArchived lawyerId');
+    const existing = await Case.findById(caseId).select(['isArchived', 'caseNumber', ...ADMIN_CASE_UPDATABLE_FIELDS].join(' ')).lean();
     if (!existing) {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
@@ -168,6 +205,24 @@ export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
     if (!updatedCase) {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
+
+    const changed = changedFields(existing as unknown as Record<string, unknown>, updates);
+    const statusChanged = changed.includes('status');
+    recordAudit(req, {
+      action: statusChanged ? 'case.status_changed' : 'case.updated',
+      category: 'case',
+      targetType: 'case',
+      targetId: updatedCase._id,
+      targetLabel: updatedCase.caseNumber,
+      summary: statusChanged
+        ? `Changed case ${updatedCase.caseNumber} status from ${existing.status} to ${updatedCase.status}`
+        : `Updated case ${updatedCase.caseNumber}`,
+      metadata: {
+        fields: changed,
+        ...(statusChanged ? { from: existing.status, to: updatedCase.status } : {}),
+        ...(changed.includes('lawyerId') ? { lawyerReassigned: true } : {}),
+      },
+    });
 
     res.json({
       status: 200,
@@ -203,6 +258,16 @@ export const archiveCaseAdmin = async (req: AuthRequest, res: Response) => {
     caseDoc.archiveNote = note || undefined;
     await caseDoc.save();
     await caseDoc.populate(CASE_POPULATE);
+
+    recordAudit(req, {
+      action: 'case.archived',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Archived case ${caseDoc.caseNumber}`,
+      metadata: note ? { note: note.slice(0, 200) } : undefined,
+    });
 
     res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: caseDoc });
   } catch (error) {
@@ -257,6 +322,16 @@ export const restoreCaseAdmin = async (req: AuthRequest, res: Response) => {
     await caseDoc.save();
     await caseDoc.populate(CASE_POPULATE);
 
+    recordAudit(req, {
+      action: 'case.restored',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Restored case ${caseDoc.caseNumber}`,
+      metadata: requestedLawyerId ? { lawyerReassigned: true } : undefined,
+    });
+
     res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: caseDoc });
   } catch (error) {
     console.error('Admin restore case error:', error);
@@ -281,6 +356,15 @@ export const deleteCaseAdmin = async (req: AuthRequest, res: Response) => {
     }
 
     await Case.deleteOne({ _id: caseDoc._id, isArchived: true });
+
+    recordAudit(req, {
+      action: 'case.deleted',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Permanently deleted case ${caseDoc.caseNumber}`,
+    });
 
     res.json({ status: 200, message: `Case ${caseDoc.caseNumber} permanently deleted`, data: null });
   } catch (error) {

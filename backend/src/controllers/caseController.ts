@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Case from '../models/Case';
 import User from '../models/User';
+import { recordAudit } from '../utils/audit';
+import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -42,6 +44,13 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 400, message: 'Missing required fields' });
     }
 
+    // Description and client-visible notes are rich text: store allowlisted HTML only
+    const descriptionResult = normalizeRichText(description, 'Description', RICH_TEXT_LIMITS.caseDescription);
+    if (!descriptionResult.ok) return res.status(400).json({ status: 400, message: descriptionResult.message });
+    if (!descriptionResult.value) return res.status(400).json({ status: 400, message: 'Missing required fields' });
+    const notesResult = normalizeRichText(notes, 'Notes', RICH_TEXT_LIMITS.caseNotes);
+    if (!notesResult.ok) return res.status(400).json({ status: 400, message: notesResult.message });
+
     // Lawyers create cases assigned to themselves; admins can specify any lawyerId
     const assignedLawyerId = userRole === 'lawyer' ? userId : lawyerId;
 
@@ -66,7 +75,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       lawyerId: assignedLawyerId,
       type,
       title,
-      description,
+      description: descriptionResult.value,
       priority: priority || 'medium',
       stage: stage || 'intake',
       isOnline: isOnline ?? true,
@@ -86,11 +95,21 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       witnessNames: witnessNames || [],
       evidenceSummary: evidenceSummary || undefined,
       internalNotes: internalNotes || undefined,
-      notes: notes || undefined,
+      notes: notesResult.value || undefined,
       totalPayment: totalPayment || 0,
     });
 
     await caseDoc.save();
+
+    recordAudit(req, {
+      action: 'case.created',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Created case ${caseDoc.caseNumber} for ${clientName}`,
+      metadata: { type, lawyerId: String(assignedLawyerId) },
+    });
 
     res.status(201).json({
       status: 201,
@@ -233,10 +252,15 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ status: 409, message: 'Restore the case to edit it' });
     }
 
+    const previousStatus = caseDoc.status;
     if (status) caseDoc.status = status;
     if (stage) caseDoc.stage = stage;
     if (priority) caseDoc.priority = priority;
-    if (notes !== undefined) caseDoc.notes = notes;
+    if (notes !== undefined) {
+      const result = normalizeRichText(notes, 'Notes', RICH_TEXT_LIMITS.caseNotes);
+      if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+      caseDoc.notes = result.value;
+    }
     if (internalNotes !== undefined) caseDoc.internalNotes = internalNotes;
     if (nextCourtDate !== undefined) caseDoc.nextCourtDate = nextCourtDate ? new Date(nextCourtDate) : undefined;
     if (courtName !== undefined) caseDoc.courtName = courtName;
@@ -259,7 +283,11 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     // Append a new document reference
     if (documentEntry) caseDoc.documents.push({ ...documentEntry, date: documentEntry.date ? new Date(documentEntry.date) : new Date() });
     if (title && userRole === 'admin') caseDoc.title = title;
-    if (description && userRole === 'admin') caseDoc.description = description;
+    if (description && userRole === 'admin') {
+      const result = normalizeRichText(description, 'Description', RICH_TEXT_LIMITS.caseDescription);
+      if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
+      if (result.value) caseDoc.description = result.value;
+    }
 
     if (totalPayment !== undefined) caseDoc.totalPayment = totalPayment;
     if (paymentEntry) {
@@ -284,7 +312,28 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    const changed = caseDoc.modifiedPaths().filter((p) => !p.includes('.'));
     await caseDoc.save();
+
+    const statusChanged = caseDoc.status !== previousStatus;
+    recordAudit(req, {
+      action: statusChanged ? 'case.status_changed' : 'case.updated',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: statusChanged
+        ? `Changed case ${caseDoc.caseNumber} status from ${previousStatus} to ${caseDoc.status}`
+        : `Updated case ${caseDoc.caseNumber}`,
+      metadata: {
+        fields: changed,
+        ...(statusChanged ? { from: previousStatus, to: caseDoc.status } : {}),
+        ...(hearingEntry ? { hearingAdded: true } : {}),
+        ...(documentEntry ? { documentAdded: true } : {}),
+        ...(paymentEntry ? { paymentAdded: paymentEntry.amount } : {}),
+        ...(deletePaymentId ? { paymentDeleted: true } : {}),
+      },
+    });
 
     res.json({
       status: 200,
@@ -321,6 +370,15 @@ export const deleteCase = async (req: AuthRequest, res: Response) => {
 
     await Case.deleteOne({ _id: caseDoc._id, isArchived: true });
 
+    recordAudit(req, {
+      action: 'case.deleted',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Permanently deleted case ${caseDoc.caseNumber}`,
+    });
+
     res.json({
       status: 200,
       message: `Case ${caseDoc.caseNumber} permanently deleted`,
@@ -344,7 +402,8 @@ export const trackCasePublic = async (req: Request, res: Response) => {
     }
 
     const caseDoc = await Case.findOne({ caseNumber, clientEmail: email })
-      .populate('lawyerId', 'name barId')
+      // A removed lawyer populates as null; the page then shows formerLawyer.name
+      .populate({ path: 'lawyerId', select: 'name barId', match: { deletedAt: null } })
       // Archived cases stay trackable; only the former lawyer's name is exposed, never their contact details
       .select('caseNumber title type status stage priority courtName jurisdiction nextCourtDate filingDate notes lawyerId isArchived archivedAt formerLawyer.name createdAt updatedAt')
       .lean();
@@ -385,6 +444,15 @@ export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
 
     caseDoc.isFeatured = !caseDoc.isFeatured;
     await caseDoc.save();
+
+    recordAudit(req, {
+      action: caseDoc.isFeatured ? 'case.featured' : 'case.unfeatured',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `${caseDoc.isFeatured ? 'Featured' : 'Unfeatured'} case ${caseDoc.caseNumber}`,
+    });
 
     res.json({
       status: 200,
@@ -431,6 +499,16 @@ export const archiveMyCase = async (req: AuthRequest, res: Response) => {
       { path: 'archivedBy', select: 'name role' },
     ]);
 
+    recordAudit(req, {
+      action: 'case.archived',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Archived case ${caseDoc.caseNumber}`,
+      metadata: note ? { note: note.slice(0, 200) } : undefined,
+    });
+
     res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: caseDoc });
   } catch (error) {
     console.error('Archive case error:', error);
@@ -471,6 +549,15 @@ export const restoreMyCase = async (req: AuthRequest, res: Response) => {
     caseDoc.archiveNote = undefined;
     await caseDoc.save();
     await caseDoc.populate('clientId', 'name email phone');
+
+    recordAudit(req, {
+      action: 'case.restored',
+      category: 'case',
+      targetType: 'case',
+      targetId: caseDoc._id,
+      targetLabel: caseDoc.caseNumber,
+      summary: `Restored case ${caseDoc.caseNumber}`,
+    });
 
     res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: caseDoc });
   } catch (error) {

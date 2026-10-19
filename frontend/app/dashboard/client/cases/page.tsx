@@ -7,6 +7,8 @@ import { API_BASE_URL } from "../../../../lib/api";
 import { apiFetch } from "../../../../lib/http";
 import { ArchivedBadge } from "../../../../components/CaseArchive";
 import { caseLawyerName, formatCaseDate } from "../../../../lib/cases";
+import { RichText } from "../../../../components/RichText";
+import { isRichTextEmpty } from "../../../../lib/richText";
 
 type CaseStatus =
   | "active"
@@ -52,7 +54,7 @@ interface CaseItem {
 
 const STATUS_COLORS: Record<CaseStatus, string> = {
   active: "bg-blue-500/15 text-blue-600",
-  filed: "bg-secondary/15 text-secondary",
+  filed: "bg-secondary/15 text-gold-ink",
   "hearing-scheduled": "bg-purple-500/15 text-purple-600",
   "under-review": "bg-yellow-500/15 text-yellow-600",
   closed: "bg-surface-container text-on-surface-variant",
@@ -64,7 +66,7 @@ const STATUS_COLORS: Record<CaseStatus, string> = {
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-error/15 text-error",
-  medium: "bg-secondary/15 text-secondary",
+  medium: "bg-secondary/15 text-gold-ink",
   low: "bg-success/15 text-success",
 };
 
@@ -130,7 +132,7 @@ export default function ClientCasesPage() {
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">
+        <h3 className="font-display text-2xl font-semibold text-heading">
           My Cases
         </h3>
         <p className="text-sm text-on-surface-variant">
@@ -147,15 +149,15 @@ export default function ClientCasesPage() {
       </div>
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
+      <div className="panel flex gap-1 overflow-x-auto p-1">
         {STATUS_FILTERS.map((tab) => (
           <button
             type="button"
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${activeTab === tab.value
-                ? "bg-primary text-on-primary"
-                : "text-on-surface-variant hover:bg-surface-container-high"
+            className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${activeTab === tab.value
+                ? "bg-surface-raised font-semibold text-on-surface shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(16_24_40/0.12)]"
+                : "text-on-surface-variant hover:text-on-surface"
               }`}
           >
             {tab.label}
@@ -165,14 +167,14 @@ export default function ClientCasesPage() {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
+        <div className="panel p-8 text-center text-sm text-on-surface-variant">
           No cases found.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-outline-variant">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-high text-left text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              <tr className="border-b border-outline-variant bg-surface-container text-left text-xs font-semibold text-on-surface-variant">
                 <th className="px-3 py-2.5">Case #</th>
                 <th className="px-3 py-2.5">Title</th>
                 <th className="px-3 py-2.5">Lawyer</th>
@@ -183,7 +185,7 @@ export default function ClientCasesPage() {
                 <th className="px-3 py-2.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant bg-surface">
+            <tbody className="divide-y divide-outline-variant">
               {filtered.map((c) => (
                 <tr key={c._id} className="transition-colors hover:bg-surface-container">
                   <td className="px-3 py-2.5 font-mono text-xs text-on-surface-variant">
@@ -199,13 +201,13 @@ export default function ClientCasesPage() {
                     {c.type.replace(/-/g, " ")}
                   </td>
                   <td className="px-3 py-2.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[c.priority] || ""}`}>
+                    <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[c.priority] || ""}`}>
                       {c.priority}
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[c.status] || ""}`}>
+                      <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[c.status] || ""}`}>
                         {c.status.replace(/-/g, " ")}
                       </span>
                       {c.isArchived && <ArchivedBadge />}
@@ -224,7 +226,7 @@ export default function ClientCasesPage() {
                     <button
                       type="button"
                       onClick={() => setSelected(c)}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-secondary transition-colors hover:bg-secondary/10"
+                      className="btn btn-ghost btn-sm min-h-8 px-2 text-xs"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       View
@@ -240,22 +242,22 @@ export default function ClientCasesPage() {
       {/* Detail modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 py-8"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgb(10_22_40/0.5)] p-4 py-8"
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full max-w-lg rounded-xl border border-outline-variant bg-surface p-6 shadow-xl"
+            className="card w-full max-w-lg p-5 shadow-xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-lg font-semibold text-on-surface">
+              <h3 className="font-display text-lg font-semibold text-heading">
                 Case Details
               </h3>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={() => setSelected(null)}
-                className="rounded-full p-1 text-on-surface-variant hover:bg-surface-container"
+                className="btn btn-ghost btn-icon"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -263,7 +265,7 @@ export default function ClientCasesPage() {
 
             <div className="space-y-3 text-sm">
               {selected.isArchived && (
-                <div className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
+                <div className="notice px-3 py-2 text-xs text-on-surface-variant">
                   This case was archived on {formatCaseDate(selected.archivedAt)} and is no longer active.
                   Contact the firm if you have questions about it.
                 </div>
@@ -273,13 +275,13 @@ export default function ClientCasesPage() {
               <Row label="Type" value={selected.type.replace(/-/g, " ")} />
               <div className="flex items-center justify-between">
                 <span className="font-medium text-on-surface-variant">Status</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[selected.status] || ""}`}>
+                <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[selected.status] || ""}`}>
                   {selected.status.replace(/-/g, " ")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-on-surface-variant">Priority</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[selected.priority] || ""}`}>
+                <span className={`inline-flex items-center rounded-md border border-current/15 px-2 py-0.5 text-xs font-semibold capitalize ${PRIORITY_COLORS[selected.priority] || ""}`}>
                   {selected.priority}
                 </span>
               </div>
@@ -299,12 +301,12 @@ export default function ClientCasesPage() {
               )}
               <div className="pt-2">
                 <p className="font-medium text-on-surface-variant">Description</p>
-                <p className="mt-1 text-on-surface">{selected.description}</p>
+                <RichText value={selected.description} tone="strong" className="mt-1" />
               </div>
-              {selected.notes && (
+              {!isRichTextEmpty(selected.notes) && (
                 <div>
                   <p className="font-medium text-on-surface-variant">Notes</p>
-                  <p className="mt-1 text-on-surface">{selected.notes}</p>
+                  <RichText value={selected.notes} tone="strong" className="mt-1" />
                 </div>
               )}
 
@@ -313,7 +315,7 @@ export default function ClientCasesPage() {
                 <div className="border-t border-outline-variant/60 pt-3 space-y-3">
                   <h4 className="font-semibold text-on-surface">Payments & Financials</h4>
 
-                  <div className="rounded-lg bg-surface-container p-3 space-y-2 border border-outline-variant/35">
+                  <div className="panel space-y-2 p-3">
                     <div className="flex justify-between">
                       <span className="font-medium text-on-surface-variant">Total Payment</span>
                       <span className="font-semibold text-on-surface">৳{(selected.totalPayment || 0).toLocaleString()}</span>
@@ -334,7 +336,7 @@ export default function ClientCasesPage() {
 
                   {selected.payments && selected.payments.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Payment Records</p>
+                      <p className="text-sm font-semibold text-on-surface-variant">Payment Records</p>
                       <div className="max-h-36 overflow-y-auto rounded border border-outline-variant/40 bg-surface-container-low text-xs">
                         <table className="w-full text-left">
                           <thead>
@@ -382,9 +384,9 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function StatsCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+    <div className="card p-4">
       <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
+      <p className="mt-1 font-display text-2xl font-semibold text-heading">
         {value}
       </p>
     </div>

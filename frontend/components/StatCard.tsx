@@ -5,9 +5,9 @@ interface StatCardProps {
 
 export function StatCard({ label, value }: StatCardProps) {
   return (
-    <div className="card-elevated p-4 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{label}</p>
-      <p className="mt-3 text-2xl sm:text-3xl font-semibold text-on-surface">{value}</p>
+    <div className="card p-4 sm:p-5">
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-1 font-display text-2xl font-semibold text-heading">{value}</p>
     </div>
   )
 }

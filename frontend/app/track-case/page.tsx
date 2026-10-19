@@ -8,6 +8,8 @@ import { Navbar } from "../../components/Navbar";
 import { WhatsAppCta } from "../../components/WhatsAppCta";
 import { useLanguage } from "../../components/LanguageProvider";
 import { API_BASE_URL } from "../../lib/api";
+import { RichText } from "../../components/RichText";
+import { isRichTextEmpty } from "../../lib/richText";
 
 const STATUS_STEP: Record<string, number> = {
   active: 1,
@@ -87,95 +89,77 @@ export default function TrackCasePage() {
 
   const currentStep = result ? (STATUS_STEP[result.stage || result.status] ?? 1) : 0;
 
-  // Not CMS-managed yet: archive wording is kept inline per locale
-  const archivedText =
-    locale === "bn"
-      ? {
-          badge: "আর্কাইভ করা হয়েছে",
-          formerSuffix: "(প্রাক্তন আইনজীবী)",
-          notice: (date: string | null) =>
-            `এই মামলাটি${date ? ` ${date} তারিখে` : ""} আর্কাইভ করা হয়েছে এবং বর্তমানে সক্রিয় নয়। প্রশ্ন থাকলে`,
-        }
-      : {
-          badge: "Archived",
-          formerSuffix: "(former lawyer)",
-          notice: (date: string | null) =>
-            `This case was archived${date ? ` on ${date}` : ""} and is no longer active. Questions?`,
-        };
-
   return (
     <main className="min-h-screen bg-surface text-on-surface">
       <Navbar />
-      <section className="px-6 py-16 sm:px-8 lg:px-10">
-        <div className="mx-auto max-w-4xl card-elevated p-10">
-          <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t("trackCase.label")}</p>
-            <h1 className="mt-4 font-display text-4xl font-semibold text-on-surface">{t("trackCase.title")}</h1>
-            <p className="mt-4 text-sm leading-7 text-on-surface-variant">
-              {t("trackCase.subtitle")}
-            </p>
-          </div>
+      <section className="page-hero px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-sm font-semibold text-secondary">{t("trackCase.label")}</p>
+          <h1 className="mt-3 text-white">{t("trackCase.title")}</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">{t("trackCase.subtitle")}</p>
+        </div>
+      </section>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("trackCase.placeholder")}
-              aria-label={t("trackCase.placeholder")}
-              className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder-on-surface-variant focus:border-secondary focus:outline-none"
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("trackCase.emailPlaceholder")}
-              aria-label={t("trackCase.emailPlaceholder")}
-              autoComplete="email"
-              className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder-on-surface-variant focus:border-secondary focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={handleTrack}
-              disabled={loading || !query.trim() || !email.trim()}
-              className="rounded-lg bg-secondary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-secondary/90 disabled:opacity-50"
-            >
-              {loading ? t("trackCase.searching") : t("trackCase.trackNow")}
-            </button>
-          </div>
+      <section className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div className="card p-5 sm:p-6">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t("trackCase.placeholder")}
+                aria-label={t("trackCase.placeholder")}
+                className="field"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t("trackCase.emailPlaceholder")}
+                aria-label={t("trackCase.emailPlaceholder")}
+                autoComplete="email"
+                className="field"
+              />
+              <button
+                type="button"
+                onClick={handleTrack}
+                disabled={loading || !query.trim() || !email.trim()}
+                className="btn btn-primary"
+              >
+                {loading ? t("trackCase.searching") : t("trackCase.trackNow")}
+              </button>
+            </div>
 
-          {error && (
-            <p className="mt-4 text-center text-sm text-error">{error}</p>
-          )}
+            {error && (
+              <p className="notice notice-error mt-4" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
 
           {notFound && (
-            <div className="mt-10 rounded-xl border border-outline-variant bg-surface p-8 text-center text-sm text-on-surface-variant">
+            <div className="panel p-6 text-center text-sm leading-6 text-on-surface-variant">
               {t("trackCase.notFound")}{" "}
-              <Link href={localePath("/#contact")} className="text-secondary underline">{t("trackCase.contactUs")}</Link>
+              <Link href={localePath("/contact")} className="text-link">{t("trackCase.contactUs")}</Link>
             </div>
           )}
 
           {result && (
-            <div className="mt-10 rounded-xl border border-outline-variant bg-surface-container p-8">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t("trackCase.caseStatus")}</p>
-                  <h2 className="mt-3 font-display text-3xl font-semibold text-on-surface">{result.caseNumber}</h2>
+            <div className="card p-5 sm:p-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm text-on-surface-variant">{t("trackCase.caseStatus")}</p>
+                  <h2 className="mt-1 break-words text-2xl text-heading">{result.caseNumber}</h2>
                   <p className="mt-1 text-sm text-on-surface-variant">{result.title}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {result.isArchived && (
-                    <span className="rounded-full border border-outline-variant bg-outline/20 px-3 py-1 text-xs font-semibold text-on-surface-variant">
-                      {archivedText.badge}
-                    </span>
-                  )}
-                  <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary capitalize">
-                    {result.status.replace(/-/g, " ")}
-                  </span>
+                  {result.isArchived && <span className="chip">{t("trackCase.archived")}</span>}
+                  <span className="chip capitalize text-on-surface">{result.status.replace(/-/g, " ")}</span>
                   {result.stage && result.stage !== result.status && (
-                    <span className="rounded-full border border-outline-variant px-3 py-1 text-xs text-on-surface-variant capitalize">
+                    <span className="chip capitalize">
                       {t("trackCase.stage")}: {result.stage.replace(/-/g, " ")}
                     </span>
                   )}
@@ -183,76 +167,78 @@ export default function TrackCasePage() {
               </div>
 
               {result.isArchived && (
-                <div className="mt-6 rounded-xl border border-outline-variant bg-surface p-4 text-sm text-on-surface-variant">
-                  {archivedText.notice(result.archivedAt ? fmt(result.archivedAt) : null)}{" "}
-                  <Link href={localePath("/#contact")} className="text-secondary underline">{t("trackCase.contactUs")}</Link>
+                <div className="notice mt-6 text-on-surface-variant">
+                  {result.archivedAt && (
+                    <p className="mb-1 text-xs font-semibold text-on-surface">
+                      {t("trackCase.archivedOn")}: {fmt(result.archivedAt)}
+                    </p>
+                  )}
+                  {t("trackCase.archivedNotice")}{" "}
+                  <Link href={localePath("/contact")} className="text-link">{t("trackCase.contactUs")}</Link>
                 </div>
               )}
 
-              <div className="mt-8 grid gap-6 md:grid-cols-2">
-                <div className="rounded-xl bg-surface p-6 space-y-4">
-                  <div>
-                    <p className="text-xs text-on-surface-variant">{t("trackCase.caseType")}</p>
-                    <p className="mt-1 font-semibold text-on-surface capitalize">{result.type.replace(/-/g, " ")}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-on-surface-variant">{t("trackCase.assignedLawyer")}</p>
-                    <p className="mt-1 font-semibold text-on-surface">
-                      {result.lawyerId?.name ||
-                        (result.formerLawyer?.name
-                          ? `${result.formerLawyer.name} ${archivedText.formerSuffix}`
-                          : result.isArchived
-                            ? "—"
-                            : t("trackCase.pendingAssignment"))}
-                      {result.lawyerId?.barId && (
-                        <span className="ml-1 text-xs font-normal text-on-surface-variant">({result.lawyerId.barId})</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-xl bg-surface p-6 space-y-4">
-                  {result.courtName && (
-                    <div>
-                      <p className="text-xs text-on-surface-variant">{t("trackCase.court")}</p>
-                      <p className="mt-1 font-semibold text-on-surface">{result.courtName}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-xs text-on-surface-variant">{t("trackCase.nextHearing")}</p>
-                    <p className="mt-1 font-semibold text-secondary">
-                      {result.nextCourtDate ? fmt(result.nextCourtDate) : t("trackCase.notScheduled")}
-                    </p>
-                  </div>
-                  {result.filingDate && (
-                    <div>
-                      <p className="text-xs text-on-surface-variant">{t("trackCase.filingDate")}</p>
-                      <p className="mt-1 font-semibold text-on-surface">{fmt(result.filingDate)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-10">
+              <div className="mt-8">
                 <CaseProgressTracker currentStep={currentStep} />
               </div>
 
-              {result.notes && (
-                <div className="mt-8 rounded-xl bg-surface p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">{t("trackCase.lawyerNotes")}</p>
-                  <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">{result.notes}</p>
+              <dl className="panel mt-8 grid gap-x-6 gap-y-4 p-5 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-on-surface-variant">{t("trackCase.caseType")}</dt>
+                  <dd className="mt-0.5 font-semibold capitalize text-on-surface">{result.type.replace(/-/g, " ")}</dd>
+                </div>
+                <div>
+                  <dt className="text-on-surface-variant">{t("trackCase.assignedLawyer")}</dt>
+                  <dd className="mt-0.5 font-semibold text-on-surface">
+                    {result.lawyerId?.name ||
+                      (result.formerLawyer?.name
+                        ? `${result.formerLawyer.name} ${t("trackCase.formerLawyer")}`
+                        : result.isArchived
+                          ? "—"
+                          : t("trackCase.pendingAssignment"))}
+                    {result.lawyerId?.barId && (
+                      <span className="ml-1 text-xs font-normal text-on-surface-variant">({result.lawyerId.barId})</span>
+                    )}
+                  </dd>
+                </div>
+                {result.courtName && (
+                  <div>
+                    <dt className="text-on-surface-variant">{t("trackCase.court")}</dt>
+                    <dd className="mt-0.5 font-semibold text-on-surface">{result.courtName}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-on-surface-variant">{t("trackCase.nextHearing")}</dt>
+                  <dd className="mt-0.5 font-semibold text-gold-ink">
+                    {result.nextCourtDate ? fmt(result.nextCourtDate) : t("trackCase.notScheduled")}
+                  </dd>
+                </div>
+                {result.filingDate && (
+                  <div>
+                    <dt className="text-on-surface-variant">{t("trackCase.filingDate")}</dt>
+                    <dd className="mt-0.5 font-semibold text-on-surface">{fmt(result.filingDate)}</dd>
+                  </div>
+                )}
+              </dl>
+
+              {!isRichTextEmpty(result.notes) && (
+                <div className="mt-6">
+                  <h3 className="font-body text-sm font-semibold text-on-surface">{t("trackCase.lawyerNotes")}</h3>
+                  <div className="mt-2 max-w-prose">
+                    <RichText value={result.notes} />
+                  </div>
                 </div>
               )}
 
-              <p className="mt-6 text-center text-xs text-on-surface-variant">
+              <hr className="rule mt-8" />
+              <p className="mt-4 text-xs text-on-surface-variant">
                 {t("trackCase.lastUpdated")}: {fmt(result.updatedAt)}
               </p>
             </div>
           )}
 
           {!result && !notFound && !loading && !error && (
-            <div className="mt-10 rounded-xl border border-outline-variant bg-surface p-8 text-center text-sm text-on-surface-variant">
-              {t("trackCase.emptyHint")}
-            </div>
+            <p className="text-center text-sm leading-6 text-on-surface-variant">{t("trackCase.emptyHint")}</p>
           )}
         </div>
       </section>

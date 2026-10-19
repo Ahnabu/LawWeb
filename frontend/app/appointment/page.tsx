@@ -9,31 +9,35 @@ export default function AppointmentPage() {
   return (
     <main className="min-h-screen bg-surface text-on-surface">
       <Navbar />
-      <section className="px-6 py-16 sm:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row">
-          <div className="space-y-6 flex-1">
-            <div className="card-elevated p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Book a Consultation</p>
-              <h1 className="mt-4 font-display text-5xl font-semibold text-on-surface">Book a Consultation</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-on-surface-variant">
-                Choose from an appointment form or start a direct conversation on WhatsApp with our legal team.
+      <section className="page-hero px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <h1 className="max-w-3xl text-white">Book a Consultation</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">
+            Choose from an appointment form or start a direct conversation on WhatsApp with our legal team.
+          </p>
+          <div className="mt-8 grid max-w-3xl gap-6 sm:grid-cols-2">
+            <div className="border-t border-white/15 pt-4">
+              <h2 className="font-body text-base font-semibold text-white">Fill the Appointment Form</h2>
+              <p className="mt-1 text-sm leading-6 text-white/75">
+                Pick a lawyer and an open time slot, then describe your matter. Your lawyer confirms the booking.
               </p>
             </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="card-elevated p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Fill the Appointment Form</p>
-                <p className="mt-4 text-on-surface-variant">Pick a lawyer and an open time slot, then describe your matter. Your lawyer confirms the booking.</p>
-              </div>
-              <div className="card-elevated p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">WhatsApp Us Directly</p>
-                <p className="mt-4 text-on-surface-variant">Send a quick message to our legal support team with your preferred language.</p>
-              </div>
+            <div className="border-t border-white/15 pt-4">
+              <h2 className="font-body text-base font-semibold text-white">WhatsApp Us Directly</h2>
+              <p className="mt-1 text-sm leading-6 text-white/75">
+                Send a quick message to our legal support team with your preferred language.
+              </p>
             </div>
-            <Suspense fallback={<div className="card-elevated p-10 text-sm text-on-surface-variant">Loading booking form...</div>}>
-              <AppointmentBookingForm />
-            </Suspense>
           </div>
-          <div className="lg:w-[360px]">
+        </div>
+      </section>
+
+      <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-start gap-6 lg:grid-cols-[1fr_340px] lg:gap-8">
+          <Suspense fallback={<div className="card p-8 text-sm text-on-surface-variant">Loading booking form...</div>}>
+            <AppointmentBookingForm />
+          </Suspense>
+          <div className="lg:sticky lg:top-24">
             <AppointmentWidget />
           </div>
         </div>

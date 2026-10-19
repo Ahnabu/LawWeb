@@ -9,13 +9,19 @@ import {
   unblockUser,
   userStatusOf,
   USER_STATUS_LABELS,
-  USER_STATUS_STYLES,
   type BlockState,
   type ManagedUser,
   type UserStats,
 } from "../../../../../lib/adminUsers";
 
 type Target = Pick<ManagedUser, "_id" | "name" | "email">;
+
+// Neutral chip with a small coloured dot per account status
+const STATUS_DOTS: Record<string, string> = {
+  active: "bg-success",
+  blocked: "bg-error",
+  unverified: "bg-secondary",
+};
 
 const errorText = (error: unknown, fallback: string) => (error instanceof Error && error.message ? error.message : fallback);
 
@@ -109,7 +115,8 @@ export async function confirmAndDelete(user: Target, stats?: Pick<UserStats, "to
 export function UserStatusBadge({ user }: { user: Pick<ManagedUser, "isBlocked" | "isVerified"> }) {
   const status = userStatusOf(user);
   return (
-    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${USER_STATUS_STYLES[status]}`}>
+    <span className="chip whitespace-nowrap">
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${STATUS_DOTS[status] ?? "bg-outline"}`} />
       {USER_STATUS_LABELS[status]}
     </span>
   );
@@ -135,7 +142,7 @@ export function UserAvatar({ name, imageUrl, size = "md" }: { name: string; imag
   return (
     <span
       aria-hidden="true"
-      className={`${dimension} flex shrink-0 items-center justify-center rounded-full bg-secondary/15 font-display font-semibold text-secondary`}
+      className={`${dimension} monogram`}
     >
       {initials}
     </span>

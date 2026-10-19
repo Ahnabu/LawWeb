@@ -8,10 +8,10 @@ import LawyerProfile from '../models/LawyerProfile';
 import LawyerAvailability from '../models/LawyerAvailability';
 import { sendAccountSetupLink, ACCOUNT_SETUP_EXPIRY_HOURS } from './authController';
 import { revokeAllSessions } from '../utils/session';
+import { recordAudit } from '../utils/audit';
 import { sendAppointmentCancelledEmail } from '../utils/email';
 import { getFrontendUrl } from '../config/env';
 import { ACTIVE_STATUSES, businessNow, hasSlotStarted, parseDateOnly, toMinutes } from '../utils/schedule';
-import { cloudinary } from '../config/multer.config';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -19,7 +19,16 @@ interface AuthRequest extends Request {
 
 // Fields the admin list and the edit form need. Never includes password data.
 const LAWYER_LIST_FIELDS =
-  'name email phone barId specialization isVerified passwordNeedsChange profileImageUrl sortOrder isBlocked blockedAt blockedReason createdAt updatedAt';
+  'name email phone barId specialization isVerified passwordNeedsChange profileImageUrl sortOrder isBlocked blockedAt blockedReason deletedAt deletionPending createdAt updatedAt';
+
+// Removed lawyers are soft-deleted: kept for history and restore, hidden everywhere else.
+// `deletedAt: null` also matches documents written before the field existed.
+const CURRENT_LAWYER = { role: 'lawyer' as const, deletedAt: null };
+const REMOVED_LAWYER = { role: 'lawyer' as const, deletedAt: { $ne: null } };
+
+// Set as the block reason when removal blocks the account, so a restore knows
+// it may lift that block (a lawyer blocked before removal comes back blocked)
+const REMOVED_BLOCK_REASON = 'Removed from the firm by an administrator.';
 
 const LAWYER_GONE_REASON = 'Cancelled: the assigned lawyer is no longer with the firm.';
 const IMPACT_LIST_LIMIT = 5;
@@ -54,6 +63,12 @@ const withProfileData = async <T extends { _id: mongoose.Types.ObjectId; profile
   });
 };
 
+// New and restored lawyers go to the end of the public order
+const nextSortOrder = async () => {
+  const last = await User.findOne(CURRENT_LAWYER).sort({ sortOrder: -1 }).select('sortOrder').lean();
+  return (last?.sortOrder ?? -1) + 1;
+};
+
 const loadLawyerForAdmin = async (lawyerId: unknown) => {
   const lawyer = await User.findById(lawyerId).select(LAWYER_LIST_FIELDS).lean();
   if (!lawyer) return null;
@@ -61,18 +76,25 @@ const loadLawyerForAdmin = async (lawyerId: unknown) => {
   return withProfile;
 };
 
+// GET /api/admin/lawyers?removed=true
 export const getAllLawyersAdmin = async (req: AuthRequest, res: Response) => {
   try {
-    // Same order as the public site, so the admin list doubles as the reorder list
-    const lawyers = await User.find({ role: 'lawyer' })
-      .select(LAWYER_LIST_FIELDS)
-      .sort({ sortOrder: 1, name: 1 })
-      .lean();
+    const removed = req.query.removed === 'true';
+    // Current lawyers come in public-site order, so the admin list doubles as the reorder list
+    const [lawyers, current, removedCount] = await Promise.all([
+      User.find(removed ? REMOVED_LAWYER : CURRENT_LAWYER)
+        .select(LAWYER_LIST_FIELDS)
+        .sort(removed ? { deletedAt: -1 } : { sortOrder: 1, name: 1 })
+        .lean(),
+      User.countDocuments(CURRENT_LAWYER),
+      User.countDocuments(REMOVED_LAWYER),
+    ]);
 
     res.json({
       status: 200,
       message: 'Lawyers retrieved successfully',
       data: await withProfileData(lawyers),
+      meta: { counts: { current, removed: removedCount } },
     });
   } catch (error) {
     console.error('Admin get lawyers error:', error);
@@ -89,14 +111,19 @@ export const addLawyerAdmin = async (req: AuthRequest, res: Response) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = await User.findOne({ email: normalizedEmail }).select('role name deletedAt').lean();
     if (existingUser) {
+      if (existingUser.role === 'lawyer' && existingUser.deletedAt) {
+        return res.status(409).json({
+          status: 409,
+          code: 'LAWYER_REMOVED',
+          message: `This email belongs to ${existingUser.name}, a removed lawyer. Restore them from the Removed tab instead.`,
+        });
+      }
       return res.status(409).json({ status: 409, message: 'A user with this email already exists' });
     }
 
-    // New lawyers go to the end of the public order
-    const last = await User.findOne({ role: 'lawyer' }).sort({ sortOrder: -1 }).select('sortOrder').lean();
-    const sortOrder = (last?.sortOrder ?? -1) + 1;
+    const sortOrder = await nextSortOrder();
 
     // Random password nobody knows; the lawyer sets their own through the emailed
     // setup link (or "Forgot password"). A shared default password would let
@@ -125,6 +152,16 @@ export const addLawyerAdmin = async (req: AuthRequest, res: Response) => {
 
     const savedLawyer = await loadLawyerForAdmin(lawyer._id);
 
+    recordAudit(req, {
+      action: 'lawyer.created',
+      category: 'lawyer',
+      targetType: 'lawyer',
+      targetId: lawyer._id,
+      targetLabel: lawyer.name,
+      summary: `Added lawyer ${lawyer.name}`,
+      metadata: { setupEmailSent: emailSent },
+    });
+
     res.status(201).json({
       status: 201,
       message: emailSent
@@ -151,6 +188,9 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
     const lawyer = await User.findById(lawyerId);
     if (!lawyer || lawyer.role !== 'lawyer') {
       return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+    }
+    if (lawyer.deletedAt) {
+      return res.status(409).json({ status: 409, message: 'Restore this lawyer before editing their details.' });
     }
 
     const body = (req.body ?? {}) as Record<string, unknown>;
@@ -232,6 +272,7 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
     const nameChanged = lawyer.isModified('name');
     const emailChanged = lawyer.isModified('email');
     const barIdChanged = lawyer.isModified('barId');
+    const changedAccountFields = ['name', 'email', 'phone', 'barId', 'specialization'].filter((f) => lawyer.isModified(f));
 
     await lawyer.save();
 
@@ -266,6 +307,16 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
       );
     }
 
+    recordAudit(req, {
+      action: 'lawyer.updated',
+      category: 'lawyer',
+      targetType: 'lawyer',
+      targetId: lawyer._id,
+      targetLabel: lawyer.name,
+      summary: `Updated lawyer ${lawyer.name}`,
+      metadata: { fields: [...changedAccountFields, ...(designation ? ['designation'] : [])] },
+    });
+
     res.json({
       status: 200,
       message: `${lawyer.name}'s details were updated`,
@@ -296,7 +347,7 @@ export const reorderLawyersAdmin = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 400, message: 'order contains an invalid ID' });
     }
 
-    const lawyers = await User.find({ role: 'lawyer' }).select('_id').sort({ sortOrder: 1, name: 1 }).lean();
+    const lawyers = await User.find(CURRENT_LAWYER).select('_id').sort({ sortOrder: 1, name: 1 }).lean();
     const lawyerIds = new Set(lawyers.map((l) => String(l._id)));
     const unknown = (order as string[]).filter((id) => !lawyerIds.has(id));
     if (unknown.length) {
@@ -314,9 +365,17 @@ export const reorderLawyersAdmin = async (req: AuthRequest, res: Response) => {
 
     await User.bulkWrite(
       finalOrder.map((id, index) => ({
-        updateOne: { filter: { _id: id, role: 'lawyer' }, update: { $set: { sortOrder: index } } },
+        updateOne: { filter: { _id: id, ...CURRENT_LAWYER }, update: { $set: { sortOrder: index } } },
       }))
     );
+
+    recordAudit(req, {
+      action: 'lawyer.reordered',
+      category: 'lawyer',
+      targetType: 'lawyer',
+      summary: `Reordered ${plural(finalOrder.length, 'lawyer')} on the public site`,
+      metadata: { count: finalOrder.length },
+    });
 
     // Public lawyer lists are fetched client-side from /api/lawyers/public with no
     // frontend cache, so the new order shows on the next page load.
@@ -410,9 +469,93 @@ export const getLawyerDeletionImpactAdmin = async (req: AuthRequest, res: Respon
 const formatAppointmentDate = (date: Date) =>
   date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-// DELETE /api/admin/lawyers/:lawyerId
-// Steps run in an order that is safe to retry: the user is deleted last, so a
-// failure part-way leaves the lawyer in place and a second attempt finishes the job.
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+// Archives open cases, cancels upcoming bookings and signs the lawyer out.
+// Every step skips work that is already done, so running it again is safe.
+const runRemovalCleanup = async (
+  lawyer: { _id: mongoose.Types.ObjectId; name: string; email: string; barId?: string },
+  adminId: mongoose.Types.ObjectId | null
+) => {
+  const formerLawyer = { name: lawyer.name, email: lawyer.email, barId: lawyer.barId || '' };
+
+  // 1. Cases: open ones move to the archive; all of them keep a copy of the lawyer
+  const archived = await Case.updateMany(
+    { lawyerId: lawyer._id, isArchived: { $ne: true } },
+    {
+      $set: {
+        isArchived: true,
+        archivedAt: new Date(),
+        archivedBy: adminId,
+        archiveReason: 'lawyer-deleted',
+        archiveNote: `Assigned lawyer ${lawyer.name} was removed from the firm.`,
+        formerLawyer,
+      },
+    }
+  );
+  await Case.updateMany({ lawyerId: lawyer._id, isArchived: true }, { $set: { formerLawyer } });
+
+  // 2. Upcoming appointments: cancel one by one so the model's slotKey hook
+  //    releases each slot, then tell the clients
+  const upcoming = await findUpcomingConsultations(lawyer._id);
+  const cancelled: typeof upcoming = [];
+  let cancelFailures = 0;
+  for (const consultation of upcoming) {
+    consultation.status = 'cancelled';
+    consultation.cancellationReason = LAWYER_GONE_REASON;
+    consultation.formerLawyerName = lawyer.name;
+    try {
+      await consultation.save();
+      cancelled.push(consultation);
+    } catch (error) {
+      cancelFailures += 1;
+      console.error(`Could not cancel consultation ${consultation._id}:`, error);
+    }
+  }
+  // Past bookings keep the lawyer's name for history views
+  await Consultation.updateMany({ lawyerId: lawyer._id, formerLawyerName: { $exists: false } }, {
+    $set: { formerLawyerName: lawyer.name },
+  });
+
+  // In-app notice is automatic (the bell lists recently changed appointments);
+  // email is best-effort and never blocks the removal.
+  const bookUrl = `${getFrontendUrl()}/appointment`;
+  const emailResults = await Promise.allSettled(
+    cancelled
+      .filter((c) => c.clientId?.email)
+      .map((c) =>
+        sendAppointmentCancelledEmail({
+          email: c.clientId!.email as string,
+          name: c.clientId!.name || 'there',
+          subject: c.subject,
+          dateLabel: formatAppointmentDate(c.date),
+          time: c.time,
+          reason: 'The lawyer assigned to this appointment is no longer with the firm.',
+          bookUrl,
+        })
+      )
+  );
+  const emailFailures = emailResults.filter((r) => r.status === 'rejected');
+  emailFailures.forEach((r) => console.error('Appointment cancellation email failed:', (r as PromiseRejectedResult).reason));
+
+  // 3. Any session that outlived the tokenVersion bump
+  await revokeAllSessions(String(lawyer._id));
+
+  return {
+    archivedCases: archived.modifiedCount,
+    cancelledConsultations: cancelled.length,
+    notifiedClients: new Set(cancelled.map((c) => String(c.clientId?._id ?? ''))).size,
+    emailFailures: emailFailures.length,
+    cancelFailures,
+  };
+};
+
+// DELETE /api/admin/lawyers/:lawyerId — soft delete ("remove from the firm").
+// The removal itself is one atomic write on the account: from that moment the
+// lawyer cannot sign in, be booked or be assigned, and is hidden from every list.
+// The account, public profile, photo and availability are kept so a restore is
+// possible. The clean-up that follows is idempotent; until it has finished the
+// account carries deletionPending, and calling this endpoint again finishes it.
 export const deleteLawyerAdmin = async (req: AuthRequest, res: Response) => {
   try {
     const { lawyerId } = req.params;
@@ -420,107 +563,149 @@ export const deleteLawyerAdmin = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 400, message: 'Invalid lawyer ID' });
     }
 
-    const lawyer = await User.findById(lawyerId);
+    const lawyer = await User.findById(lawyerId).select('name email barId role isBlocked deletedAt deletionPending');
     if (!lawyer || lawyer.role !== 'lawyer') {
       return res.status(404).json({ status: 404, message: 'Lawyer not found' });
     }
+    if (lawyer.deletedAt && !lawyer.deletionPending) {
+      return res.status(409).json({ status: 409, message: `${lawyer.name} has already been removed.` });
+    }
 
-    const formerLawyer = { name: lawyer.name, email: lawyer.email, barId: lawyer.barId || '' };
-    const now = new Date();
-
-    // 1. Cases: open ones move to the archive; all of them keep a copy of the lawyer
-    const archived = await Case.updateMany(
-      { lawyerId: lawyer._id, isArchived: { $ne: true } },
-      {
-        $set: {
-          isArchived: true,
-          archivedAt: now,
-          archivedBy: req.user?._id ?? null,
-          archiveReason: 'lawyer-deleted',
-          archiveNote: `Assigned lawyer ${lawyer.name} was removed from the firm.`,
-          formerLawyer,
+    const isRetry = Boolean(lawyer.deletedAt);
+    if (!isRetry) {
+      const now = new Date();
+      // The deletedAt: null condition makes a double-submit remove the lawyer only once
+      const marked = await User.findOneAndUpdate(
+        { _id: lawyer._id, deletedAt: null },
+        {
+          $set: {
+            deletedAt: now,
+            deletedBy: req.user?._id ?? null,
+            deletionPending: true,
+            isBlocked: true,
+            // A lawyer who was already blocked keeps that block's date and reason
+            ...(lawyer.isBlocked ? {} : { blockedAt: now, blockedReason: REMOVED_BLOCK_REASON }),
+          },
+          // Every access token already issued stops working at once
+          $inc: { tokenVersion: 1 },
         },
-      }
-    );
-    await Case.updateMany({ lawyerId: lawyer._id, isArchived: true }, { $set: { formerLawyer } });
-
-    // 2. Upcoming appointments: cancel one by one so the model's slotKey hook
-    //    releases each slot, then tell the clients
-    const upcoming = await findUpcomingConsultations(lawyer._id);
-    const cancelled: typeof upcoming = [];
-    for (const consultation of upcoming) {
-      consultation.status = 'cancelled';
-      consultation.cancellationReason = LAWYER_GONE_REASON;
-      consultation.formerLawyerName = lawyer.name;
-      try {
-        await consultation.save();
-        cancelled.push(consultation);
-      } catch (error) {
-        console.error(`Could not cancel consultation ${consultation._id}:`, error);
+        { returnDocument: 'after' }
+      );
+      if (!marked) {
+        return res.status(409).json({ status: 409, message: `${lawyer.name} is already being removed.` });
       }
     }
-    // Past bookings keep the lawyer's name for history views
-    await Consultation.updateMany({ lawyerId: lawyer._id, formerLawyerName: { $exists: false } }, {
-      $set: { formerLawyerName: lawyer.name },
+
+    let summary: Awaited<ReturnType<typeof runRemovalCleanup>>;
+    try {
+      summary = await runRemovalCleanup(lawyer, req.user?._id ?? null);
+    } catch (error) {
+      console.error('Lawyer removal clean-up error:', error);
+      return res.status(500).json({
+        status: 500,
+        code: 'CLEANUP_INCOMPLETE',
+        message: `${lawyer.name} was removed and can no longer sign in, but archiving their cases or cancelling their appointments did not finish. Open the Removed tab and choose "Finish clean-up".`,
+      });
+    }
+
+    // An appointment that could not be cancelled keeps the clean-up open for a retry
+    const pending = summary.cancelFailures > 0;
+    if (!pending) {
+      await User.updateOne({ _id: lawyer._id }, { $unset: { deletionPending: 1 } });
+    }
+
+    recordAudit(req, {
+      action: isRetry ? 'lawyer.removal_retried' : 'lawyer.archived',
+      category: 'lawyer',
+      targetType: 'lawyer',
+      targetId: lawyer._id,
+      targetLabel: lawyer.name,
+      summary: isRetry ? `Finished removal clean-up for lawyer ${lawyer.name}` : `Removed lawyer ${lawyer.name} from the firm`,
+      metadata: {
+        archivedCases: summary.archivedCases,
+        cancelledConsultations: summary.cancelledConsultations,
+        pending,
+      },
     });
-
-    // In-app notice is automatic (the bell lists recently changed appointments);
-    // email is best-effort and never blocks the delete.
-    const bookUrl = `${getFrontendUrl()}/appointment`;
-    const emailResults = await Promise.allSettled(
-      cancelled
-        .filter((c) => c.clientId?.email)
-        .map((c) =>
-          sendAppointmentCancelledEmail({
-            email: c.clientId!.email as string,
-            name: c.clientId!.name || 'there',
-            subject: c.subject,
-            dateLabel: formatAppointmentDate(c.date),
-            time: c.time,
-            reason: 'The lawyer assigned to this appointment is no longer with the firm.',
-            bookUrl,
-          })
-        )
-    );
-    const emailFailures = emailResults.filter((r) => r.status === 'rejected');
-    emailFailures.forEach((r) => console.error('Appointment cancellation email failed:', (r as PromiseRejectedResult).reason));
-    const notifiedClients = new Set(cancelled.map((c) => String(c.clientId?._id ?? ''))).size;
-
-    // 3. Public profile and schedule
-    const profile = await LawyerProfile.findOne({ userId: lawyer._id }).select('profileImageUrl').lean();
-    if (profile?.profileImageUrl?.includes('/lawweb/profiles/')) {
-      const filename = profile.profileImageUrl.split('/').pop() ?? '';
-      await cloudinary.uploader.destroy(`lawweb/profiles/${filename.split('.')[0]}`).catch(() => {/* best effort */});
-    }
-    await Promise.all([
-      LawyerProfile.deleteOne({ userId: lawyer._id }),
-      LawyerAvailability.deleteOne({ lawyerId: lawyer._id }),
-    ]);
-
-    // 4. Sessions, 5. the account itself
-    await revokeAllSessions(String(lawyer._id));
-    await User.findByIdAndDelete(lawyer._id);
-
-    const summary = {
-      archivedCases: archived.modifiedCount,
-      cancelledConsultations: cancelled.length,
-      notifiedClients,
-      emailFailures: emailFailures.length,
-    };
-    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
     res.json({
       status: 200,
       message:
         `${lawyer.name} was removed. ${plural(summary.archivedCases, 'case')} moved to the archive, ` +
         `${plural(summary.cancelledConsultations, 'appointment')} cancelled` +
-        (summary.cancelledConsultations ? ` and ${plural(notifiedClients, 'client')} notified` : '') +
+        (summary.cancelledConsultations ? ` and ${plural(summary.notifiedClients, 'client')} notified` : '') +
         (summary.emailFailures ? ` (${plural(summary.emailFailures, 'email')} could not be sent)` : '') +
-        '.',
-      data: summary,
+        '.' +
+        (pending
+          ? ` ${plural(summary.cancelFailures, 'appointment')} could not be cancelled; use "Finish clean-up" in the Removed tab to try again.`
+          : ''),
+      data: { ...summary, pending },
     });
   } catch (error) {
     console.error('Admin delete lawyer error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// PATCH /api/admin/lawyers/:lawyerId/restore
+// Brings a removed lawyer back. Their cases stay archived and cancelled
+// appointments stay cancelled; the admin restores the cases they should keep.
+export const restoreLawyerAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { lawyerId } = req.params;
+    if (!mongoose.isValidObjectId(lawyerId)) {
+      return res.status(400).json({ status: 400, message: 'Invalid lawyer ID' });
+    }
+
+    const lawyer = await User.findById(lawyerId).select('name role deletedAt blockedReason');
+    if (!lawyer || lawyer.role !== 'lawyer') {
+      return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+    }
+    if (!lawyer.deletedAt) {
+      return res.status(409).json({ status: 409, message: `${lawyer.name} has not been removed.` });
+    }
+
+    const liftBlock = lawyer.blockedReason === REMOVED_BLOCK_REASON;
+    const restored = await User.findOneAndUpdate(
+      { _id: lawyer._id, deletedAt: { $ne: null } },
+      {
+        $set: {
+          deletedAt: null,
+          deletedBy: null,
+          sortOrder: await nextSortOrder(),
+          ...(liftBlock ? { isBlocked: false } : {}),
+        },
+        $unset: { deletionPending: 1, ...(liftBlock ? { blockedAt: 1, blockedReason: 1 } : {}) },
+      },
+      { returnDocument: 'after' }
+    );
+    if (!restored) {
+      return res.status(409).json({ status: 409, message: `${lawyer.name} has already been restored.` });
+    }
+
+    const archivedCases = await Case.countDocuments({ lawyerId: lawyer._id, isArchived: true });
+
+    recordAudit(req, {
+      action: 'lawyer.restored',
+      category: 'lawyer',
+      targetType: 'lawyer',
+      targetId: lawyer._id,
+      targetLabel: lawyer.name,
+      summary: `Restored lawyer ${lawyer.name}`,
+      metadata: { blockLifted: liftBlock },
+    });
+
+    res.json({
+      status: 200,
+      message:
+        `${lawyer.name} was restored${liftBlock ? ' and can sign in again' : ' but stays blocked, as before the removal'}.` +
+        (archivedCases
+          ? ` Their ${plural(archivedCases, 'archived case')} stay in the Archive; restore the ones they should keep.`
+          : ''),
+      data: await loadLawyerForAdmin(lawyer._id),
+    });
+  } catch (error) {
+    console.error('Admin restore lawyer error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };
@@ -568,8 +753,21 @@ export const toggleLawyerVerification = async (req: AuthRequest, res: Response) 
       return res.status(404).json({ status: 404, message: 'Lawyer not found' });
     }
 
+    if (lawyer.deletedAt) {
+      return res.status(409).json({ status: 409, message: 'Restore this lawyer before changing their verification.' });
+    }
+
     lawyer.isVerified = !lawyer.isVerified;
     await lawyer.save();
+
+    recordAudit(req, {
+      action: lawyer.isVerified ? 'lawyer.verified' : 'lawyer.unverified',
+      category: 'lawyer',
+      targetType: 'lawyer',
+      targetId: lawyer._id,
+      targetLabel: lawyer.name,
+      summary: `${lawyer.isVerified ? 'Verified' : 'Unverified'} lawyer ${lawyer.name}`,
+    });
 
     res.json({
       status: 200,

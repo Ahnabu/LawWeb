@@ -24,6 +24,7 @@ import {
 } from "../utils/email";
 import { getFrontendUrl } from "../config/env";
 import { ACCOUNT_BLOCKED_MESSAGE, AUTH_USER_FIELDS } from "../middleware/auth";
+import { recordAudit } from "../utils/audit";
 
 type UserSummary = Pick<
   IUser,
@@ -233,6 +234,17 @@ export const register = async (req: Request, res: Response) => {
       throw error;
     }
 
+    recordAudit(req, {
+      actor: user,
+      action: "user.register",
+      category: "user",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} registered as ${user.role}`,
+      metadata: { role: user.role },
+    });
+
     let emailSent = true;
     try {
       await sendVerificationCodeEmail({
@@ -276,11 +288,32 @@ export const login = async (req: Request, res: Response) => {
     );
 
     if (!user || !isPasswordValid) {
+      recordAudit(req, {
+        actor: user ? user : null,
+        action: "auth.login_failed",
+        category: "auth",
+        targetType: "user",
+        targetId: user?._id,
+        targetLabel: user?.name ?? normalizeEmail(email).slice(0, 200),
+        summary: user
+          ? `Failed sign-in for ${user.email} (wrong password)`
+          : `Failed sign-in for unknown email ${normalizeEmail(email).slice(0, 200)}`,
+        metadata: { reason: user ? "wrong_password" : "unknown_email" },
+      });
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Only revealed to someone who knows the password
     if (user.isBlocked) {
+      recordAudit(req, {
+        actor: user,
+        action: "auth.login_blocked",
+        category: "auth",
+        targetType: "user",
+        targetId: user._id,
+        targetLabel: user.name,
+        summary: `Blocked account ${user.email} tried to sign in`,
+      });
       return sendAccountBlocked(res);
     }
 
@@ -296,6 +329,15 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const accessTokenExpiresAt = await issueSession(req, res, user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.login",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} signed in`,
+    });
 
     res.json({
       message: "Login successful",
@@ -314,6 +356,23 @@ export const logout = async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
       await revokeSession(refreshToken);
+      // The access token may have expired; the refresh token still names the user
+      let userId: string | undefined;
+      try {
+        userId = verifyRefreshToken(refreshToken).userId;
+      } catch {
+        userId = undefined;
+      }
+      if (userId) {
+        recordAudit(req, {
+          actor: { _id: userId },
+          action: "auth.logout",
+          category: "auth",
+          targetType: "user",
+          targetId: userId,
+          summary: "Signed out",
+        });
+      }
     }
   } catch (error) {
     console.error("Logout error:", error);
@@ -390,6 +449,15 @@ export const refreshToken = async (req: Request, res: Response) => {
         `[auth] Refresh token reuse detected for user ${user._id}; revoking all sessions`,
       );
       await revokeAllSessions(user._id);
+      recordAudit(req, {
+        actor: user,
+        action: "auth.token_reuse_detected",
+        category: "auth",
+        targetType: "user",
+        targetId: user._id,
+        targetLabel: user.name,
+        summary: `Reused refresh token for ${user.email}; all sessions revoked`,
+      });
       return reject("Session revoked");
     }
 
@@ -513,6 +581,15 @@ export const verifyEmail = async (req: Request, res: Response) => {
     }
 
     const accessTokenExpiresAt = await issueSession(req, res, user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.email_verified",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} verified their email and signed in`,
+    });
 
     res.json({
       message: "Email verified successfully.",
@@ -589,6 +666,16 @@ export const forgotPassword = async (req: Request, res: Response) => {
       name: user.name,
       resetUrl: resetUrlFor(token),
       expiresMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
+    });
+
+    recordAudit(req, {
+      actor: { _id: user._id, name: user.name, email: user.email },
+      action: "auth.password_reset_requested",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `Password reset link requested for ${user.email}`,
     });
 
     return res.json({
@@ -669,7 +756,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       },
       { returnDocument: "after" },
     )
-      .select("name email")
+      .select("name email role")
       .lean();
 
     if (!user) {
@@ -679,6 +766,15 @@ export const resetPassword = async (req: Request, res: Response) => {
     await revokeAllSessions(user._id);
     clearAuthCookies(res);
     notifyPasswordChanged(user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.password_reset",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} set a new password via email link`,
+    });
 
     res.json({
       message:
@@ -754,6 +850,15 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     await revokeAllSessions(user._id);
     const accessTokenExpiresAt = await issueSession(req, res, user);
     notifyPasswordChanged(user);
+    recordAudit(req, {
+      actor: user,
+      action: "auth.password_changed",
+      category: "auth",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.name,
+      summary: `${user.name} changed their password`,
+    });
 
     res.json({
       message: "Password changed successfully.",

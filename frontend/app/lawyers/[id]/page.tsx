@@ -10,13 +10,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Scale, MapPin, Phone, Mail, Calendar, BookOpen, Clock, CheckCircle, XCircle, MessageSquare } from "lucide-react";
+import { MapPin, Phone, Mail, Calendar, BookOpen, Clock, CheckCircle, XCircle, MessageSquare } from "lucide-react";
 import { Footer } from "../../../components/Footer";
 import { Navbar } from "../../../components/Navbar";
 import { WhatsAppCta } from "../../../components/WhatsAppCta";
 import { useLanguage } from "../../../components/LanguageProvider";
 import { API_BASE_URL } from "../../../lib/api";
 import { useSiteSettings } from "../../../components/contentHooks";
+import { RichText } from "../../../components/RichText";
+import { isRichTextEmpty } from "../../../lib/richText";
 
 interface LawyerUser {
   _id: string;
@@ -105,7 +107,10 @@ export default function LawyerDetailPage() {
 
   // Get bilingual content based on current locale
   const designation = profile?.designation?.[locale] || profile?.designation?.en || "Attorney at Law";
-  const bio = profile?.bio?.[locale] || profile?.bio?.en || "";
+  // Bios are rich text (HTML); fall back to English when the current locale has no visible text
+  const localBio = profile?.bio?.[locale] || "";
+  const bio = isRichTextEmpty(localBio) ? profile?.bio?.en || "" : localBio;
+  const bioLang = bio === localBio ? locale : "en";
 
   if (isLoading) {
     return (
@@ -114,11 +119,11 @@ export default function LawyerDetailPage() {
         <section className="px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-2">
-              <div className="h-96 animate-pulse rounded-2xl bg-surface-container" />
+              <div className="card h-96 animate-pulse" />
               <div className="space-y-4">
                 <div className="h-8 w-2/3 animate-pulse rounded bg-surface-container" />
-                <div className="h-40 animate-pulse rounded-2xl bg-surface-container" />
-                <div className="h-40 animate-pulse rounded-2xl bg-surface-container" />
+                <div className="card h-40 animate-pulse" />
+                <div className="card h-40 animate-pulse" />
               </div>
             </div>
           </div>
@@ -133,14 +138,14 @@ export default function LawyerDetailPage() {
       <main className="min-h-screen bg-surface text-on-surface">
         <Navbar />
         <section className="px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl rounded-2xl border border-outline-variant bg-surface-container p-10 text-center">
-            <h1 className="font-display text-2xl font-semibold text-on-surface">Lawyer not found</h1>
+          <div className="card mx-auto max-w-2xl p-8 text-center sm:p-10">
+            <h1 className="text-2xl text-heading">Lawyer not found</h1>
             <p className="mt-3 text-sm text-on-surface-variant">
               The profile you are looking for does not exist or is no longer available.
             </p>
             <Link
               href="/lawyers"
-              className="mt-6 inline-flex rounded-full bg-secondary px-6 py-2.5 text-sm font-semibold text-primary transition hover:opacity-90"
+              className="btn btn-secondary mt-6"
             >
               Back to Lawyers
             </Link>
@@ -163,40 +168,40 @@ export default function LawyerDetailPage() {
       <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="mx-auto max-w-6xl">
           {/* Breadcrumb */}
-          <div className="mb-6 flex items-center gap-2 text-xs text-on-surface-variant">
-            <Link href="/lawyers" className="hover:text-primary transition-colors">
+          <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-sm text-on-surface-variant">
+            <Link href="/lawyers" className="underline-offset-4 transition-colors hover:text-on-surface hover:underline">
               Our Lawyers
             </Link>
             <span>/</span>
-            <span className="text-on-surface">{lawyer.name}</span>
-          </div>
+            <span className="text-on-surface" aria-current="page">{lawyer.name}</span>
+          </nav>
 
-          <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+          <div className="grid items-start gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
             {/* Sidebar */}
-            <aside className="space-y-5">
+            <aside className="space-y-4 lg:sticky lg:top-24">
               {/* Photo + name */}
-              <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 text-center shadow-sm">
+              <div className="card p-6 text-center">
                 {profile?.profileImageUrl ? (
                   <Image
                     src={profile.profileImageUrl}
                     alt={lawyer.name}
                     width={144}
                     height={144}
-                    className="mx-auto h-36 w-36 rounded-full object-cover ring-4 ring-secondary/20"
+                    className="mx-auto h-32 w-32 rounded-full border border-outline-variant object-cover shadow-[0_1px_2px_rgb(16_24_40/0.12)]"
                   />
                 ) : (
-                  <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-full bg-primary/10 text-4xl font-bold text-primary ring-4 ring-secondary/20">
+                  <div className="monogram mx-auto h-32 w-32 text-4xl">
                     {initials}
                   </div>
                 )}
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-                  {designation}
-                </p>
-                <h1 className="mt-2 font-display text-xl font-semibold text-on-surface">
+                <h1 className="mt-4 text-xl text-heading">
                   {lawyer.name}
                 </h1>
+                <p className="mt-1 text-sm text-gold-ink">
+                  {designation}
+                </p>
                 {lawyer.barId && (
-                  <p className="mt-1 text-xs text-on-surface-variant">
+                  <p className="mt-3 text-xs text-on-surface-variant">
                     Bar ID: {lawyer.barId}
                   </p>
                 )}
@@ -208,15 +213,15 @@ export default function LawyerDetailPage() {
               </div>
 
               {/* CTA */}
-              <div className="space-y-3 rounded-2xl border border-outline-variant bg-surface-container p-5">
+              <div className="card space-y-2 p-4">
                 {availability?.isAcceptingNewClients === false ? (
-                  <div className="rounded-full border border-outline-variant bg-surface-container-high py-3 text-center text-sm text-on-surface-variant">
+                  <div className="notice text-center text-on-surface-variant">
                     Not accepting new clients
                   </div>
                 ) : (
                   <Link
                     href={`/appointment?lawyerId=${id}`}
-                    className="block w-full rounded-full bg-secondary py-3 text-center text-sm font-semibold text-primary transition hover:opacity-90"
+                    className="btn btn-primary btn-block"
                   >
                     Book Appointment
                   </Link>
@@ -225,32 +230,32 @@ export default function LawyerDetailPage() {
                   href={`https://wa.me/${whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full rounded-full border border-outline-variant bg-surface py-3 text-center text-sm font-semibold text-on-surface transition hover:border-secondary hover:text-secondary"
+                  className="btn btn-secondary btn-block"
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4 text-[#1fae55]" aria-hidden="true" />
                   WhatsApp
                 </a>
               </div>
 
               {/* Contact */}
               {(profile?.contactEmail || profile?.contactPhone || lawyer.phone) && (
-                <div className="rounded-2xl border border-outline-variant bg-surface-container p-5 space-y-2.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Contact</p>
+                <div className="card space-y-2 p-5">
+                  <h2 className="font-body text-sm font-semibold text-on-surface">Contact</h2>
                   {(profile?.contactEmail || lawyer.email) && (
                     <a
                       href={`mailto:${profile?.contactEmail || lawyer.email}`}
-                      className="flex items-center gap-2 text-sm text-on-surface hover:text-primary transition-colors"
+                      className="flex min-h-9 items-center gap-2 break-all text-sm text-on-surface underline-offset-4 hover:underline"
                     >
-                      <Mail className="h-4 w-4 text-secondary shrink-0" />
+                      <Mail className="h-4 w-4 shrink-0 text-gold-ink" />
                       {profile?.contactEmail || lawyer.email}
                     </a>
                   )}
                   {(profile?.contactPhone || lawyer.phone) && (
                     <a
                       href={`tel:${profile?.contactPhone || lawyer.phone}`}
-                      className="flex items-center gap-2 text-sm text-on-surface hover:text-primary transition-colors"
+                      className="flex min-h-9 items-center gap-2 break-all text-sm text-on-surface underline-offset-4 hover:underline"
                     >
-                      <Phone className="h-4 w-4 text-secondary shrink-0" />
+                      <Phone className="h-4 w-4 shrink-0 text-gold-ink" />
                       {profile?.contactPhone || lawyer.phone}
                     </a>
                   )}
@@ -259,15 +264,15 @@ export default function LawyerDetailPage() {
 
               {/* Practice areas chips */}
               {practiceAreas.length > 0 && (
-                <div className="rounded-2xl border border-outline-variant bg-surface-container p-5">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                <div className="card p-5">
+                  <h2 className="mb-3 font-body text-sm font-semibold text-on-surface">
                     Practice Areas
-                  </p>
+                  </h2>
                   <div className="flex flex-wrap gap-2">
                     {practiceAreas.map((area) => (
                       <span
                         key={area}
-                        className="rounded-full border border-secondary/25 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary"
+                        className="chip"
                       >
                         {area}
                       </span>
@@ -278,11 +283,11 @@ export default function LawyerDetailPage() {
 
               {/* Hourly rate */}
               {profile?.hourlyRate && (
-                <div className="rounded-2xl border border-outline-variant bg-surface-container p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                <div className="card p-5">
+                  <p className="text-sm text-on-surface-variant">
                     Consultation Fee
                   </p>
-                  <p className="mt-1 font-display text-2xl font-bold text-secondary">
+                  <p className="mt-1 font-display text-2xl font-bold text-heading">
                     ৳{profile.hourlyRate.toLocaleString()}
                     <span className="ml-1 text-sm font-normal text-on-surface-variant">/hr</span>
                   </p>
@@ -293,12 +298,12 @@ export default function LawyerDetailPage() {
             {/* Main content */}
             <div className="space-y-6">
               {/* Bio */}
-              {bio && (
-                <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
+              {!isRichTextEmpty(bio) && (
+                <div className="card p-5 sm:p-6">
+                  <h2 className="text-xl text-heading">
                     Biography
                   </h2>
-                  <p className="mt-3 leading-7 text-on-surface-variant">{bio}</p>
+                  <RichText value={bio} lang={bioLang} size="base" className="mt-3 max-w-prose" />
                 </div>
               )}
 
@@ -306,17 +311,17 @@ export default function LawyerDetailPage() {
               {(profile?.education?.length || profile?.certifications?.length) ? (
                 <div className="grid gap-5 md:grid-cols-2">
                   {profile?.education?.length ? (
-                    <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
+                    <div className="card p-5 sm:p-6">
                       <div className="mb-4 flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-secondary" />
-                        <h3 className="font-display text-base font-semibold text-on-surface">
+                        <BookOpen className="h-4 w-4 text-gold-ink" aria-hidden="true" />
+                        <h3 className="text-base text-heading">
                           Education
                         </h3>
                       </div>
-                      <ul className="space-y-3">
+                      <ul className="divide-y divide-outline-variant">
                         {profile.education.map((edu, i) => (
-                          <li key={i} className="text-sm">
-                            <p className="font-medium text-on-surface">{edu.degree}</p>
+                          <li key={i} className="py-3 text-sm first:pt-0 last:pb-0">
+                            <p className="font-semibold text-on-surface">{edu.degree}</p>
                             <p className="text-on-surface-variant">{edu.institution}, {edu.year}</p>
                             {edu.description?.[locale] && (
                               <p className="mt-1 text-xs text-on-surface-variant">{edu.description[locale]}</p>
@@ -328,17 +333,17 @@ export default function LawyerDetailPage() {
                   ) : null}
 
                   {profile?.certifications?.length ? (
-                    <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
+                    <div className="card p-5 sm:p-6">
                       <div className="mb-4 flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-secondary" />
-                        <h3 className="font-display text-base font-semibold text-on-surface">
+                        <Calendar className="h-4 w-4 text-gold-ink" aria-hidden="true" />
+                        <h3 className="text-base text-heading">
                           Certifications
                         </h3>
                       </div>
-                      <ul className="space-y-3">
+                      <ul className="divide-y divide-outline-variant">
                         {profile.certifications.map((cert, i) => (
-                          <li key={i} className="text-sm">
-                            <p className="font-medium text-on-surface">{cert.name}</p>
+                          <li key={i} className="py-3 text-sm first:pt-0 last:pb-0">
+                            <p className="font-semibold text-on-surface">{cert.name}</p>
                             <p className="text-on-surface-variant">{cert.issuingBody}, {cert.year}</p>
                             {cert.description?.[locale] && (
                               <p className="mt-1 text-xs text-on-surface-variant">{cert.description[locale]}</p>
@@ -353,10 +358,10 @@ export default function LawyerDetailPage() {
 
               {/* Languages */}
               {profile?.languages?.length ? (
-                <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
+                <div className="card p-5 sm:p-6">
                   <div className="mb-3 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-secondary" />
-                    <h3 className="font-display text-base font-semibold text-on-surface">
+                    <MapPin className="h-4 w-4 text-gold-ink" aria-hidden="true" />
+                    <h3 className="text-base text-heading">
                       Languages
                     </h3>
                   </div>
@@ -364,7 +369,7 @@ export default function LawyerDetailPage() {
                     {profile.languages.map((lang) => (
                       <span
                         key={lang}
-                        className="rounded-full border border-outline-variant bg-surface px-3 py-1 text-sm text-on-surface"
+                        className="chip text-on-surface"
                       >
                         {lang}
                       </span>
@@ -375,29 +380,29 @@ export default function LawyerDetailPage() {
 
               {/* Availability schedule */}
               {availability && (
-                <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between">
+                <div className="card p-5 sm:p-6">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-secondary" />
-                      <h3 className="font-display text-base font-semibold text-on-surface">
+                      <Clock className="h-4 w-4 text-gold-ink" aria-hidden="true" />
+                      <h3 className="text-base text-heading">
                         Availability
                       </h3>
                     </div>
                     {availability.isAcceptingNewClients ? (
-                      <span className="flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+                      <span className="chip text-success">
                         <CheckCircle className="h-3 w-3" /> Accepting Clients
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 rounded-full bg-error/15 px-2.5 py-0.5 text-xs font-semibold text-error">
+                      <span className="chip text-error">
                         <XCircle className="h-3 w-3" /> Not Accepting
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-7 gap-1">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
                     {(Object.keys(DAY_LABELS) as (keyof LawyerAvailabilityData["schedule"])[]).map((day) => [day, availability.schedule[day]] as const).filter(([, sched]) => sched).map(([day, sched]) => (
                       <div
                         key={day}
-                        className={`rounded-lg p-2 text-center text-xs ${sched.isAvailable ? "bg-secondary/10 text-secondary" : "bg-surface text-on-surface-variant opacity-40"}`}
+                        className={`rounded-md border p-2 text-center text-xs ${sched.isAvailable ? "border-outline-variant bg-surface-raised text-on-surface shadow-[inset_0_1px_0_var(--highlight)]" : "border-transparent bg-surface-container text-on-surface-variant shadow-(--elev-inset)"}`}
                       >
                         <p className="font-semibold">{DAY_LABELS[day]}</p>
                         {sched.isAvailable && (
@@ -413,32 +418,29 @@ export default function LawyerDetailPage() {
               )}
 
               {/* Firm info */}
-              <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-sm">
-                <div className="flex items-center gap-2 text-on-surface-variant">
-                  <Scale className="h-4 w-4 text-secondary" />
-                  <span className="text-sm font-medium">Islam &amp; Associates</span>
-                </div>
-                <p className="mt-3 text-sm text-on-surface-variant">
+              <div className="panel p-5">
+                <p className="text-sm font-semibold text-on-surface">Islam &amp; Associates</p>
+                <p className="mt-1 text-sm leading-6 text-on-surface-variant">
                   A member of Islam &amp; Associates — dedicated to providing expert legal counsel across a wide range of practice areas.
                 </p>
               </div>
 
               {/* Book CTA */}
-              <div className="rounded-2xl bg-primary p-8 text-center shadow-sm">
-                <h2 className="font-display text-xl font-semibold text-on-primary">
+              <div className="page-hero rounded-xl border border-white/10 p-6 text-center sm:p-8">
+                <h2 className="text-xl text-white">
                   Book an Appointment with {lawyer.name}
                 </h2>
-                <p className="mt-2 text-sm text-on-primary/70">
+                <p className="mt-2 text-sm text-white/75">
                   Choose a convenient time for your consultation.
                 </p>
                 {availability?.isAcceptingNewClients === false ? (
-                  <p className="mt-5 inline-flex rounded-full bg-secondary/50 px-8 py-3 text-sm font-semibold text-primary/70">
+                  <p className="btn btn-on-dark mt-5" aria-disabled="true">
                     Currently Unavailable
                   </p>
                 ) : (
                   <Link
                     href={`/appointment?lawyerId=${id}`}
-                    className="mt-5 inline-flex rounded-full bg-secondary px-8 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
+                    className="btn btn-primary btn-lg mt-5"
                   >
                     Book Appointment
                   </Link>

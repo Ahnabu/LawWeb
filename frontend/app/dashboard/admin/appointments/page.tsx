@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { API_BASE_URL } from "../../../../lib/api";
-import { Calendar, Clock, User, Scale, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
+import { Pagination } from "../../../../components/Pagination";
 
 interface ConsultationItem {
   _id: string;
@@ -22,14 +23,20 @@ interface ConsultationItem {
   cancellationReason?: string;
 }
 
+const PAGE_SIZE = 20;
+
 const STATUS_OPTIONS = ["all", "scheduled", "completed", "cancelled", "rescheduled"] as const;
 
-const STATUS_COLORS: Record<string, string> = {
-  scheduled: "bg-blue-500/10 text-blue-600",
-  completed: "bg-green-500/10 text-green-700",
-  cancelled: "bg-error/10 text-error",
-  rescheduled: "bg-secondary/10 text-secondary",
+// Neutral chip with a small coloured dot per status
+const STATUS_DOTS: Record<string, string> = {
+  scheduled: "bg-sky-600",
+  completed: "bg-success",
+  cancelled: "bg-error",
+  rescheduled: "bg-secondary",
 };
+
+// Shared column template for the header row and each appointment row (md+)
+const ROW_GRID = "md:grid-cols-[minmax(7rem,0.8fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_8.5rem_2.5rem]";
 
 const TYPE_LABELS: Record<string, string> = {
   "initial-consultation": "Initial Consultation",
@@ -45,24 +52,40 @@ export default function AdminAppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  // Per-status totals across all appointments (ignore the filter), for the stat cards
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  // Ignores responses that arrive after a newer request was started
+  const requestId = useRef(0);
 
-  const fetchConsultations = useCallback(async () => {
-    setIsLoading(true);
+  const fetchConsultations = useCallback(async (options: { quiet?: boolean } = {}) => {
+    const id = ++requestId.current;
+    if (!options.quiet) setIsLoading(true);
     setError(null);
     try {
-      const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const response = await apiFetch(`${API_BASE_URL}/api/admin/consultations${params}`, {
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      const response = await apiFetch(`${API_BASE_URL}/api/admin/consultations?${params.toString()}`, {
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Failed to fetch appointments");
-      const data = await response.json();
-      setConsultations(data.data ?? []);
+      const data = await response.json().catch(() => ({}));
+      if (id !== requestId.current) return;
+      if (!response.ok) throw new Error(data.message || "Failed to fetch appointments");
+      const rows: ConsultationItem[] = data.data ?? [];
+      const nextTotal: number = data.meta?.total ?? rows.length;
+      setConsultations(rows);
+      setTotal(nextTotal);
+      setCounts(data.meta?.counts ?? {});
+      // The last item on a page moved out of the filter: step back instead of showing an empty page
+      if (rows.length === 0 && page > 1 && nextTotal > 0) setPage((p) => Math.max(1, p - 1));
     } catch (err) {
+      if (id !== requestId.current) return;
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setIsLoading(false);
+      if (id === requestId.current) setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => {
     void fetchConsultations();
@@ -89,6 +112,8 @@ export default function AdminAppointmentsPage() {
           c._id === id ? { ...c, status: newStatus as ConsultationItem["status"] } : c,
         ),
       );
+      // Refresh the stat cards (and drop the row if it no longer matches the filter)
+      void fetchConsultations({ quiet: true });
       toast.success(`Appointment marked ${newStatus}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
@@ -110,211 +135,188 @@ export default function AdminAppointmentsPage() {
         </div>
       </header>
 
-      {/* Stats */}
-      {!isLoading && !error && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard label="Total Appointments" value={consultations.length} />
-          <StatsCard
-            label="Scheduled"
-            value={consultations.filter((c) => c.status === "scheduled").length}
-          />
-          <StatsCard
-            label="Completed"
-            value={consultations.filter((c) => c.status === "completed").length}
-          />
-          <StatsCard
-            label="Cancelled"
-            value={consultations.filter((c) => c.status === "cancelled").length}
-          />
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filters (each shows its total across all appointments) */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
         {STATUS_OPTIONS.map((s) => (
           <button
             key={s}
             type="button"
-            onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition ${
-              statusFilter === s
-                ? "bg-primary text-on-primary"
-                : "border border-outline-variant bg-surface text-on-surface-variant hover:border-primary hover:text-primary"
-            }`}
+            aria-pressed={statusFilter === s}
+            onClick={() => {
+              setStatusFilter(s);
+              setPage(1);
+              setExpandedId(null);
+            }}
+            className="chip capitalize"
           >
-            {s}
+            {s === "all" ? "All appointments" : s}
+            {!isLoading && !error && (
+              <span className="tabular-nums opacity-70">{counts[s] ?? 0}</span>
+            )}
           </button>
         ))}
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={`skel-${i}`}
-              className="h-24 animate-pulse rounded-xl border border-outline-variant bg-surface-container"
-            />
-          ))}
-        </div>
+        <div className="card h-72 bg-surface-container" aria-busy="true" />
       ) : error ? (
-        <div className="rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+        <p className="notice notice-error" role="alert">
           {error}
-        </div>
+        </p>
       ) : consultations.length === 0 ? (
-        <div className="rounded-xl border border-outline-variant bg-surface-container p-8 text-center text-sm text-on-surface-variant">
+        <div className="card p-10 text-center text-sm text-on-surface-variant">
           No appointments found{statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}.
         </div>
       ) : (
-        <div className="space-y-3">
-          {consultations.map((item) => (
-            <div
-              key={item._id}
-              className="rounded-xl border border-outline-variant bg-surface-container overflow-hidden"
-            >
-              {/* Main row */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span className="flex items-center gap-1.5 text-on-surface font-medium">
-                    <Calendar className="h-4 w-4 text-secondary shrink-0" />
-                    {new Date(item.date).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      timeZone: "UTC",
-                    })}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-on-surface-variant">
-                    <Clock className="h-4 w-4 shrink-0" />
-                    {item.time}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-on-surface-variant">
-                    <User className="h-4 w-4 shrink-0" />
-                    {item.clientId?.name || "—"}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-on-surface-variant">
-                    <Scale className="h-4 w-4 shrink-0" />
-                    {item.lawyerId?.name || (item.formerLawyerName ? `${item.formerLawyerName} (removed)` : "—")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                      STATUS_COLORS[item.status] ?? "bg-surface text-on-surface"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedId(expandedId === item._id ? null : item._id)
-                    }
-                    className="rounded-lg border border-outline-variant p-1.5 text-on-surface-variant hover:bg-surface transition"
-                    aria-label="Toggle details"
-                  >
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${expandedId === item._id ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Expanded details */}
-              {expandedId === item._id && (
-                <div className="border-t border-outline-variant bg-surface p-4 space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                    {item.subject && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Subject</p>
-                        <p className="mt-0.5 text-on-surface">{item.subject}</p>
-                      </div>
-                    )}
-                    {item.consultationType && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Type</p>
-                        <p className="mt-0.5 text-on-surface">
-                          {TYPE_LABELS[item.consultationType] ?? item.consultationType}
-                        </p>
-                      </div>
-                    )}
-                    {item.clientId?.email && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Client Email</p>
-                        <p className="mt-0.5 text-on-surface">{item.clientId.email}</p>
-                      </div>
-                    )}
-                    {item.clientId?.phone && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Client Phone</p>
-                        <p className="mt-0.5 text-on-surface">{item.clientId.phone}</p>
-                      </div>
-                    )}
-                    {item.lawyerId?.barId && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Bar ID</p>
-                        <p className="mt-0.5 text-on-surface">{item.lawyerId.barId}</p>
-                      </div>
-                    )}
-                  </div>
-                  {item.description && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Description</p>
-                      <p className="mt-1 text-sm text-on-surface">{item.description}</p>
-                    </div>
-                  )}
-                  {item.notes && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Notes</p>
-                      <p className="mt-1 text-sm text-on-surface">{item.notes}</p>
-                    </div>
-                  )}
-                  {item.cancellationReason && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Cancellation</p>
-                      <p className="mt-1 text-sm text-on-surface">{item.cancellationReason}</p>
-                    </div>
-                  )}
-
-                  {/* Status update actions */}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <p className="w-full text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-                      Update Status
-                    </p>
-                    {(["scheduled", "completed", "cancelled", "rescheduled"] as const).map(
-                      (s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          disabled={item.status === s || updatingId === item._id}
-                          onClick={() => updateStatus(item._id, s)}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition disabled:opacity-40 ${
-                            item.status === s
-                              ? "border-primary bg-primary/10 text-primary cursor-default"
-                              : "border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary"
-                          }`}
-                        >
-                          {updatingId === item._id ? "Saving…" : s}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
+        <div className="space-y-4">
+          <div className="card overflow-hidden">
+            {/* Column headings (wide screens) */}
+            <div className={`hidden gap-x-4 border-b border-outline-variant bg-surface-container px-5 py-2.5 text-sm font-semibold text-on-surface-variant md:grid ${ROW_GRID}`}>
+              <span>Date</span>
+              <span>Client</span>
+              <span>Lawyer</span>
+              <span>Status</span>
+              <span className="sr-only">Details</span>
             </div>
-          ))}
+            <ul className="divide-y divide-outline-variant">
+              {consultations.map((item) => {
+                const expanded = expandedId === item._id;
+                return (
+                  <li key={item._id} className={expanded ? "bg-surface-container/40" : ""}>
+                    {/* Main row */}
+                    <div className={`grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3.5 sm:px-5 ${ROW_GRID}`}>
+                      <div className="text-sm">
+                        <p className="font-semibold text-on-surface">
+                          {new Date(item.date).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            timeZone: "UTC",
+                          })}
+                        </p>
+                        <p className="text-on-surface-variant tabular-nums">{item.time}</p>
+                      </div>
+                      <div className="col-span-2 row-start-2 min-w-0 text-sm text-on-surface md:col-span-1 md:row-start-auto">
+                        <span className="text-on-surface-variant md:hidden">Client: </span>
+                        {item.clientId?.name || "—"}
+                      </div>
+                      <div className="col-span-2 min-w-0 text-sm text-on-surface md:col-span-1">
+                        <span className="text-on-surface-variant md:hidden">Lawyer: </span>
+                        {item.lawyerId?.name || (item.formerLawyerName ? `${item.formerLawyerName} (removed)` : "—")}
+                      </div>
+                      <div className="col-start-2 row-start-1 md:col-start-auto md:row-start-auto">
+                        <StatusChip status={item.status} />
+                      </div>
+                      <div className="hidden md:block">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(expanded ? null : item._id)}
+                          className="btn btn-ghost btn-icon"
+                          aria-label="Toggle details"
+                          aria-expanded={expanded}
+                        >
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                            aria-hidden="true"
+                          />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(expanded ? null : item._id)}
+                        className="btn btn-ghost btn-sm col-span-2 -ml-3 justify-self-start md:hidden"
+                        aria-expanded={expanded}
+                      >
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                          aria-hidden="true"
+                        />
+                        Details
+                      </button>
+                    </div>
+
+                    {/* Expanded details */}
+                    {expanded && (
+                      <div className="space-y-4 border-t border-outline-variant px-4 py-4 sm:px-5">
+                        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                          {item.subject && <Detail label="Subject">{item.subject}</Detail>}
+                          {item.consultationType && (
+                            <Detail label="Type">
+                              {TYPE_LABELS[item.consultationType] ?? item.consultationType}
+                            </Detail>
+                          )}
+                          {item.clientId?.email && <Detail label="Client Email">{item.clientId.email}</Detail>}
+                          {item.clientId?.phone && <Detail label="Client Phone">{item.clientId.phone}</Detail>}
+                          {item.lawyerId?.barId && <Detail label="Bar ID">{item.lawyerId.barId}</Detail>}
+                        </dl>
+                        {(item.description || item.notes || item.cancellationReason) && (
+                          <dl className="panel space-y-3 px-4 py-3 text-sm">
+                            {item.description && <Detail label="Description">{item.description}</Detail>}
+                            {item.notes && <Detail label="Notes">{item.notes}</Detail>}
+                            {item.cancellationReason && <Detail label="Cancellation">{item.cancellationReason}</Detail>}
+                          </dl>
+                        )}
+
+                        {/* Status update actions */}
+                        <div>
+                          <p className="mb-2 text-sm font-semibold text-on-surface">
+                            Update Status
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {(["scheduled", "completed", "cancelled", "rescheduled"] as const).map(
+                              (s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  aria-pressed={item.status === s}
+                                  disabled={item.status === s || updatingId === item._id}
+                                  onClick={() => updateStatus(item._id, s)}
+                                  className={`chip capitalize disabled:cursor-default ${
+                                    item.status !== s ? "disabled:opacity-50" : ""
+                                  }`}
+                                >
+                                  {updatingId === item._id ? "Saving…" : s}
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={(next) => {
+              setPage(next);
+              setExpandedId(null);
+            }}
+          />
         </div>
       )}
     </div>
   );
 }
 
-function StatsCard({ label, value }: { label: string; value: number }) {
+function StatusChip({ status }: { status: string }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
-      <p className="text-sm text-on-surface-variant">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold text-on-surface">
-        {value}
-      </p>
+    <span className="chip capitalize">
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${STATUS_DOTS[status] ?? "bg-outline"}`} />
+      {status}
+    </span>
+  );
+}
+
+function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-on-surface-variant">{label}</dt>
+      <dd className="mt-0.5 break-words text-on-surface">{children}</dd>
     </div>
   );
 }

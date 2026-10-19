@@ -68,7 +68,58 @@ export const contentRevisionSchema = z.object({
   params: contentPageKeyParam.extend({ version: z.coerce.number().int().positive() }),
 });
 
-export const formatZodIssues = (error: z.ZodError) =>
+// ── Contact page form ─────────────────────────────────────────────────────────
+// `website` is a honeypot the form hides from people; the controller drops
+// submissions that fill it.
+export const contactMessageSchema = z.object({
+  body: z.object({
+    name: z.string().trim().min(2, 'Please enter your name').max(100, 'Name too long'),
+    email: emailField,
+    phone: z
+      .string()
+      .trim()
+      .max(30, 'Phone number too long')
+      .regex(/^\+?[\d\s\-()]*$/, 'Enter a valid phone number')
+      .optional(),
+    subject: z.string().trim().max(150, 'Subject too long').optional(),
+    message: z
+      .string()
+      .trim()
+      .min(10, 'Message must be at least 10 characters')
+      .max(2000, 'Message must be at most 2000 characters'),
+    website: z.string().max(200).optional(),
+  }),
+});
+
+// ── Audit logs (admin) ────────────────────────────────────────────────────────
+const optionalQueryText = (max: number) =>
+  z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().trim().max(max).optional());
+const optionalQueryDate = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.coerce.date({ message: 'Invalid date' }).optional()
+);
+
+export const auditLogQueryFields = z.object({
+  page: z.coerce.number().int().positive().max(100000).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  category: optionalQueryText(30),
+  action: optionalQueryText(80),
+  actorRole: z.preprocess(
+    (v) => (v === '' || v === 'all' ? undefined : v),
+    z.enum(['admin', 'lawyer', 'client', 'anonymous', 'system']).optional()
+  ),
+  actor: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid actor ID').optional()
+  ),
+  search: optionalQueryText(100),
+  from: optionalQueryDate,
+  to: optionalQueryDate,
+});
+
+export const auditLogListSchema = z.object({ query: auditLogQueryFields });
+
+export const formatZodIssues =(error: z.ZodError) =>
   error.issues.map((issue) => ({
     field: issue.path.join('.'),
     message: issue.message,

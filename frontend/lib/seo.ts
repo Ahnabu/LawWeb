@@ -8,7 +8,7 @@ import { languageAlternates, localizePath } from './locale'
 // them like any other text and an empty CMS falls back to i18n.ts. The language
 // comes from the route (/about → English, /bn/about → Bangla).
 
-export type SeoPageKey = 'home' | 'about' | 'practiceAreas' | 'trackCase' | 'blogs'
+export type SeoPageKey = 'home' | 'about' | 'practiceAreas' | 'trackCase' | 'blogs' | 'contact'
 
 export const SEO_PAGE_PATHS: Record<SeoPageKey, string> = {
   home: '/',
@@ -16,6 +16,7 @@ export const SEO_PAGE_PATHS: Record<SeoPageKey, string> = {
   practiceAreas: '/practice-areas',
   trackCase: '/track-case',
   blogs: '/blogs',
+  contact: '/contact',
 }
 
 const OG_LOCALES: Record<Locale, string> = { en: 'en_US', bn: 'bn_BD' }
