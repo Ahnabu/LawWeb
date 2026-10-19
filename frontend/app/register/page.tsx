@@ -7,6 +7,12 @@ import { Eye, EyeOff } from "lucide-react";
 import { safeRedirectPath, signUp } from "../../lib/auth";
 import { AuthShell } from "../../components/AuthShell";
 
+const signUpSteps = [
+  "Enter your profile details.",
+  "Receive a verification code by email.",
+  "Verify and access your dashboard.",
+];
+
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -189,39 +195,56 @@ function RegisterPageContent() {
 
   const fieldClass = (invalid?: string) => `field${invalid ? " field-invalid" : ""}`;
 
-  return (
-    <AuthShell backHref="/" backLabel="Back to Home" wide>
-      <h1 className="text-2xl text-heading sm:text-[1.75rem]">
-        Create your account and verify your email.
-      </h1>
-      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-        Choose your role, fill in your details, and we&apos;ll send a
-        verification code before activating your account.
-      </p>
-
-      <ol className="mt-5 grid gap-2 text-sm text-on-surface-variant sm:grid-cols-3 sm:gap-4">
-        {[
-          { step: "1", text: "Enter your profile details." },
-          { step: "2", text: "Receive a verification code by email." },
-          { step: "3", text: "Verify and access your dashboard." },
-        ].map(({ step, text }) => (
-          <li key={step} className="flex items-start gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-outline text-[0.7rem] font-semibold text-on-surface">
-              {step}
+  // Shown in the desktop brand panel; inline above the form on phones
+  const brandAside = (
+    <>
+      <ol className="mt-8 space-y-3">
+        {signUpSteps.map((text, index) => (
+          <li key={text} className="flex items-start gap-3 text-sm leading-6 text-white/80">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-secondary/60 text-xs font-semibold text-secondary">
+              {index + 1}
             </span>
-            <span className="leading-5">{text}</span>
+            {text}
           </li>
         ))}
       </ol>
+      <p className="mt-8 border-l-2 border-secondary/60 pl-4 text-sm leading-6 text-white/70">
+        This creates a client account. Lawyer accounts are managed by the
+        firm; contact us to join as a lawyer.
+      </p>
+    </>
+  );
 
-      <hr className="rule my-6" />
+  return (
+    <AuthShell backHref="/" backLabel="Back to Home" wide aside={brandAside}>
+      <h1 className="text-2xl text-heading sm:text-[1.75rem]">
+        Create your account
+      </h1>
+      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+        We&apos;ll email you a verification code to activate your account.
+      </p>
 
-      <div className="notice notice-info mb-5">
-        <p className="font-semibold">Client Account</p>
-        <p className="mt-0.5 text-on-surface-variant">
-          Lawyer accounts are managed by the firm. Contact us to join as
-          a lawyer.
-        </p>
+      <div className="lg:hidden">
+        <ol className="mt-5 grid gap-2 text-sm text-on-surface-variant sm:grid-cols-3 sm:gap-4">
+          {signUpSteps.map((text, index) => (
+            <li key={text} className="flex items-start gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-outline text-[0.7rem] font-semibold text-on-surface">
+                {index + 1}
+              </span>
+              <span className="leading-5">{text}</span>
+            </li>
+          ))}
+        </ol>
+
+        <hr className="rule my-6" />
+
+        <div className="notice notice-info mb-5">
+          <p className="font-semibold">Client Account</p>
+          <p className="mt-0.5 text-on-surface-variant">
+            Lawyer accounts are managed by the firm. Contact us to join as
+            a lawyer.
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -230,9 +253,9 @@ function RegisterPageContent() {
         </div>
       )}
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
+      <form className="space-y-4 lg:mt-4" onSubmit={handleSubmit}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:gap-y-3">
+          <label className="block">
             <span className="label">Full Name</span>
             <input
               type="text"
@@ -249,7 +272,7 @@ function RegisterPageContent() {
             {fieldErrors.name && <p className="error-text">{fieldErrors.name}</p>}
           </label>
 
-          <label className="block sm:col-span-2">
+          <label className="block">
             <span className="label">Email Address</span>
             <input
               type="email"
@@ -266,7 +289,7 @@ function RegisterPageContent() {
             {fieldErrors.email && <p className="error-text">{fieldErrors.email}</p>}
           </label>
 
-          <div>
+          <div className="relative">
             <label htmlFor="register-password" className="label">Password</label>
             <div className="relative">
               <input
@@ -300,7 +323,7 @@ function RegisterPageContent() {
               </button>
             </div>
             {password && isPasswordFocused && (
-              <div className="panel mt-2 space-y-1.5 p-3">
+              <div className="card absolute inset-x-0 top-full z-20 mt-1.5 space-y-1.5 p-3 shadow-xl">
                 <div className="flex h-1.5 gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <div
@@ -387,7 +410,7 @@ function RegisterPageContent() {
             {fieldErrors.phone ? (
               <p className="error-text">{fieldErrors.phone}</p>
             ) : (
-              <p className="hint">Valid Bangladeshi number, e.g. +8801712345678</p>
+              <p className="hint lg:hidden">Valid Bangladeshi number, e.g. +8801712345678</p>
             )}
           </label>
         </div>

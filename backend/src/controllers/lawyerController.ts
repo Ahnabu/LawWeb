@@ -48,12 +48,28 @@ export const getAllLawyers = async (req: Request, res: Response) => {
   }
 };
 
-// Public endpoint returning only minimal data (name, specialization, barId) for home/lawyers pages
+// Public endpoint returning only card data (name, specialization, barId, plus
+// photo and designation from LawyerProfile) for the home and lawyers pages
 export const getPublicLawyers = async (req: Request, res: Response) => {
   try {
-    const lawyers = await User.find(PUBLIC_LAWYER_FILTER)
-      .select('name barId specialization')
-      .sort(PUBLIC_LAWYER_SORT);
+    const users = await User.find(PUBLIC_LAWYER_FILTER)
+      .select('name barId specialization profileImageUrl')
+      .sort(PUBLIC_LAWYER_SORT)
+      .lean();
+
+    const profiles = await LawyerProfile.find({ userId: { $in: users.map((u) => u._id) } })
+      .select('userId designation profileImageUrl')
+      .lean();
+    const profileByUser = new Map(profiles.map((p) => [String(p.userId), p]));
+
+    const lawyers = users.map((user) => {
+      const profile = profileByUser.get(String(user._id));
+      return {
+        ...user,
+        profileImageUrl: profile?.profileImageUrl || user.profileImageUrl || undefined,
+        designation: { en: profile?.designation?.en ?? '', bn: profile?.designation?.bn ?? '' },
+      };
+    });
 
     res.json({
       message: 'Lawyers retrieved successfully',

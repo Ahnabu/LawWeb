@@ -17,6 +17,8 @@ import {
 
 export const SHORT_TEXT = 200
 export const LONG_TEXT = 2000
+// Practice-area write-ups; keep in step with backend/src/config/contentSchemas.ts
+export const DETAILS_TEXT = 6000
 
 // An i18n key the admin can override (stored under `strings`)
 export interface TextField {
@@ -369,7 +371,7 @@ export const contentRegistry: ContentPageDef[] = [
             { name: 'slug', label: 'URL id', type: 'slug', maxLength: 60 },
             localizedField('title', 'Title'),
             localizedField('description', 'Short description'),
-            localizedField('details', 'Details', LONG_TEXT, true),
+            localizedField('details', 'Details', DETAILS_TEXT, true),
           ],
           defaults: practiceAreas,
         },

@@ -30,6 +30,8 @@ export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number];
 
 const SHORT_TEXT = 200;
 const LONG_TEXT = 2000;
+// Practice-area write-ups run to several sections of numbered services
+const DETAILS_TEXT = 6000;
 const MAX_STRING_OVERRIDES = 500;
 
 const I18N_KEY = z
@@ -175,7 +177,7 @@ const practiceAreasSchema = z
           slug,
           title: localized(),
           description: localized(),
-          details: localized(LONG_TEXT),
+          details: localized(DETAILS_TEXT),
         })
       )
       .max(30)

@@ -19,6 +19,13 @@ export interface IUser extends Document<mongoose.Types.ObjectId> {
     passwordResetSentAt?: Date;
     passwordChangedAt?: Date;
     tokenVersion: number;
+    isBlocked: boolean;
+    blockedAt?: Date;
+    blockedReason?: string;
+    deletedAt?: Date | null;
+    deletedBy?: mongoose.Types.ObjectId | null;
+    deletionPending?: boolean;
+    sortOrder: number;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(password: string): Promise<boolean>;

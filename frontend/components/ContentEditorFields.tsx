@@ -30,7 +30,7 @@ function TextInput({ value, onChange, placeholder, multiline, maxLength, lang }:
 }) {
   return multiline ? (
     <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      maxLength={maxLength} rows={3} lang={lang} className={inputBase} />
+      maxLength={maxLength} rows={maxLength > LONG_TEXT ? 10 : 3} lang={lang} className={inputBase} />
   ) : (
     <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
       maxLength={maxLength} lang={lang} className={inputBase} />

@@ -59,6 +59,13 @@ const UserSchema = new mongoose_1.Schema({
     passwordResetSentAt: { type: Date, select: false },
     passwordChangedAt: { type: Date },
     tokenVersion: { type: Number, default: 0 },
+    isBlocked: { type: Boolean, default: false, index: true },
+    blockedAt: { type: Date },
+    blockedReason: { type: String, trim: true },
+    deletedAt: { type: Date, default: null, index: true },
+    deletedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', default: null },
+    deletionPending: { type: Boolean },
+    sortOrder: { type: Number, default: 0 },
 }, { timestamps: true });
 exports.PASSWORD_HASH_ROUNDS = 12;
 // For atomic updateOne() writes, which skip the save hook below

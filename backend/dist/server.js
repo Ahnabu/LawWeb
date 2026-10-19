@@ -23,6 +23,7 @@ const admin_1 = __importDefault(require("./routes/admin"));
 const users_1 = __importDefault(require("./routes/users"));
 const blogs_1 = __importDefault(require("./routes/blogs"));
 const content_1 = __importDefault(require("./routes/content"));
+const contact_1 = __importDefault(require("./routes/contact"));
 const security_1 = require("./middleware/security");
 // Use Google public DNS so mongodb+srv SRV lookups resolve reliably in local/cloud environments
 try {
@@ -129,6 +130,14 @@ if (process.env.NODE_ENV === "production") {
         message: { message: "Too many email requests, please try again later." },
     });
     ["/api/auth/forgot-password", "/api/auth/resend-verification-code"].forEach((path) => app.use(path, emailLimiter));
+    // Public Contact page form: stops message floods from one IP
+    app.use("/api/contact", (0, express_rate_limit_1.default)({
+        windowMs: 60 * 60 * 1000,
+        max: 5,
+        standardHeaders: "draft-7",
+        legacyHeaders: false,
+        message: { message: "Too many messages sent. Please try again later or call us." },
+    }));
     // Public case lookup (case number + email)
     app.use("/api/cases/track", (0, express_rate_limit_1.default)({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 }
@@ -193,7 +202,7 @@ app.use(async (req, res, next) => {
 app.get("/", (_req, res) => {
     res.json({
         status: "OK",
-        name: "LawWeb API",
+        name: "Islam & Associates International API",
         database: mongoose_1.default.connection.readyState === 1 ? "connected" : "connecting/disconnected",
         timestamp: new Date().toISOString(),
     });
@@ -214,6 +223,7 @@ app.use("/api/admin", admin_1.default);
 app.use("/api/users", users_1.default);
 app.use("/api/blogs", blogs_1.default);
 app.use("/api/content", content_1.default);
+app.use("/api/contact", contact_1.default);
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);

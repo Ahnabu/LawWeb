@@ -70,13 +70,13 @@ function LoginPageContent() {
   return (
     <AuthShell backHref="/" backLabel="Back to Home">
       <h1 className="text-2xl text-heading sm:text-[1.75rem]">Login to your account.</h1>
-      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-        Use your verified email address and password to reach the
-        correct dashboard automatically.
+      <p className="mt-1.5 text-sm leading-6 text-on-surface-variant">
+        Use your verified email and password; you&apos;ll go straight to
+        your dashboard.
       </p>
 
       {/* Role tabs removed — users are redirected to their registered dashboard automatically */}
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+      <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
         <label className="block">
           <span className="label">Email Address</span>
           <input
@@ -154,7 +154,7 @@ function LoginPageContent() {
         </button>
       </form>
 
-      <hr className="rule my-6" />
+      <hr className="rule my-5" />
       <p className="text-center text-sm leading-6 text-on-surface-variant">
         Don&apos;t have an account?{" "}
         <Link
