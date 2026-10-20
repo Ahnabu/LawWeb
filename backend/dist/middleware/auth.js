@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authorizeRoles = exports.authenticateToken = exports.ACCOUNT_BLOCKED_MESSAGE = exports.AUTH_USER_FIELDS = void 0;
+exports.authenticateToken = exports.ACCOUNT_BLOCKED_MESSAGE = exports.AUTH_USER_FIELDS = void 0;
 const jwt_1 = require("../utils/jwt");
 const User_1 = __importDefault(require("../models/User"));
 const session_1 = require("../utils/session");
+const loadAccess_1 = require("../access/loadAccess");
 // Everything controllers read from req.user, plus what the checks below need
-exports.AUTH_USER_FIELDS = 'name email role barId phone specialization profileImageUrl isVerified passwordNeedsChange tokenVersion isBlocked';
+exports.AUTH_USER_FIELDS = 'name email role staffRoleId barId phone specialization profileImageUrl isVerified passwordNeedsChange tokenVersion isBlocked';
 exports.ACCOUNT_BLOCKED_MESSAGE = 'Your account has been blocked. Contact the firm for help.';
 // Error codes the frontend's request queue (frontend/lib/http.ts) reacts to:
 // any 401 triggers one refresh + retry; PASSWORD_CHANGE_REQUIRED does not;
@@ -49,6 +50,9 @@ const authenticateToken = async (req, res, next) => {
             return res.status(403).json({ message: 'You must change your password before continuing.', code: 'PASSWORD_CHANGE_REQUIRED' });
         }
         req.user = user;
+        // Resolved on every request (never stored in the JWT), so a permission
+        // change or revocation applies on the user's next request
+        req.access = await (0, loadAccess_1.loadAccess)(user);
         next();
     }
     catch (error) {
@@ -56,16 +60,4 @@ const authenticateToken = async (req, res, next) => {
     }
 };
 exports.authenticateToken = authenticateToken;
-const authorizeRoles = (...roles) => {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ message: 'Insufficient permissions' });
-        }
-        next();
-    };
-};
-exports.authorizeRoles = authorizeRoles;
 //# sourceMappingURL=auth.js.map

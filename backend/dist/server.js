@@ -24,6 +24,8 @@ const users_1 = __importDefault(require("./routes/users"));
 const blogs_1 = __importDefault(require("./routes/blogs"));
 const content_1 = __importDefault(require("./routes/content"));
 const contact_1 = __importDefault(require("./routes/contact"));
+const access_1 = __importDefault(require("./routes/access"));
+const workspace_1 = __importDefault(require("./routes/workspace"));
 const security_1 = require("./middleware/security");
 // Use Google public DNS so mongodb+srv SRV lookups resolve reliably in local/cloud environments
 try {
@@ -224,6 +226,8 @@ app.use("/api/users", users_1.default);
 app.use("/api/blogs", blogs_1.default);
 app.use("/api/content", content_1.default);
 app.use("/api/contact", contact_1.default);
+app.use("/api/access", access_1.default);
+app.use("/api/workspace/:lawyerId", workspace_1.default);
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);

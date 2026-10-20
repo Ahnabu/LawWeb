@@ -3,7 +3,8 @@ export interface IUser extends Document<mongoose.Types.ObjectId> {
     name: string;
     email: string;
     password?: string;
-    role: 'admin' | 'lawyer' | 'client';
+    role: 'admin' | 'lawyer' | 'client' | 'staff';
+    staffRoleId?: mongoose.Types.ObjectId | null;
     barId?: string;
     phone?: string;
     specialization?: string;
