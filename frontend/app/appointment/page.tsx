@@ -4,6 +4,9 @@ import { Navbar } from '../../components/Navbar'
 import { WhatsAppCta } from '../../components/WhatsAppCta'
 import { AppointmentWidget } from '../../components/AppointmentWidget'
 import { AppointmentBookingForm } from '../../components/AppointmentBookingForm'
+import { singleLanguagePageMetadata } from '../../lib/seo'
+
+export const generateMetadata = singleLanguagePageMetadata('appointment')
 
 export default function AppointmentPage() {
   return (

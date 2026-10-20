@@ -466,7 +466,7 @@ const translationBundle = {
     },
     seo: {
       home: {
-        title: "Islam & Associates | Dhaka Law Firm",
+        title: "Law Firm in Dhaka, Bangladesh | Islam & Associates",
         description: "Islam & Associates is a leading law firm in Dhaka, Bangladesh offering corporate, civil, criminal and immigration legal services since 1997.",
       },
       about: {
@@ -475,19 +475,27 @@ const translationBundle = {
       },
       practiceAreas: {
         title: "Practice Areas | Islam & Associates",
-        description: "Corporate, civil, criminal, family, immigration and property law services from an experienced Dhaka law firm.",
+        description: "Corporate, civil, criminal, family, immigration, property, tax and banking law services from an experienced Dhaka law firm. See how we can help.",
       },
       trackCase: {
         title: "Track Your Case | Islam & Associates",
-        description: "Check the status, next hearing date and lawyer notes for your case with Islam & Associates.",
+        description: "Check the status, next hearing date and lawyer notes for your case with Islam & Associates. Enter your case number to see the latest updates.",
       },
       blogs: {
         title: "Legal Blog | Islam & Associates",
-        description: "Legal insights, news and practical guidance on Bangladeshi law from the lawyers at Islam & Associates.",
+        description: "Legal insights, news and practical guidance on Bangladeshi law, from immigration to corporate matters, written by the lawyers at Islam & Associates.",
       },
       contact: {
         title: "Contact Us | Islam & Associates",
-        description: "Phone, WhatsApp, email and office address for Islam & Associates, a law firm in Dhaka, Bangladesh.",
+        description: "Phone, WhatsApp, email and office address for Islam & Associates, a law firm in Dhaka, Bangladesh. Send a message and our team will reply shortly.",
+      },
+      lawyers: {
+        title: "Our Lawyers in Dhaka | Islam & Associates",
+        description: "Meet the advocates of Islam & Associates in Dhaka, Bangladesh. Browse each lawyer's practice areas, experience and availability, then book a consultation.",
+      },
+      appointment: {
+        title: "Book a Legal Consultation | Islam & Associates",
+        description: "Book a consultation with a lawyer at Islam & Associates in Dhaka. Choose a lawyer and a time, or message us on WhatsApp for a quick reply.",
       },
     },
   },
@@ -950,7 +958,7 @@ const translationBundle = {
     },
     seo: {
       home: {
-        title: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস | ঢাকার আইন প্রতিষ্ঠান",
+        title: "ঢাকা, বাংলাদেশের আইন প্রতিষ্ঠান | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
         description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস ঢাকার একটি শীর্ষস্থানীয় আইন প্রতিষ্ঠান, যা ১৯৯৭ সাল থেকে কর্পোরেট, দেওয়ানি, ফৌজদারি ও অভিবাসন বিষয়ক আইনি সেবা দিয়ে আসছে।",
       },
       about: {
@@ -959,19 +967,27 @@ const translationBundle = {
       },
       practiceAreas: {
         title: "আইনি সেবার ক্ষেত্র | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
-        description: "ঢাকার একটি অভিজ্ঞ আইন প্রতিষ্ঠান থেকে কর্পোরেট, দেওয়ানি, ফৌজদারি, পারিবারিক, অভিবাসন ও সম্পত্তি আইন বিষয়ক সেবা।",
+        description: "ঢাকার একটি অভিজ্ঞ আইন প্রতিষ্ঠান থেকে কর্পোরেট, দেওয়ানি, ফৌজদারি, পারিবারিক, অভিবাসন, সম্পত্তি, কর ও ব্যাংকিং আইন বিষয়ক সেবা। আমরা কীভাবে সাহায্য করতে পারি জানুন।",
       },
       trackCase: {
         title: "মামলার অবস্থা জানুন | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
-        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসে আপনার মামলার অবস্থা, পরবর্তী শুনানির তারিখ ও আইনজীবীর মন্তব্য দেখুন।",
+        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসে আপনার মামলার অবস্থা, পরবর্তী শুনানির তারিখ ও আইনজীবীর মন্তব্য দেখুন। সর্বশেষ তথ্য জানতে আপনার মামলা নম্বর লিখুন।",
       },
       blogs: {
         title: "আইনি ব্লগ | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
-        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসের আইনজীবীদের কাছ থেকে বাংলাদেশের আইন বিষয়ে বিশ্লেষণ, সংবাদ ও ব্যবহারিক পরামর্শ।",
+        description: "অভিবাসন থেকে কর্পোরেট বিষয় পর্যন্ত, বাংলাদেশের আইন নিয়ে ইসলাম অ্যান্ড অ্যাসোসিয়েটসের আইনজীবীদের লেখা বিশ্লেষণ, সংবাদ ও ব্যবহারিক পরামর্শ।",
       },
       contact: {
         title: "যোগাযোগ | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
-        description: "ঢাকার আইন প্রতিষ্ঠান ইসলাম অ্যান্ড অ্যাসোসিয়েটসের ফোন, হোয়াটসঅ্যাপ, ইমেইল ও অফিসের ঠিকানা।",
+        description: "ঢাকার আইন প্রতিষ্ঠান ইসলাম অ্যান্ড অ্যাসোসিয়েটসের ফোন, হোয়াটসঅ্যাপ, ইমেইল ও অফিসের ঠিকানা। বার্তা পাঠান, আমাদের টিম শীঘ্রই উত্তর দেবে।",
+      },
+      lawyers: {
+        title: "ঢাকায় আমাদের আইনজীবী | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ঢাকার ইসলাম অ্যান্ড অ্যাসোসিয়েটসের আইনজীবীদের সাথে পরিচিত হোন। প্রত্যেকের আইনি সেবার ক্ষেত্র, অভিজ্ঞতা ও সময়সূচি দেখে পরামর্শ বুক করুন।",
+      },
+      appointment: {
+        title: "আইনি পরামর্শ বুক করুন | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ঢাকার ইসলাম অ্যান্ড অ্যাসোসিয়েটসের একজন আইনজীবীর সাথে পরামর্শ বুক করুন। আইনজীবী ও সময় বেছে নিন, অথবা দ্রুত উত্তরের জন্য হোয়াটসঅ্যাপে লিখুন।",
       },
     },
   },

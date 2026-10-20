@@ -1,38 +1,24 @@
 import type { MetadataRoute } from 'next'
-import { API_BASE_URL } from '../lib/api'
+import { getPublishedBlogSummaries } from '../lib/blogs'
+import { getPublicLawyerIds } from '../lib/lawyers'
 import { getSiteUrl, languageAlternates, localizePath } from '../lib/locale'
-import { SEO_PAGE_PATHS } from '../lib/seo'
+import { SEO_PAGE_PATHS, SINGLE_LANGUAGE_SEO_PATHS } from '../lib/seo'
 
 // ── Sitemap ───────────────────────────────────────────────────────────────────
-// Every public CMS page and published blog article in both languages, each
-// entry listing its hreflang alternates. Rebuilt with the same 5-minute ISR as
-// the pages; if the backend is down the articles are left out until then.
+// Every public CMS page in both languages (each entry listing its hreflang
+// alternates), plus the single-URL pages: lawyers, booking, lawyer profiles and
+// blog articles (not translated, so only their English URL). Rebuilt with the
+// same 5-minute ISR as the pages; if the backend is down the articles and
+// profiles are left out until then.
 
 export const revalidate = 300
-
-async function getBlogSlugs(): Promise<string[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/blogs?status=published&limit=1000`, {
-      next: { revalidate: 300 },
-      signal: AbortSignal.timeout(5000),
-    })
-    if (!res.ok) return []
-    const body = (await res.json()) as { data?: { slug?: string }[] }
-    return (body.data ?? []).flatMap((blog) => (blog.slug ? [blog.slug] : []))
-  } catch {
-    return []
-  }
-}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = getSiteUrl()
   const absolute = (path: string) => `${site}${path === '/' ? '' : path}`
-  const paths = [
-    ...Object.values(SEO_PAGE_PATHS),
-    ...(await getBlogSlugs()).map((slug) => `/blogs/${encodeURIComponent(slug)}`),
-  ]
+  const [blogs, lawyerIds] = await Promise.all([getPublishedBlogSummaries(), getPublicLawyerIds()])
 
-  return paths.flatMap((path) => {
+  const bilingual = Object.values(SEO_PAGE_PATHS).flatMap((path) => {
     const languages = Object.fromEntries(
       Object.entries(languageAlternates(path)).map(([lang, href]) => [lang, absolute(href)]),
     )
@@ -41,4 +27,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       alternates: { languages },
     }))
   })
+
+  const singleUrl = [
+    ...Object.values(SINGLE_LANGUAGE_SEO_PATHS).map((path) => ({ url: absolute(path) })),
+    ...lawyerIds.map((id) => ({ url: absolute(`/lawyers/${encodeURIComponent(id)}`) })),
+    ...blogs.map((blog) => {
+      const date = blog.publishedAt ?? blog.createdAt
+      return {
+        url: absolute(`/blogs/${encodeURIComponent(blog.slug)}`),
+        ...(date && { lastModified: new Date(date) }),
+      }
+    }),
+  ]
+
+  return [...bilingual, ...singleUrl]
 }
