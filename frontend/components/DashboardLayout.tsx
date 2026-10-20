@@ -16,13 +16,24 @@ import {
   Home,
   Sun,
   Moon,
+  UsersRound,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { SidebarItem, type DashboardRole } from "../types/dashboard";
 import { SETTINGS_NAV_ITEM, adminNavFor } from "./adminNav";
+import {
+  parseStaffWorkspacePath,
+  staffWorkspaceBase,
+  workspaceHomeFor,
+  workspacePageFor,
+  workspaceSidebarItems,
+} from "./lawyer-workspace/workspacePages";
+import { canAny } from "../lib/access";
 import type { AuthUser } from "../lib/auth";
+
+type NavItem = SidebarItem & { exact?: boolean };
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -99,6 +110,11 @@ const getSidebarItems = (
         label: "Profile",
         icon: <Settings className="h-4.5 w-4.5" />,
       },
+      {
+        href: "/dashboard/lawyer/team",
+        label: "My Team",
+        icon: <UsersRound className="h-4.5 w-4.5" />,
+      },
     ],
   };
   return baseItems[role] || [];
@@ -112,6 +128,23 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const sidebarItems = getSidebarItems(role, user);
+
+  // Inside a lawyer's workspace an assistant gets that lawyer's pages first,
+  // with a switcher when they work for several lawyers
+  const workspace = user?.role === "staff" ? parseStaffWorkspacePath(pathname || "") : null;
+  const delegations = user?.access?.delegations ?? [];
+  const activeDelegation = workspace ? delegations.find((d) => d.lawyerId === workspace.lawyerId) : undefined;
+  const workspaceItems: NavItem[] = activeDelegation ? workspaceSidebarItems(user, activeDelegation.lawyerId) : [];
+
+  // Same page for the other lawyer when they allow it (a case list, not one case), else their first page
+  const switchLawyer = (lawyerId: string) => {
+    const page = workspace ? workspacePageFor(workspace.subPath) : undefined;
+    const next = page && canAny(user, page.anyOf, lawyerId)
+      ? `${staffWorkspaceBase(lawyerId)}${page.path}`
+      : workspaceHomeFor(user, lawyerId);
+    closeSidebarOnMobile();
+    router.push(next);
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -186,12 +219,34 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto p-3">
-            {sidebarItems.map((item) => {
+            {activeDelegation && (
+              <div className="mb-2 space-y-1 border-b border-outline-variant pb-3">
+                <label htmlFor="working-for" className="block px-1 text-xs text-on-surface-variant">
+                  Working for
+                </label>
+                {delegations.length > 1 ? (
+                  <select
+                    id="working-for"
+                    value={activeDelegation.lawyerId}
+                    onChange={(e) => switchLawyer(e.target.value)}
+                    className="field field-sm font-semibold"
+                  >
+                    {delegations.map((d) => (
+                      <option key={d.lawyerId} value={d.lawyerId}>{d.lawyerName}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p id="working-for" className="px-1 text-sm font-semibold text-on-surface">{activeDelegation.lawyerName}</p>
+                )}
+              </div>
+            )}
+            {[...workspaceItems, ...(workspaceItems.length ? [null] : []), ...sidebarItems].map((item: NavItem | null) => {
+              if (!item) return <div key="divider" role="separator" className="my-2 border-t border-outline-variant" />;
               // Sub-pages (e.g. /dashboard/admin/content/about) keep their section active;
               // the role home (/dashboard/admin) only matches exactly
               const isActive =
                 pathname === item.href ||
-                (item.href.split("/").length > 3 && pathname.startsWith(`${item.href}/`));
+                (!item.exact && item.href.split("/").length > 3 && pathname.startsWith(`${item.href}/`));
               return (
                 <Link
                   key={item.href}

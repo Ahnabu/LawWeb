@@ -6,7 +6,7 @@ import { parsePagination, toCountMap } from '../utils/pagination';
 import { changedFields, recordAudit } from '../utils/audit';
 import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
 import { can, forbidden } from '../access/policy';
-import { forbiddenCaseWrites, projectCase } from '../access/projection';
+import { forbiddenCaseWrites, forbiddenCreateFields, projectCase } from '../access/projection';
 import type { AuthedRequest as AuthRequest } from '../access/types';
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -106,6 +106,10 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
     const lawyer = await findAssignableLawyer(lawyerId);
     if (!lawyer) {
       return res.status(400).json({ status: 400, message: LAWYER_UNAVAILABLE_MESSAGE });
+    }
+    const blocked = forbiddenCreateFields(req.access!, lawyer._id, { totalPayment });
+    if (blocked.length) {
+      return forbidden(res, `You don't have permission to set: ${blocked.join(', ')}`, 'FIELD_FORBIDDEN', { fields: blocked });
     }
 
     // Try to find client account by email
@@ -261,6 +265,7 @@ export const archiveCaseAdmin = async (req: AuthRequest, res: Response) => {
     caseDoc.archivedAt = new Date();
     caseDoc.archivedBy = req.user._id;
     caseDoc.archiveReason = 'manual';
+    caseDoc.archiveOrigin = 'firm';
     caseDoc.archiveNote = note || undefined;
     await caseDoc.save();
     await caseDoc.populate(CASE_POPULATE);
@@ -331,6 +336,7 @@ export const restoreCaseAdmin = async (req: AuthRequest, res: Response) => {
     caseDoc.archivedAt = undefined;
     caseDoc.archivedBy = undefined;
     caseDoc.archiveReason = undefined;
+    caseDoc.archiveOrigin = undefined;
     caseDoc.archiveNote = undefined;
     // The snapshot only matters while the case points at a deleted account
     if (requestedLawyerId) caseDoc.formerLawyer = undefined;

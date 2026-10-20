@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
-import { LAWYER_SELF_PERMISSIONS, Permission } from './permissions';
+import { LAWYER_SCOPED, LAWYER_SELF_PERMISSIONS, Permission } from './permissions';
 import type { Access } from './types';
 
 // Every authorization decision goes through here (docs/rbac/README.md §2.2).
@@ -49,6 +49,24 @@ export function scopeFor(access: Access, perm: Permission, field = 'lawyerId'): 
   const ids = lawyers.map((id) => new mongoose.Types.ObjectId(id));
   return ids.length === 1 ? { [field]: ids[0] } : { [field]: { $in: ids } };
 }
+
+// Any access at all to this lawyer's records: a delegation for them, or a firm
+// role with any lawyer-scoped permission. Staff without it get 404, not 403, on
+// that lawyer's records (README §4), so they can't learn the record exists.
+export function hasAnyAccessTo(access: Access, lawyerId: unknown): boolean {
+  if (access.isSuperAdmin) return true;
+  const id = refId(lawyerId);
+  if (access.kind === 'lawyer') return id === access.userId;
+  if (access.kind === 'staff') {
+    return [...access.firm].some((p) => LAWYER_SCOPED.has(p)) || Boolean(id && access.delegations.has(id));
+  }
+  return false;
+}
+
+// Staff with no access to the record's lawyer must see 404. Lawyers and clients
+// keep their old 403s (Phase 1 behaviour).
+export const hiddenFromStaff = (access: Access, lawyerId: unknown): boolean =>
+  access.kind === 'staff' && !hasAnyAccessTo(access, lawyerId);
 
 // Client checks stay explicit ("is this my case/booking"); staff are never clients
 export const isClientOfCase = (access: Access, caseDoc: { clientId?: unknown }): boolean =>

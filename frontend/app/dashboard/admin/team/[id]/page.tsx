@@ -21,11 +21,12 @@ import {
 } from "../../../../../lib/adminAccess";
 import { BlockUserDialog } from "../../users/_components/BlockUserDialog";
 import { UserAvatar, UserStatusBadge } from "../../users/_components/userActions";
+import { StaffDelegations } from "../_components/StaffDelegations";
 
 const STAFF_BLOCK_CONSEQUENCES = [
   "They are signed out of every device immediately.",
   "They cannot log in or reset their password while blocked.",
-  "Their role is kept. You can unblock them at any time.",
+  "Their role and the lawyers they assist are kept. You can unblock them at any time.",
 ];
 
 const errorText = (error: unknown, fallback: string) => (error instanceof Error && error.message ? error.message : fallback);
@@ -37,6 +38,7 @@ export default function AdminStaffDetailsPage() {
   const [member, setMember] = useState<StaffMember | null>(null);
   const [roles, setRoles] = useState<StaffRole[]>([]);
   const [catalog, setCatalog] = useState<CatalogPermission[]>([]);
+  const [delegable, setDelegable] = useState<CatalogPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,12 +55,14 @@ export default function AdminStaffDetailsPage() {
       const [nextMember, nextRoles, nextCatalog] = await Promise.all([
         getStaffMember(id),
         listRoles(),
-        getPermissionCatalog().then((c) => c.permissions).catch(() => []),
+        getPermissionCatalog().catch(() => null),
       ]);
       setMember(nextMember);
       setRoleId(nextMember.staffRoleId?._id ?? "");
       setRoles(nextRoles);
-      setCatalog(nextCatalog);
+      setCatalog(nextCatalog?.permissions ?? []);
+      const delegableKeys = new Set(nextCatalog?.delegable ?? []);
+      setDelegable((nextCatalog?.permissions ?? []).filter((p) => delegableKeys.has(p.key)));
     } catch (err) {
       setError(errorText(err, "Failed to load staff member"));
     } finally {
@@ -284,6 +288,14 @@ export default function AdminStaffDetailsPage() {
           page.
         </p>
       </section>
+
+      <StaffDelegations
+        staffId={member._id}
+        staffName={member.name}
+        delegations={member.delegations ?? []}
+        delegable={delegable}
+        onChange={(delegations) => setMember((prev) => prev && { ...prev, delegations })}
+      />
 
       <BlockUserDialog
         user={showBlock ? member : null}

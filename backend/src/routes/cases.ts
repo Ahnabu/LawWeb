@@ -7,15 +7,16 @@ const router = express.Router();
 
 // The account-type gate keeps clients' old 403 body; which lawyer's cases an
 // actor may create, feature or edit is decided per case in the controller
-router.post('/', authenticateToken, requireKind('admin', 'lawyer'), createCase);
+router.post('/', authenticateToken, requireKind('admin', 'lawyer', 'staff'), createCase);
 router.get('/my-cases', authenticateToken, getMyCases);
 // Public case tracking - must be before /:caseId to avoid conflict
 router.get('/track', trackCasePublic);
 router.get('/:caseId', authenticateToken, getCaseById);
 router.patch('/:caseId', authenticateToken, updateCase);
-router.patch('/:caseId/toggle-featured', authenticateToken, requireKind('admin', 'lawyer'), toggleFeaturedCase);
-router.patch('/:caseId/archive', authenticateToken, requireKind('lawyer'), archiveMyCase);
-router.patch('/:caseId/restore', authenticateToken, requireKind('lawyer'), restoreMyCase);
+router.patch('/:caseId/toggle-featured', authenticateToken, requireKind('admin', 'lawyer', 'staff'), toggleFeaturedCase);
+// The lawyer's side: the lawyer, or staff with cases.archive for them (admins use /api/admin/cases)
+router.patch('/:caseId/archive', authenticateToken, requireKind('lawyer', 'staff'), archiveMyCase);
+router.patch('/:caseId/restore', authenticateToken, requireKind('lawyer', 'staff'), restoreMyCase);
 router.delete('/:caseId', authenticateToken, requireSuperAdmin, deleteCase);
 
 export default router;

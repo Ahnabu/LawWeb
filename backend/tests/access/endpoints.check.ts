@@ -3,7 +3,8 @@
 // Phase 1 (characterization): statuses and key body facts are asserted inline;
 // every error response's { status, message, code } is also compared to
 // endpoints.baseline.json, recorded from the code before the policy refactor.
-// UPDATE_BASELINE=1 re-records it. Phase 2 adds staff with firm roles.
+// UPDATE_BASELINE=1 re-records it. Phase 2 adds staff with firm roles, Phase 3
+// lawyer assistants (delegations) and the /api/workspace routes.
 process.env.JWT_SECRET = 'access-test-jwt-secret-0123456789abcdef';
 process.env.JWT_REFRESH_SECRET = 'access-test-refresh-secret-0123456789abcdef';
 process.env.NODE_ENV = 'test';
@@ -23,6 +24,10 @@ import lawyerRoutes from '../../src/routes/lawyers';
 import adminRoutes from '../../src/routes/admin';
 import blogRoutes from '../../src/routes/blogs';
 import accessRoutes from '../../src/routes/access';
+import workspaceRoutes from '../../src/routes/workspace';
+import authRoutes from '../../src/routes/auth';
+import StaffAssignment from '../../src/models/StaffAssignment';
+import AuditLog from '../../src/models/AuditLog';
 import User from '../../src/models/User';
 import Role from '../../src/models/Role';
 import ContentPage from '../../src/models/ContentPage';
@@ -68,6 +73,8 @@ const buildApp = () => {
   app.use('/api/admin', adminRoutes);
   app.use('/api/blogs', blogRoutes);
   app.use('/api/access', accessRoutes);
+  app.use('/api/workspace/:lawyerId', workspaceRoutes);
+  app.use('/api/auth', authRoutes);
   return app;
 };
 
@@ -85,7 +92,7 @@ const futureWeekday = (offset: number) => {
   const db = await startDb();
   await mongoose.connect(db.uri);
   await mongoose.connection.dropDatabase();
-  await Promise.all([Case.syncIndexes(), Consultation.syncIndexes(), User.syncIndexes(), Role.syncIndexes()]);
+  await Promise.all([Case.syncIndexes(), Consultation.syncIndexes(), User.syncIndexes(), Role.syncIndexes(), StaffAssignment.syncIndexes()]);
 
   const mkUser = (name: string, role: 'admin' | 'lawyer' | 'client') =>
     User.create({ name, email: `${name.toLowerCase()}@test.local`, password: 'Passw0rd!x', role, isVerified: true });
@@ -457,11 +464,12 @@ const futureWeekday = (offset: number) => {
 
   await staffRow('PATCH /api/admin/cases/:id {paymentEntry}', { superAdmin: 200, staffEditor: 403, staffReception: 403, staffAccountant: 200, staffNone: 403 },
     async (a) => as(a, 'PATCH', `/api/admin/cases/${(await newCase())._id}`, { paymentEntry: { amount: 5 } }));
-  // The admin cases page records payments through /api/cases/:id
-  await staffRow('PATCH /api/cases/:id {paymentEntry} (admin page)', { superAdmin: 200, staffEditor: 403, staffReception: 403, staffAccountant: 200, staffNone: 403 },
+  // The admin cases page records payments through /api/cases/:id. Staff with no
+  // case access at all get 404 there since Phase 3 (they can't learn it exists).
+  await staffRow('PATCH /api/cases/:id {paymentEntry} (admin page)', { superAdmin: 200, staffEditor: 404, staffReception: 403, staffAccountant: 200, staffNone: 404 },
     async (a) => as(a, 'PATCH', `/api/cases/${(await newCase())._id}`, { paymentEntry: { amount: 5 } }),
     { staffAccountant: (j) => j.data.payments.length === 2 });
-  await staffRow('PATCH /api/cases/:id {deletePaymentId} stays super-admin only', { superAdmin: 200, staffEditor: 403, staffReception: 403, staffAccountant: 403, staffNone: 403 },
+  await staffRow('PATCH /api/cases/:id {deletePaymentId} stays super-admin only', { superAdmin: 200, staffEditor: 404, staffReception: 403, staffAccountant: 403, staffNone: 404 },
     async (a) => { const c = await newCase(); return as(a, 'PATCH', `/api/cases/${c._id}`, { deletePaymentId: String(c.payments[0]._id) }); });
 
   const isFieldForbidden = (field: string) => (j: any) => j.code === 'FIELD_FORBIDDEN' && j.fields?.includes(field);
@@ -499,7 +507,7 @@ const futureWeekday = (offset: number) => {
   const catalogLawyer = await request('lawyerA', 'GET', '/api/access/catalog');
   expect(`P2 GET /api/access/catalog :: lawyer -> ${catalogLawyer.status}`, catalogLawyer.status === 200);
 
-  await staffRow('GET /api/cases/my-cases (no staff workspace before Phase 3)', { superAdmin: null, staffEditor: 403, staffReception: 403, staffAccountant: 403, staffNone: 403 },
+  await staffRow('GET /api/cases/my-cases (staff use /api/workspace instead)', { superAdmin: null, staffEditor: 403, staffReception: 403, staffAccountant: 403, staffNone: 403 },
     (a) => as(a, 'GET', '/api/cases/my-cases'));
   await staffRow('GET /api/consultations/my-consultations', { superAdmin: null, staffEditor: 403, staffReception: 403, staffAccountant: 403, staffNone: 403 },
     (a) => as(a, 'GET', '/api/consultations/my-consultations'));
@@ -576,6 +584,295 @@ const futureWeekday = (offset: number) => {
   expect(`P2 staff: unblock -> ${r.status}`, r.status === 200 && r.json.data.isBlocked === false);
   r = await as('superAdmin', 'DELETE', `/api/admin/staff/${staffUsers.staffEditor._id}`);
   expect(`P2 staff: delete -> ${r.status}`, r.status === 200 && !(await User.exists({ _id: staffUsers.staffEditor._id })));
+
+  // ══ Phase 3: lawyer assistants (delegations) ════════════════════════════════
+  const ALL_LAWYER_SCOPED = [
+    'cases.view', 'cases.create', 'cases.edit', 'cases.archive', 'cases.feature', 'cases.finance.view', 'cases.finance.edit',
+    'cases.confidential.view', 'cases.confidential.edit', 'appointments.view', 'appointments.manage', 'availability.manage', 'profile.edit',
+  ];
+  const delegate = (staff: any, lawyer: any, permissions: string[]) =>
+    StaffAssignment.create({ staffId: staff._id, lawyerId: lawyer._id, permissions, grantedBy: lawyer._id, grantedByRole: 'lawyer' });
+  const p3Staff = {
+    S1: await mkStaff('AssistantOne', null),
+    S2: await mkStaff('AssistantTwo', null),
+    S0: await mkStaff('AssistantNone', null),
+  };
+  await delegate(p3Staff.S1, users.lawyerA, ['appointments.manage', 'cases.edit']);
+  await delegate(p3Staff.S2, users.lawyerA, ALL_LAWYER_SCOPED);
+  await delegate(p3Staff.S2, users.lawyerB, ['availability.manage']);
+  const p3Tokens = {
+    lawyerA: tokens.lawyerA,
+    lawyerB: tokens.lawyerB,
+    client: tokens.clientA,
+    ...Object.fromEntries(Object.entries(p3Staff).map(([k, u]) => [k, generateAccessToken({ _id: u._id, role: u.role, tokenVersion: 0 })])),
+  } as Record<'lawyerA' | 'lawyerB' | 'client' | 'S1' | 'S2' | 'S0', string>;
+  type P3Actor = keyof typeof p3Tokens;
+  const P3_MATRIX: readonly P3Actor[] = ['lawyerA', 'lawyerB', 'S1', 'S2', 'S0', 'client'];
+  const p3 = (actor: P3Actor, method: string, url: string, body?: unknown) => send(p3Tokens[actor], method, url, body);
+  const p3Row = async (
+    label: string,
+    expected: Partial<Record<P3Actor, number>>,
+    run: (actor: P3Actor) => Promise<{ status: number; json: any }>,
+    check?: Partial<Record<P3Actor, (json: any) => boolean>>
+  ) => {
+    for (const actor of P3_MATRIX) {
+      const want = expected[actor];
+      if (want === undefined) continue;
+      const { status, json } = await run(actor);
+      const bodyOk = !check?.[actor] || check[actor]!(json);
+      expect(`P3 ${label} :: ${actor} -> ${status}`, status === want && bodyOk, { want, got: status, body: json });
+    }
+  };
+
+  const CB = await newCase({ lawyerId: users.lawyerB._id, clientId: users.clientB._id, clientEmail: 'clientb@test.local', clientName: 'ClientB' });
+  const allOf = (lawyerId: string) => (j: any) => j.data.length > 0 && j.data.every((c: any) => id(c.lawyerId) === lawyerId) && typeof j.meta.counts.active === 'number';
+  const stripped = (c: any) => !('payments' in c) && !('internalNotes' in c) && !('caseValue' in c) && !('evidenceSummary' in c);
+  const full = (c: any) => 'payments' in c && 'internalNotes' in c;
+
+  // loadAccess and the profile payload
+  const s2Access = await loadAccess(p3Staff.S2);
+  expect('P3 loadAccess: delegations with implied keys, lawyer names',
+    s2Access.delegations.get(A)?.size === 13 && s2Access.delegations.get(B)?.has('availability.manage') === true &&
+    s2Access.delegations.get(B)?.size === 1 && s2Access.delegatedLawyers?.map((l) => l.name).join() === 'LawyerA,LawyerB', s2Access.delegatedLawyers);
+  const s0Access = await loadAccess(p3Staff.S0);
+  expect('P3 loadAccess: staff without a role or delegations', s0Access.firm.size === 0 && s0Access.delegations.size === 0 && s0Access.firmRoleName === null);
+  r = await p3('S1', 'GET', '/api/auth/profile');
+  const s1Delegation = r.json?.user?.access?.delegations?.[0];
+  expect(`P3 profile payload: delegations (expanded) -> ${r.status}`,
+    r.status === 200 && r.json.user.access.delegations.length === 1 && s1Delegation.lawyerId === A && s1Delegation.lawyerName === 'LawyerA' &&
+    s1Delegation.permissions.includes('cases.view') && s1Delegation.permissions.includes('appointments.view') && !s1Delegation.permissions.includes('cases.finance.view'), r.json);
+
+  // ── Matrix (phase doc §6) ──────────────────────────────────────────────────
+  await p3Row('GET /api/workspace/me/cases', { lawyerA: 200, lawyerB: 200, S1: 404, S2: 404, S0: 404, client: 403 },
+    (a) => p3(a, 'GET', '/api/workspace/me/cases'),
+    { lawyerA: (j) => allOf(A)(j) && j.data.some((c: any) => id(c) === id(CA)) && j.data[0].clientId?.name, lawyerB: allOf(B) });
+  await p3Row('GET /api/workspace/<A>/cases', { lawyerA: 200, lawyerB: 404, S1: 200, S2: 200, S0: 404, client: 403 },
+    (a) => p3(a, 'GET', `/api/workspace/${A}/cases`),
+    { S1: (j) => allOf(A)(j) && j.data.every(stripped), S2: (j) => allOf(A)(j) && j.data.some(full) });
+  await p3Row('GET /api/workspace/<B>/cases', { lawyerA: 404, lawyerB: 200, S1: 404, S2: 403, S0: 404, client: 403 },
+    (a) => p3(a, 'GET', `/api/workspace/${B}/cases`));
+  await p3Row('GET /api/cases/<CA>', { lawyerA: 200, lawyerB: 403, S1: 200, S2: 200, S0: 404, client: 200 },
+    (a) => p3(a, 'GET', caUrl),
+    { S1: (j) => stripped(j.data), S2: (j) => full(j.data), client: (j) => j.data.internalNotes === undefined });
+  await p3Row('GET /api/cases/<CB>', { lawyerA: 403, lawyerB: 200, S1: 404, S2: 403, S0: 404, client: 403 },
+    (a) => p3(a, 'GET', `/api/cases/${CB._id}`));
+  await p3Row('PATCH /api/cases/<CA> {status}', { lawyerA: 200, lawyerB: 403, S1: 200, S2: 200, S0: 404, client: 403 },
+    async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}`, { status: 'filed' }),
+    { S1: (j) => j.data.status === 'filed' && stripped(j.data), S2: (j) => j.data.status === 'filed' && full(j.data) });
+  await p3Row('PATCH /api/cases/<CA> {retainerAmount: changed}', { lawyerA: 200, lawyerB: 403, S1: 403, S2: 200, S0: 404, client: 403 },
+    async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}`, { retainerAmount: 1 }),
+    { S1: (j) => j.code === 'FIELD_FORBIDDEN' && j.fields?.includes('retainerAmount') });
+  await p3Row('PATCH /api/cases/<CA> {retainerAmount: unchanged, status}', { lawyerA: 200, S1: 200 },
+    async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}`, { retainerAmount: 10000, status: 'filed' }));
+  await p3Row('PATCH /api/cases/<CA>/archive', { lawyerA: 200, lawyerB: 403, S1: 403, S2: 200, S0: 404, client: 403 },
+    async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}/archive`),
+    { S2: (j) => j.data.isArchived === true && j.data.archiveOrigin === 'lawyer' });
+  await p3Row('PATCH /api/cases/<CA>/toggle-featured', { lawyerA: 200, S1: 403, S2: 200, S0: 404 },
+    async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}/toggle-featured`));
+  await p3Row('PUT /api/consultations/<KA>/confirm', { lawyerA: 200, lawyerB: 403, S1: 200, S2: 200, S0: 404, client: 403 },
+    async (a) => p3(a, 'PUT', `/api/consultations/${(await newConsultation())._id}/confirm`));
+  await p3Row('PUT /api/consultations/<KA>/status {cancelled}', { S1: 200, S0: 404 },
+    async (a) => p3(a, 'PUT', `/api/consultations/${(await newConsultation())._id}/status`, { status: 'cancelled' }));
+  await p3Row('POST /api/consultations/<KA>/cancel', { S1: 200, S0: 404 },
+    async (a) => p3(a, 'POST', `/api/consultations/${(await newConsultation())._id}/cancel`));
+  await p3Row('PUT /api/workspace/<B>/availability', { lawyerA: 404, lawyerB: 200, S1: 404, S2: 200, S0: 404, client: 403 },
+    (a) => p3(a, 'PUT', `/api/workspace/${B}/availability`, { isAcceptingNewClients: true }),
+    { S2: (j) => id(j.data.lawyerId) === B });
+  await p3Row('PUT /api/workspace/<A>/profile', { lawyerA: 200, lawyerB: 404, S1: 403, S2: 200, S0: 404, client: 403 },
+    (a) => p3(a, 'PUT', `/api/workspace/${A}/profile`, { designation: { en: 'Senior Advocate', bn: '' } }),
+    { S2: (j) => id(j.data.userId) === A && j.data.designation?.en === 'Senior Advocate' });
+  await p3Row('GET /api/workspace/<A>/consultations', { lawyerA: 200, S1: 200, S2: 200, S0: 404 },
+    (a) => p3(a, 'GET', `/api/workspace/${A}/consultations`),
+    { S1: (j) => j.consultations.length > 0 && j.consultations.every((c: any) => id(c.lawyerId) === A && c.clientId?.name) });
+  await p3Row('GET /api/workspace/<x>/overview', { lawyerA: 200, S1: 200, S2: 200, S0: 404, client: 403 },
+    (a) => p3(a, 'GET', `/api/workspace/${a === 'lawyerA' ? 'me' : A}/overview`),
+    { S1: (j) => typeof j.data.cases.active === 'number' && typeof j.data.appointments.pending === 'number' && j.data.lawyer.name === 'LawyerA' });
+  r = await p3('S2', 'GET', `/api/workspace/${B}/overview`);
+  expect(`P3 overview needs cases.view or appointments.view (S2 on B) -> ${r.status}`, r.status === 403);
+  r = await p3('S2', 'GET', `/api/workspace/${id(users.clientA._id)}/cases`);
+  expect(`P3 workspace of a non-lawyer id -> ${r.status}`, r.status === 404);
+  r = await send(tokens.admin, 'GET', `/api/workspace/${A}/cases`);
+  expect(`P3 workspace for the super-admin -> ${r.status}`, r.status === 403);
+  await p3Row('GET /api/workspace/me/team', { lawyerA: 200, lawyerB: 200, S1: 404, S2: 404, S0: 404, client: 403 },
+    (a) => p3(a, 'GET', '/api/workspace/me/team'),
+    {
+      lawyerA: (j) => j.data.length === 2 && j.data.find((m: any) => m.name === 'AssistantTwo')?.permissions.length === 13,
+      lawyerB: (j) => j.data.length === 1 && JSON.stringify(j.data[0].permissions) === '["availability.manage"]',
+    });
+  r = await p3('S2', 'GET', `/api/workspace/${A}/team`);
+  expect(`P3 an assistant can't open the lawyer's team -> ${r.status}`, r.status === 404);
+
+  // A firm role with lawyer-scoped keys opens any lawyer's workspace
+  const firmCases = await mkStaff('FirmCases', (await mkRole('Case clerk', ['cases.view']))._id);
+  const firmToken = generateAccessToken({ _id: firmCases._id, role: 'staff', tokenVersion: 0 });
+  r = await send(firmToken, 'GET', `/api/workspace/${B}/cases`);
+  expect(`P3 firm-role staff open any lawyer's workspace -> ${r.status}`, r.status === 200 && allOf(B)(r.json));
+  r = await send(firmToken, 'GET', `/api/workspace/${B}/availability`);
+  expect(`P3 ... but only for their permissions -> ${r.status}`, r.status === 403);
+
+  // ── Audit: on behalf of, and what the client sees ──────────────────────────
+  const KA = await newConsultation();
+  r = await p3('S1', 'PUT', `/api/consultations/${KA._id}/confirm`);
+  const waitForAudit = async (filter: Record<string, unknown>) => {
+    for (let i = 0; i < 40; i++) {
+      const entry = await AuditLog.findOne(filter).sort({ createdAt: -1 }).lean();
+      if (entry) return entry;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    return null;
+  };
+  const confirmEntry = await waitForAudit({ action: 'consultation.confirmed', targetId: String(KA._id) });
+  expect('P3 audit: staff action recorded on behalf of the lawyer',
+    confirmEntry?.actorRole === 'staff' && String(confirmEntry.actor) === id(p3Staff.S1._id) &&
+    String(confirmEntry.onBehalfOf) === A && confirmEntry.onBehalfOfName === 'LawyerA', confirmEntry);
+  r = await p3('client', 'GET', '/api/consultations/notifications');
+  const clientText = JSON.stringify(r.json);
+  expect('P3 client notifications name the lawyer, never the assistant',
+    r.status === 200 && clientText.includes('LawyerA') && !clientText.includes('AssistantOne') && clientText.includes('confirmed by lawyer'), r.json);
+  r = await p3('S1', 'GET', '/api/consultations/notifications');
+  expect(`P3 assistant notifications cover their lawyer -> ${r.status}`,
+    r.status === 200 && r.json.notifications.some((n: any) => n.title === 'New booking for LawyerA') && r.json.notifications.some((n: any) => n.type === 'case'), r.json);
+  r = await p3('S0', 'GET', '/api/consultations/notifications');
+  expect(`P3 staff without access: no notifications -> ${r.status}`, r.status === 200 && r.json.notifications.length === 0);
+  const profileEntry = await waitForAudit({ action: 'profile.updated', onBehalfOf: users.lawyerA._id });
+  expect('P3 audit: workspace writes are on behalf of the lawyer, with the actor named',
+    profileEntry?.actorName === 'AssistantTwo' && /AssistantTwo updated LawyerA's public profile/.test(profileEntry.summary), profileEntry);
+  r = await p3('lawyerA', 'GET', '/api/workspace/me/team/activity');
+  expect(`P3 team activity: the assistant's actions, no IP or device -> ${r.status}`,
+    r.status === 200 && r.json.data.some((e: any) => e.action === 'consultation.confirmed' && e.actorName === 'AssistantOne') &&
+    r.json.data.every((e: any) => !('ip' in e) && !('userAgent' in e) && !('actorEmail' in e)), r.json);
+  r = await p3('lawyerB', 'GET', '/api/workspace/me/team/activity');
+  expect(`P3 team activity is per lawyer -> ${r.status}`, r.status === 200 && r.json.data.every((e: any) => e.actorName === 'AssistantTwo'));
+  r = await send(tokens.admin, 'GET', `/api/admin/audit-logs?onBehalfOf=${A}`);
+  expect(`P3 admin audit filter: on behalf of -> ${r.status}`,
+    r.status === 200 && r.json.data.length > 0 && r.json.data.every((e: any) => String(e.onBehalfOf) === A));
+
+  // ── Restore rules ───────────────────────────────────────────────────────────
+  let c = await newCase();
+  await p3('S2', 'PATCH', `/api/cases/${c._id}/archive`);
+  r = await p3('lawyerA', 'PATCH', `/api/cases/${c._id}/restore`);
+  expect(`P3 restore: lawyer restores what the assistant archived -> ${r.status}`, r.status === 200 && r.json.data.isArchived === false);
+  c = await newCase();
+  await send(tokens.admin, 'PATCH', `/api/admin/cases/${c._id}/archive`);
+  r = await p3('S2', 'PATCH', `/api/cases/${c._id}/restore`);
+  expect(`P3 restore: firm-archived -> ${r.status} ${r.json.code}`, r.status === 403 && r.json.code === 'ADMIN_RESTORE_ONLY');
+  c = await archivedByLawyerA();
+  r = await p3('S2', 'PATCH', `/api/cases/${c._id}/restore`);
+  expect(`P3 restore: legacy case archived by the lawyer -> ${r.status}`, r.status === 200);
+  c = await newCase({ isArchived: true, archivedAt: new Date(), archivedBy: users.admin._id, archiveReason: 'manual' });
+  r = await p3('lawyerA', 'PATCH', `/api/cases/${c._id}/restore`);
+  expect(`P3 restore: legacy case archived by the admin -> ${r.status}`, r.status === 403 && r.json.code === 'ADMIN_RESTORE_ONLY');
+
+  // ── Workspace case creation ────────────────────────────────────────────────
+  const newCaseBody = { lawyerId: B, clientEmail: 'ws@test.local', clientName: 'WS', type: 'civil', title: 'T', description: 'D' };
+  r = await p3('S2', 'POST', `/api/workspace/${A}/cases`, newCaseBody);
+  expect(`P3 POST workspace case: forced to the workspace lawyer -> ${r.status}`, r.status === 201 && id(r.json.data.lawyerId) === A);
+  r = await p3('S1', 'POST', `/api/workspace/${A}/cases`, newCaseBody);
+  expect(`P3 POST workspace case without cases.create -> ${r.status}`, r.status === 403);
+  r = await p3('S2', 'POST', '/api/cases', newCaseBody);
+  expect(`P3 POST /api/cases for a lawyer without cases.create -> ${r.status}`, r.status === 403);
+  // cases.create alone can't set finance or confidential fields on the new case
+  const creator = await mkStaff('CaseCreator', null);
+  await delegate(creator, users.lawyerB, ['cases.create']);
+  const creatorToken = generateAccessToken({ _id: creator._id, role: 'staff', tokenVersion: 0 });
+  r = await send(creatorToken, 'POST', `/api/workspace/${B}/cases`, { ...newCaseBody, caseValue: 5, internalNotes: 'x', retainerPaid: false, witnessNames: [] });
+  expect(`P3 create with finance/confidential values, no permission -> ${r.status}`,
+    r.status === 403 && r.json.code === 'FIELD_FORBIDDEN' && JSON.stringify(r.json.fields) === '["caseValue","internalNotes"]', r.json);
+  r = await send(creatorToken, 'POST', `/api/workspace/${B}/cases`, { ...newCaseBody, caseValue: '', retainerPaid: false, witnessNames: [] });
+  expect(`P3 create with blank finance/confidential fields -> ${r.status}`, r.status === 201 && stripped(r.json.data), r.json);
+  const clerk = await mkStaff('CreateClerk', (await mkRole('Intake clerk', ['cases.create']))._id);
+  r = await send(generateAccessToken({ _id: clerk._id, role: 'staff', tokenVersion: 0 }), 'POST', '/api/admin/cases', { ...newCaseBody, totalPayment: 100 });
+  expect(`P3 admin create with totalPayment, no finance permission -> ${r.status}`, r.status === 403 && r.json.code === 'FIELD_FORBIDDEN', r.json);
+
+  // ── Invites (lawyer's "My Team") ───────────────────────────────────────────
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'NewAssistant@test.local', name: 'New Assistant', permissions: ['appointments.manage', 'availability.manage'] });
+  const invited = await User.findOne({ email: 'newassistant@test.local' }).lean();
+  expect(`P3 invite: new email creates a staff account and a delegation -> ${r.status}`,
+    r.status === 201 && r.json.created === true && invited?.role === 'staff' && !invited.staffRoleId &&
+    Boolean(await StaffAssignment.exists({ staffId: invited._id, lawyerId: users.lawyerA._id })), r.json);
+  r = await p3('lawyerB', 'POST', '/api/workspace/me/team', { email: 'newassistant@test.local', permissions: ['cases.view'] });
+  expect(`P3 invite: existing staff email just adds the delegation -> ${r.status}`, r.status === 201 && r.json.created === false);
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'clienta@test.local', name: 'X Y', permissions: ['cases.view'] });
+  expect(`P3 invite: a client's email -> ${r.status} ${r.json.code}`, r.status === 409 && r.json.code === 'EMAIL_NOT_ASSIGNABLE' && !/client/i.test(r.json.message));
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'lawyerb@test.local', name: 'X Y', permissions: ['cases.view'] });
+  expect(`P3 invite: a lawyer's email -> ${r.status} ${r.json.code}`, r.status === 409 && r.json.code === 'EMAIL_NOT_ASSIGNABLE');
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'someone@test.local', name: 'X Y', permissions: ['blogs.manage'] });
+  expect(`P3 invite: firm-only permission -> ${r.status}`, r.status === 400);
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'someone@test.local', name: 'X Y', permissions: [] });
+  expect(`P3 invite: no permissions -> ${r.status}`, r.status === 400);
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'brandnew@test.local', permissions: ['cases.view'] });
+  expect(`P3 invite: new email without a name -> ${r.status}`, r.status === 400 && !(await User.exists({ email: 'brandnew@test.local' })));
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'assistanttwo@test.local', permissions: ['cases.view'] });
+  expect(`P3 invite: already an assistant -> ${r.status}`, r.status === 409 && r.json.code === 'ALREADY_ASSISTANT');
+  r = await p3('lawyerA', 'POST', '/api/workspace/me/team', { email: 'staffblocked@test.local', permissions: ['cases.view'] });
+  expect(`P3 invite: a blocked staff account -> ${r.status}`, r.status === 409 && r.json.code === 'STAFF_BLOCKED');
+  r = await p3('S2', 'POST', `/api/workspace/${A}/team`, { email: 'x@test.local', name: 'X Y', permissions: ['cases.view'] });
+  expect(`P3 invite: assistants can't invite -> ${r.status}`, r.status === 404);
+
+  // ── Isolation and revocation ───────────────────────────────────────────────
+  r = await p3('lawyerA', 'PATCH', `/api/workspace/me/team/${p3Staff.S2._id}`, { permissions: ['cases.view'] });
+  const s2OnB = await StaffAssignment.findOne({ staffId: p3Staff.S2._id, lawyerId: users.lawyerB._id }).lean();
+  expect(`P3 isolation: a lawyer's PATCH changes only their delegation -> ${r.status}`,
+    r.status === 200 && JSON.stringify(r.json.data.permissions) === '["cases.view"]' && JSON.stringify(s2OnB?.permissions) === '["availability.manage"]', r.json);
+  const updatedEntry = await waitForAudit({ action: 'delegation.updated', targetId: id(p3Staff.S2._id) });
+  expect('P3 audit: delegation.updated lists added and removed', updatedEntry?.metadata?.removed?.includes('profile.edit') && updatedEntry.metadata.by === 'lawyer', updatedEntry);
+  r = await p3('lawyerB', 'PATCH', `/api/workspace/me/team/${p3Staff.S1._id}`, { permissions: ['cases.view'] });
+  expect(`P3 isolation: PATCH someone else's assistant -> ${r.status}`, r.status === 404);
+  r = await p3('lawyerB', 'DELETE', `/api/workspace/me/team/${p3Staff.S1._id}`);
+  expect(`P3 isolation: DELETE someone else's assistant -> ${r.status}`, r.status === 404);
+  r = await p3('S1', 'GET', `/api/workspace/${A}/cases`);
+  expect(`P3 revocation: before -> ${r.status}`, r.status === 200);
+  r = await p3('lawyerA', 'DELETE', `/api/workspace/me/team/${p3Staff.S1._id}`);
+  expect(`P3 revocation: lawyer removes the assistant -> ${r.status}`, r.status === 200 && Boolean(await User.exists({ _id: p3Staff.S1._id })));
+  r = await p3('S1', 'GET', `/api/workspace/${A}/cases`);
+  expect(`P3 revocation: same token, next request -> ${r.status}`, r.status === 404);
+  r = await p3('S1', 'GET', caUrl);
+  expect(`P3 revocation: single records too -> ${r.status}`, r.status === 404);
+
+  // ── Super-admin delegation management ──────────────────────────────────────
+  const S0 = id(p3Staff.S0._id);
+  r = await send(tokens.admin, 'POST', `/api/admin/staff/${S0}/delegations`, { lawyerId: B, permissions: ['cases.view'] });
+  expect(`P3 admin: grant -> ${r.status}`, r.status === 201 && r.json.data[0]?.lawyerName === 'LawyerB' && r.json.data[0].grantedByRole === 'admin');
+  r = await p3('S0', 'GET', `/api/workspace/${B}/cases`);
+  expect(`P3 admin grant applies on the next request -> ${r.status}`, r.status === 200);
+  r = await send(tokens.admin, 'POST', `/api/admin/staff/${S0}/delegations`, { lawyerId: B, permissions: ['cases.view'] });
+  expect(`P3 admin: grant twice -> ${r.status}`, r.status === 409);
+  r = await send(tokens.admin, 'POST', `/api/admin/staff/${S0}/delegations`, { lawyerId: id(users.clientA._id), permissions: ['cases.view'] });
+  expect(`P3 admin: grant for a non-lawyer -> ${r.status}`, r.status === 404);
+  r = await send(tokens.admin, 'POST', `/api/admin/staff/${S0}/delegations`, { lawyerId: A, permissions: ['audit.view'] });
+  expect(`P3 admin: firm-only permission -> ${r.status}`, r.status === 400);
+  r = await send(tokens.admin, 'PATCH', `/api/admin/staff/${S0}/delegations/${B}`, { permissions: ['cases.view', 'availability.manage'] });
+  expect(`P3 admin: update -> ${r.status}`, r.status === 200 && r.json.data[0].permissions.length === 2);
+  r = await send(tokens.admin, 'GET', `/api/admin/staff/${S0}`);
+  expect(`P3 admin: staff details list delegations -> ${r.status}`, r.status === 200 && r.json.data.delegations[0]?.lawyerActive === true && r.json.data.delegations[0].grantedByName === 'Admin');
+  r = await send(tokens.admin, 'GET', `/api/admin/lawyers/${B}`);
+  expect(`P3 admin: lawyer details list assistants -> ${r.status}`,
+    r.status === 200 && r.json.data.assistants.some((x: any) => x.name === 'AssistantNone') && r.json.data.assistants.some((x: any) => x.name === 'AssistantTwo'));
+  r = await send(tokens.admin, 'GET', `/api/admin/lawyers/${B}/deletion-impact`);
+  expect(`P3 admin: deletion impact counts assistants -> ${r.status}`, r.status === 200 && r.json.data.assistantCount === 4, r.json.data?.assistantCount);
+  r = await send(tokens.admin, 'DELETE', `/api/admin/staff/${S0}/delegations/${B}`);
+  expect(`P3 admin: revoke -> ${r.status}`, r.status === 200 && r.json.data.length === 0);
+  r = await p3('S0', 'GET', `/api/workspace/${B}/cases`);
+  expect(`P3 admin revoke applies on the next request -> ${r.status}`, r.status === 404);
+  r = await p3('S2', 'POST', `/api/admin/staff/${S0}/delegations`, { lawyerId: B, permissions: ['cases.view'] });
+  expect(`P3 admin delegation routes are super-admin only -> ${r.status}`, r.status === 403);
+
+  // ── Lawyer removal suspends delegations; restoring brings them back ────────
+  r = await send(tokens.admin, 'DELETE', `/api/admin/lawyers/${A}`);
+  expect(`P3 removal: admin removes lawyer A -> ${r.status}`, r.status === 200, r.json);
+  r = await p3('S2', 'GET', `/api/workspace/${A}/cases`);
+  expect(`P3 removal: S2 loses A -> ${r.status}`, r.status === 404);
+  r = await p3('S2', 'GET', `/api/workspace/${B}/availability`);
+  expect(`P3 removal: S2 keeps B -> ${r.status}`, r.status === 200);
+  expect('P3 removal: delegations are kept', Boolean(await StaffAssignment.exists({ staffId: p3Staff.S2._id, lawyerId: users.lawyerA._id })));
+  r = await send(tokens.admin, 'PATCH', `/api/admin/lawyers/${A}/restore`);
+  expect(`P3 removal: admin restores lawyer A -> ${r.status}`, r.status === 200, r.json);
+  r = await p3('S2', 'GET', `/api/workspace/${A}/cases`);
+  expect(`P3 removal: S2 gets A back -> ${r.status}`, r.status === 200);
+
+  // ── Deleting a staff account removes their delegations ─────────────────────
+  r = await send(tokens.admin, 'DELETE', `/api/admin/staff/${p3Staff.S2._id}`);
+  expect(`P3 staff deletion -> ${r.status}`, r.status === 200 && !(await StaffAssignment.exists({ staffId: p3Staff.S2._id })));
 
   server.close();
   await mongoose.connection.dropDatabase();

@@ -30,6 +30,9 @@ export interface AuditLogEntry {
   targetLabel?: string
   summary: string
   metadata?: Record<string, unknown>
+  // The lawyer a staff member acted for
+  onBehalfOf?: string | null
+  onBehalfOfName?: string
   ip?: string
   userAgent?: string
   createdAt: string
@@ -56,6 +59,8 @@ export interface AuditLogQuery {
   action?: string
   actorRole?: AuditActorRole | 'all'
   actor?: string
+  /** A lawyer's id: what staff did on their behalf */
+  onBehalfOf?: string
   search?: string
   /** YYYY-MM-DD, interpreted as a firm (Asia/Dhaka) calendar day */
   from?: string
@@ -90,6 +95,7 @@ export async function listAuditLogs(
   if (params.action) qs.set('action', params.action)
   if (params.actorRole && params.actorRole !== 'all') qs.set('actorRole', params.actorRole)
   if (params.actor) qs.set('actor', params.actor)
+  if (params.onBehalfOf) qs.set('onBehalfOf', params.onBehalfOf)
   if (params.search?.trim()) qs.set('search', params.search.trim())
   if (params.from) qs.set('from', dhakaDayStart(params.from))
   if (params.to) qs.set('to', dhakaDayEnd(params.to))

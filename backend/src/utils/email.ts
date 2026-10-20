@@ -155,25 +155,56 @@ export async function sendAccountSetupEmail({
   setupUrl,
   expiresHours,
   accountLabel = "lawyer",
+  invitedBy,
 }: {
   email: string;
   name: string;
   setupUrl: string;
   expiresHours: number;
   accountLabel?: "lawyer" | "staff";
+  // A lawyer who added this person as their assistant (instead of an administrator)
+  invitedBy?: string;
 }) {
+  const creator = invitedBy ? `${invitedBy} added you as an assistant and created` : "An administrator created";
+  const creatorHtml = invitedBy ? `${escapeHtml(invitedBy)} added you as an assistant and created` : "An administrator created";
   await sendEmail({
     to: email,
     subject: `Your ${FIRM_NAME} ${accountLabel} account is ready`,
-    text: `Hi ${name},\n\nAn administrator created a ${FIRM_NAME} ${accountLabel} account for you. Set your password here:\n\n${setupUrl}\n\nThe link expires in ${expiresHours} hours. After that, use "Forgot password" on the login page to get a new one.`,
+    text: `Hi ${name},\n\n${creator} a ${FIRM_NAME} ${accountLabel} account for you. Set your password here:\n\n${setupUrl}\n\nThe link expires in ${expiresHours} hours. After that, use "Forgot password" on the login page to get a new one.`,
     html: layout(
       `Your ${accountLabel} account is ready`,
       `<p style="margin: 0 0 12px;">Hi ${escapeHtml(name)},</p>
-       <p style="margin: 0 0 12px;">An administrator created a ${FIRM_NAME_HTML} ${accountLabel} account for you. Set your password to sign in.</p>
+       <p style="margin: 0 0 12px;">${creatorHtml} a ${FIRM_NAME_HTML} ${accountLabel} account for you. Set your password to sign in.</p>
        ${button(setupUrl, "Set your password")}
        <p style="margin: 0;">The link expires in ${expiresHours} hours. After that, use "Forgot password" on the login page to get a new one.</p>`,
     ),
     devPreview: `setup link ${setupUrl}`,
+  });
+}
+
+// An existing staff member was given access to a lawyer's work
+export async function sendAssistantAddedEmail({
+  email,
+  name,
+  lawyerName,
+  dashboardUrl,
+}: {
+  email: string;
+  name: string;
+  lawyerName: string;
+  dashboardUrl: string;
+}) {
+  await sendEmail({
+    to: email,
+    subject: `${lawyerName} added you as an assistant`,
+    text: `Hi ${name},\n\n${lawyerName} added you as an assistant at ${FIRM_NAME}. Their work now appears on your dashboard:\n\n${dashboardUrl}`,
+    html: layout(
+      "You were added as an assistant",
+      `<p style="margin: 0 0 12px;">Hi ${escapeHtml(name)},</p>
+       <p style="margin: 0 0 12px;">${escapeHtml(lawyerName)} added you as an assistant at ${FIRM_NAME_HTML}. Their work now appears on your dashboard.</p>
+       ${button(dashboardUrl, "Open your dashboard")}`,
+    ),
+    devPreview: `assistant added by ${lawyerName}`,
   });
 }
 

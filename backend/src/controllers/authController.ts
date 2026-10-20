@@ -100,7 +100,13 @@ const toUserResponse = (user: UserSummary, access: Access) => ({
     firm: [...access.firm],
     // Staff only: the firm role's name, shown on the account page
     ...(access.kind === "staff" ? { roleName: access.firmRoleName ?? null } : {}),
-    delegations: [] as unknown[],
+    // Staff only: the lawyers they assist (active lawyers only), with expanded permissions
+    delegations: (access.delegatedLawyers ?? []).map((lawyer) => ({
+      lawyerId: lawyer.id,
+      lawyerName: lawyer.name,
+      lawyerPhoto: lawyer.profileImageUrl ?? null,
+      permissions: [...(access.delegations.get(lawyer.id) ?? [])],
+    })),
   },
 });
 
@@ -179,7 +185,11 @@ const newResetToken = (ttlMs: number) => {
 // Used by the admin "add lawyer" and "add staff" flows and the temp-password
 // migration: the account gets a random password nobody knows, and its owner
 // chooses their own through this link.
-export const sendAccountSetupLink = async (user: Recipient, accountLabel: "lawyer" | "staff" = "lawyer") => {
+export const sendAccountSetupLink = async (
+  user: Recipient,
+  accountLabel: "lawyer" | "staff" = "lawyer",
+  invitedBy?: string,
+) => {
   const { token, fields } = newResetToken(
     ACCOUNT_SETUP_EXPIRY_HOURS * 60 * 60 * 1000,
   );
@@ -190,6 +200,7 @@ export const sendAccountSetupLink = async (user: Recipient, accountLabel: "lawye
     setupUrl: resetUrlFor(token),
     expiresHours: ACCOUNT_SETUP_EXPIRY_HOURS,
     accountLabel,
+    invitedBy,
   });
 };
 

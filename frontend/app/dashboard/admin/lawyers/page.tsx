@@ -5,8 +5,9 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Plus, X, ShieldCheck, ShieldOff, Pencil, User,
   GripVertical, ChevronUp, ChevronDown, Loader2,
-  Ban, LockOpen, Archive, CalendarX, UserX, RotateCcw, AlertTriangle,
+  Ban, LockOpen, Archive, CalendarX, UserX, RotateCcw, AlertTriangle, UsersRound,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors,
@@ -18,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { confirmDialog } from "../../../../components/ConfirmDialog";
 import { useAccess } from "../../../../components/useAccess";
+import { summarizePermissions } from "../../../../lib/delegation";
 import {
   addAdminLawyer, blockAdminUser, deleteAdminLawyer, getAdminLawyerDetails, getAdminLawyers,
   getLawyerDeletionImpact, reorderAdminLawyers, restoreAdminLawyer, toggleLawyerVerification, unblockAdminUser,
@@ -534,6 +536,27 @@ export default function AdminLawyersPage() {
                   </dl>
                 </div>
 
+                {/* Assistants (managed on the Team page or by the lawyer's My Team) */}
+                {detailsLawyer.assistants && detailsLawyer.assistants.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-on-surface">Assistants</h4>
+                    <ul className="divide-y divide-outline-variant border-y border-outline-variant">
+                      {detailsLawyer.assistants.map((assistant) => (
+                        <li key={assistant.staffId} className="py-2 text-sm">
+                          {access.isSuperAdmin ? (
+                            <Link href={`/dashboard/admin/team/${assistant.staffId}`} className="text-link font-medium">
+                              {assistant.name}
+                            </Link>
+                          ) : (
+                            <span className="font-medium text-on-surface">{assistant.name}</span>
+                          )}
+                          <span className="block text-xs text-on-surface-variant">{summarizePermissions(assistant.permissions)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Timestamps */}
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-on-surface">Account Info</h4>
@@ -896,6 +919,14 @@ function DeletionImpactDetails({ impact }: { impact: LawyerDeletionImpact }) {
           <p className="mt-1">{plural(impact.pastConsultations, "past appointment")} stay in history under the lawyer&apos;s name.</p>
         )}
       </ImpactItem>
+
+      {Boolean(impact.assistantCount) && (
+        <ImpactItem icon={<UsersRound className="h-4 w-4" />} tone="warn">
+          <p className="font-semibold text-on-surface">
+            {plural(impact.assistantCount ?? 0, "assistant")} will lose access until the lawyer is restored.
+          </p>
+        </ImpactItem>
+      )}
 
       <ImpactItem icon={<User className="h-4 w-4" />} tone="muted">
         <p>

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import User from '../models/User';
 import Case from '../models/Case';
+import StaffAssignment from '../models/StaffAssignment';
 import Consultation from '../models/Consultation';
 import LawyerProfile from '../models/LawyerProfile';
 import LawyerAvailability from '../models/LawyerAvailability';
@@ -424,7 +425,7 @@ export const getLawyerDeletionImpactAdmin = async (req: AuthRequest, res: Respon
     }
 
     const openFilter = { lawyerId, isArchived: { $ne: true } };
-    const [openCases, openCaseList, totalCases, totalConsultations, upcoming, hasProfile, hasAvailability] =
+    const [openCases, openCaseList, totalCases, totalConsultations, upcoming, hasProfile, hasAvailability, assistantCount] =
       await Promise.all([
         Case.countDocuments(openFilter),
         Case.find(openFilter).select('caseNumber title status').sort({ updatedAt: -1 }).limit(IMPACT_LIST_LIMIT).lean(),
@@ -433,6 +434,8 @@ export const getLawyerDeletionImpactAdmin = async (req: AuthRequest, res: Respon
         findUpcomingConsultations(String(lawyerId)),
         LawyerProfile.exists({ userId: lawyerId }),
         LawyerAvailability.exists({ lawyerId }),
+        // Their assistants lose access while the lawyer is removed, and get it back on restore
+        StaffAssignment.countDocuments({ lawyerId }),
       ]);
 
     const affectedClients = new Set(upcoming.map((c) => String(c.clientId?._id ?? ''))).size;
@@ -458,6 +461,7 @@ export const getLawyerDeletionImpactAdmin = async (req: AuthRequest, res: Respon
         pastConsultations: totalConsultations - upcoming.length,
         hasProfile: Boolean(hasProfile),
         hasAvailability: Boolean(hasAvailability),
+        assistantCount,
       },
     });
   } catch (error) {
@@ -488,6 +492,7 @@ const runRemovalCleanup = async (
         archivedAt: new Date(),
         archivedBy: adminId,
         archiveReason: 'lawyer-deleted',
+        archiveOrigin: 'firm',
         archiveNote: `Assigned lawyer ${lawyer.name} was removed from the firm.`,
         formerLawyer,
       },
@@ -723,12 +728,18 @@ export const getLawyerDetailsAdmin = async (req: AuthRequest, res: Response) => 
       return res.status(404).json({ status: 404, message: 'Lawyer not found' });
     }
 
-    const [[withProfile], totalCases, activeCases, totalConsultations] = await Promise.all([
+    const [[withProfile], totalCases, activeCases, totalConsultations, assignments] = await Promise.all([
       withProfileData([lawyer]),
       Case.countDocuments({ lawyerId }),
       Case.countDocuments({ lawyerId, status: 'active', isArchived: { $ne: true } }),
       Consultation.countDocuments({ lawyerId }),
+      StaffAssignment.find({ lawyerId }).populate('staffId', 'name').sort({ createdAt: 1 }).lean(),
     ]);
+    // Staff who assist this lawyer (managed on the Team page)
+    const assistants = assignments.flatMap((a) => {
+      const staff = a.staffId as unknown as { _id: unknown; name: string } | null;
+      return staff ? [{ staffId: staff._id, name: staff.name, permissions: a.permissions }] : [];
+    });
 
     res.json({
       status: 200,
@@ -736,6 +747,7 @@ export const getLawyerDetailsAdmin = async (req: AuthRequest, res: Response) => 
       data: {
         ...withProfile,
         stats: { totalCases, activeCases, totalConsultations },
+        assistants,
       },
     });
   } catch (error) {

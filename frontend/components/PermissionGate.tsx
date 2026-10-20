@@ -17,7 +17,12 @@ interface PermissionGateProps {
 export function PermissionGate({ children, anyOf }: PermissionGateProps) {
   const { user } = useAuth();
   if (canOpenWith(user, anyOf)) return <>{children}</>;
+  return <NoAccessCard />;
+}
 
+// The card itself, also used by the lawyer workspace pages
+export function NoAccessCard({ hint = "Ask the firm administrator if you need it." }: { hint?: string }) {
+  const { user } = useAuth();
   const home = user?.role === "staff" ? "/dashboard/staff" : "/dashboard";
   return (
     <div className="mx-auto max-w-md py-16">
@@ -27,7 +32,7 @@ export function PermissionGate({ children, anyOf }: PermissionGateProps) {
           You don&apos;t have access to this page
         </h2>
         <p className="mt-1 text-sm text-on-surface-variant">
-          Ask the firm administrator if you need it.
+          {hint}
         </p>
         <Link href={home} className="btn btn-secondary mt-5">
           Go to your dashboard

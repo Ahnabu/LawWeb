@@ -20,6 +20,7 @@ import blogRoutes from "./routes/blogs";
 import contentRoutes from "./routes/content";
 import contactRoutes from "./routes/contact";
 import accessRoutes from "./routes/access";
+import workspaceRoutes from "./routes/workspace";
 import { requireTrustedOrigin, sanitizeInput } from "./middleware/security";
 
 // Use Google public DNS so mongodb+srv SRV lookups resolve reliably in local/cloud environments
@@ -254,6 +255,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/content", contentRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/access", accessRoutes);
+app.use("/api/workspace/:lawyerId", workspaceRoutes);
 
 // Error handling middleware
 app.use(

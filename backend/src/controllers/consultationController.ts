@@ -4,7 +4,7 @@ import Consultation from '../models/Consultation';
 import Case from '../models/Case';
 import User from '../models/User';
 import LawyerAvailability from '../models/LawyerAvailability';
-import { recordAudit } from '../utils/audit';
+import { markActingFor, recordAudit } from '../utils/audit';
 import {
   ACTIVE_STATUSES,
   WeekSchedule,
@@ -16,7 +16,7 @@ import {
   parseDateOnly,
   toMinutes,
 } from '../utils/schedule';
-import { canInWorkspace, isClientOfConsultation, lawyersFor, scopeFor } from '../access/policy';
+import { canInWorkspace, hiddenFromStaff, isClientOfConsultation, lawyersFor, scopeFor } from '../access/policy';
 import type { AuthedRequest as AuthRequest } from '../access/types';
 
 const isDuplicateKeyError = (error: unknown) =>
@@ -175,6 +175,19 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// A lawyer's bookings: the lawyer branch of /my-consultations and the workspace list
+export const listConsultationsInScope = (scope: Record<string, unknown>) =>
+  Consultation.find(scope).populate('clientId', 'name email phone').sort({ date: -1 });
+
+// Loads a booking for the lawyer-side handlers. Staff with no access to its lawyer
+// get null (404), so they can't learn it exists.
+const findForLawyerSide = async (req: AuthRequest, consultationId: unknown) => {
+  if (!mongoose.isValidObjectId(consultationId)) return null;
+  const consultation = await Consultation.findById(consultationId);
+  if (!consultation || (req.access && hiddenFromStaff(req.access, consultation.lawyerId))) return null;
+  return consultation;
+};
+
 export const getMyConsultations = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
@@ -183,7 +196,7 @@ export const getMyConsultations = async (req: AuthRequest, res: Response) => {
     }
 
     const access = req.access;
-    // Lawyer workspace only (admins use /api/admin/consultations; Phase 3 adds staff)
+    // Lawyers only (admins use /api/admin/consultations, staff /api/workspace/:lawyerId)
     const scope = access?.kind === 'lawyer' ? scopeFor(access, 'appointments.view') : null;
 
     let consultations;
@@ -192,9 +205,7 @@ export const getMyConsultations = async (req: AuthRequest, res: Response) => {
         .populate('lawyerId', 'name email phone barId')
         .sort({ date: -1 });
     } else if (scope) {
-      consultations = await Consultation.find(scope)
-        .populate('clientId', 'name email phone')
-        .sort({ date: -1 });
+      consultations = await listConsultationsInScope(scope);
     } else {
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -218,7 +229,7 @@ export const cancelConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Consultation ID is required' });
     }
 
-    const consultation = await Consultation.findById(consultationId);
+    const consultation = await findForLawyerSide(req, consultationId);
     if (!consultation) {
       return res.status(404).json({ message: 'Consultation not found' });
     }
@@ -228,6 +239,7 @@ export const cancelConsultation = async (req: AuthRequest, res: Response) => {
     if (!access || (!isClientOfConsultation(access, consultation) && !canInWorkspace(access, 'appointments.manage', { lawyerId: consultation.lawyerId }))) {
       return res.status(403).json({ message: 'You do not have permission to cancel this consultation' });
     }
+    markActingFor(req, consultation.lawyerId);
 
     if (!isActive(consultation.status)) {
       return res.status(400).json({ message: `A ${consultation.status} consultation cannot be cancelled` });
@@ -244,7 +256,7 @@ export const cancelConsultation = async (req: AuthRequest, res: Response) => {
       targetId: consultation._id,
       targetLabel: `${consultation.date.toISOString().slice(0, 10)} ${consultation.time}`,
       summary: `Cancelled the appointment on ${consultation.date.toISOString().slice(0, 10)} at ${consultation.time}`,
-      metadata: { from: previousStatus, to: 'cancelled', by: req.user.role },
+      metadata: { from: previousStatus, to: 'cancelled', by: access.kind },
     });
 
     res.json({
@@ -263,12 +275,13 @@ export const confirmConsultation = async (req: AuthRequest, res: Response) => {
     if (!userId) return res.status(401).json({ message: 'Not authenticated' });
 
     const { consultationId } = req.params;
-    const consultation = await Consultation.findById(consultationId);
+    const consultation = await findForLawyerSide(req, consultationId);
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
 
     if (!req.access || !canInWorkspace(req.access, 'appointments.manage', { lawyerId: consultation.lawyerId })) {
       return res.status(403).json({ message: 'Only the assigned lawyer can confirm this consultation' });
     }
+    markActingFor(req, consultation.lawyerId);
 
     if (!isActive(consultation.status)) {
       return res.status(400).json({ message: `A ${consultation.status} consultation cannot be confirmed` });
@@ -302,7 +315,6 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     const notifications: { id: string; title: string; body: string; time: Date; type: string }[] = [];
 
     if (access.kind === 'lawyer') {
-      // Phase 3 reuses this branch for staff working for specific lawyers
       const appointmentScope = scopeFor(access, 'appointments.view');
       const caseScope = scopeFor(access, 'cases.view');
       // Unconfirmed scheduled appointments
@@ -372,30 +384,75 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
           type: 'case',
         });
       }
-    } else if (access.isSuperAdmin || (access.kind === 'staff' && lawyersFor(access, 'appointments.view') === 'all')) {
+    } else {
       // Firm-wide view: the super-admin, or staff who see every lawyer's appointments
-      const recent = await Consultation.find()
-        .populate('clientId', 'name')
-        .populate('lawyerId', 'name')
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .lean();
-      for (const c of recent) {
-        const client = c.clientId as any;
-        notifications.push({
-          id: String(c._id),
-          title: 'New consultation booked',
-          body: `${client?.name || 'Client'} — ${c.subject}`,
-          time: c.createdAt as Date,
-          type: 'appointment',
-        });
+      if (access.isSuperAdmin || (access.kind === 'staff' && lawyersFor(access, 'appointments.view') === 'all')) {
+        const recent = await Consultation.find()
+          .populate('clientId', 'name')
+          .populate('lawyerId', 'name')
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean();
+        for (const c of recent) {
+          const client = c.clientId as any;
+          notifications.push({
+            id: String(c._id),
+            title: 'New consultation booked',
+            body: `${client?.name || 'Client'} — ${c.subject}`,
+            time: c.createdAt as Date,
+            type: 'appointment',
+          });
+        }
+      }
+
+      // Assistants: the lawyers they work for, each by the permissions delegated for them
+      if (access.kind === 'staff' && access.delegations.size) {
+        const nameOf = new Map((access.delegatedLawyers ?? []).map((l) => [l.id, l.name]));
+        const delegatedWith = (perm: 'appointments.view' | 'cases.view') =>
+          [...access.delegations].filter(([, perms]) => perms.has(perm)).map(([id]) => new mongoose.Types.ObjectId(id));
+        const apptLawyers = delegatedWith('appointments.view');
+        const caseLawyers = delegatedWith('cases.view');
+
+        const [unconfirmed, recentCases] = await Promise.all([
+          apptLawyers.length
+            ? Consultation.find({ lawyerId: { $in: apptLawyers }, lawyerConfirmed: false, status: 'scheduled' })
+              .populate('clientId', 'name')
+              .sort({ createdAt: -1 })
+              .limit(5)
+              .lean()
+            : [],
+          caseLawyers.length
+            ? Case.find({ lawyerId: { $in: caseLawyers } }).sort({ updatedAt: -1 }).limit(3).lean()
+            : [],
+        ]);
+        for (const c of unconfirmed) {
+          const client = c.clientId as any;
+          notifications.push({
+            id: String(c._id),
+            title: `New booking for ${nameOf.get(String(c.lawyerId)) ?? 'your lawyer'}`,
+            body: `${client?.name || 'A client'} booked on ${new Date(c.date).toLocaleDateString('en-GB', { timeZone: 'UTC' })} at ${c.time}`,
+            time: c.createdAt as Date,
+            type: 'appointment',
+          });
+        }
+        for (const cs of recentCases) {
+          notifications.push({
+            id: String(cs._id),
+            title: `Case ${cs.status.replace(/-/g, ' ')}`,
+            body: `${cs.title} — ${nameOf.get(String(cs.lawyerId)) ?? 'Lawyer'}`,
+            time: cs.updatedAt as Date,
+            type: 'case',
+          });
+        }
       }
     }
 
-    // Sort by time desc and return top 8
+    // Sort by time desc and return top 8; a booking can come from both the firm and a delegation
     notifications.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    const seen = new Set<string>();
+    const unique = notifications.filter((n) => !seen.has(`${n.type}:${n.id}`) && Boolean(seen.add(`${n.type}:${n.id}`)));
 
-    res.json({ notifications: notifications.slice(0, 8) });
+    res.json({ notifications: unique.slice(0, 8) });
   } catch (error) {
     console.error('Get notifications error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -416,7 +473,7 @@ export const updateConsultationStatus = async (req: AuthRequest, res: Response) 
       return res.status(400).json({ message: 'Consultation ID and status are required' });
     }
 
-    const consultation = await Consultation.findById(consultationId);
+    const consultation = await findForLawyerSide(req, consultationId);
     if (!consultation) {
       return res.status(404).json({ message: 'Consultation not found' });
     }
@@ -425,6 +482,7 @@ export const updateConsultationStatus = async (req: AuthRequest, res: Response) 
     if (!req.access || !canInWorkspace(req.access, 'appointments.manage', { lawyerId: consultation.lawyerId })) {
       return res.status(403).json({ message: 'Only the lawyer can update consultation status' });
     }
+    markActingFor(req, consultation.lawyerId);
 
     // Lawyers can close out an active booking; re-opening goes through a new booking or admin
     if (!['completed', 'cancelled'].includes(status)) {

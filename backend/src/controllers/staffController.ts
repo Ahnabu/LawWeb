@@ -4,18 +4,20 @@ import mongoose from 'mongoose';
 import User from '../models/User';
 import Role from '../models/Role';
 import Session from '../models/Session';
+import StaffAssignment from '../models/StaffAssignment';
 import { parsePagination } from '../utils/pagination';
 import { recordAudit } from '../utils/audit';
 import { revokeAllSessions } from '../utils/session';
 import { blockAccount, blockReasonFrom, blockState, unblockAccount } from '../utils/accountBlock';
 import { ACCOUNT_SETUP_EXPIRY_HOURS, sendAccountSetupLink } from './authController';
+import { grantDelegation, revokeDelegation, updateDelegation } from '../access/delegations';
+import type { AuthedRequest } from '../access/types';
 
 // Staff accounts (super-admin only, see routes/admin.ts). Staff are firm
-// employees with one firm role; they never become clients, lawyers or admins.
+// employees with one firm role and any number of lawyer delegations; they never
+// become clients, lawyers or admins.
 
-interface AuthRequest extends Request {
-  user?: any;
-}
+type AuthRequest = AuthedRequest & Request;
 
 const STAFF_FIELDS = 'name email phone role staffRoleId isVerified isBlocked blockedAt blockedReason createdAt updatedAt';
 
@@ -43,6 +45,44 @@ const findStaff = (staffId: unknown, fields = STAFF_FIELDS) =>
 
 const loadStaff = (staffId: unknown) =>
   User.findById(staffId).select(STAFF_FIELDS).populate('staffRoleId', 'name permissions').lean();
+
+// A new staff account: a random password nobody knows, and the owner sets their
+// own through the emailed setup link. Also used when a lawyer invites an assistant.
+// Throws the duplicate-key error if the email was taken in the meantime.
+export const createStaffUser = (fields: { name: string; email: string; phone?: string; staffRoleId?: mongoose.Types.ObjectId | null }) =>
+  User.create({
+    name: fields.name.trim(),
+    email: fields.email,
+    password: crypto.randomBytes(32).toString('hex'),
+    role: 'staff',
+    phone: fields.phone?.trim() || undefined,
+    staffRoleId: fields.staffRoleId ?? null,
+    isVerified: true,
+    passwordNeedsChange: false,
+  });
+
+// Every lawyer this staff member assists. A blocked or removed lawyer shows as
+// inactive: the delegation is kept and works again once the lawyer is restored.
+const delegationsOf = async (staffId: unknown) => {
+  const rows = await StaffAssignment.find({ staffId: String(staffId) })
+    .populate('lawyerId', 'name role isBlocked deletedAt')
+    .populate('grantedBy', 'name')
+    .sort({ createdAt: 1 })
+    .lean();
+  return rows.flatMap((row) => {
+    const lawyer = row.lawyerId as unknown as { _id: unknown; name: string; role: string; isBlocked?: boolean; deletedAt?: Date | null } | null;
+    if (!lawyer) return [];
+    return [{
+      lawyerId: lawyer._id,
+      lawyerName: lawyer.name,
+      lawyerActive: lawyer.role === 'lawyer' && !lawyer.isBlocked && !lawyer.deletedAt,
+      permissions: row.permissions,
+      grantedByRole: row.grantedByRole,
+      grantedByName: (row.grantedBy as unknown as { name?: string } | null)?.name ?? null,
+      updatedAt: row.updatedAt,
+    }];
+  });
+};
 
 // Most recent activity on any signed-in device (sessions expire, so it can be empty)
 const lastActiveByUser = async (ids: mongoose.Types.ObjectId[]) => {
@@ -116,16 +156,7 @@ export const createStaffAdmin = async (req: AuthRequest, res: Response) => {
 
     let staff;
     try {
-      staff = await User.create({
-        name: name.trim(),
-        email: normalizedEmail,
-        password: crypto.randomBytes(32).toString('hex'),
-        role: 'staff',
-        phone: phone?.trim() || undefined,
-        staffRoleId: role?._id ?? null,
-        isVerified: true,
-        passwordNeedsChange: false,
-      });
+      staff = await createStaffUser({ name, email: normalizedEmail, phone, staffRoleId: role?._id });
     } catch (error) {
       if ((error as { code?: number })?.code === 11000) {
         return res.status(409).json({ status: 409, message: 'This email already belongs to another account.' });
@@ -170,13 +201,16 @@ export const getStaffDetailsAdmin = async (req: AuthRequest, res: Response) => {
   try {
     const found = await findStaff(req.params.staffId, '_id');
     if (!found) return notFound(res);
-    const staff = await loadStaff(found._id);
+    const [staff, lastActive, delegations] = await Promise.all([
+      loadStaff(found._id),
+      lastActiveByUser([found._id]),
+      delegationsOf(found._id),
+    ]);
     if (!staff) return notFound(res);
-    const lastActive = await lastActiveByUser([found._id]);
     res.json({
       status: 200,
       message: 'Staff member retrieved successfully',
-      data: { ...staff, lastActiveAt: lastActive.get(String(found._id)) ?? null },
+      data: { ...staff, lastActiveAt: lastActive.get(String(found._id)) ?? null, delegations },
     });
   } catch (error) {
     console.error('Admin get staff error:', error);
@@ -319,13 +353,15 @@ export const unblockStaffAdmin = async (req: AuthRequest, res: Response) => {
 };
 
 // DELETE /api/admin/staff/:staffId — hard delete. Audit entries keep the actor's
-// name, so their history stays readable. (Phase 3: delete their delegations first.)
+// name, so their history stays readable. Delegations go first, so a retry after
+// a failure in between still finds the account and finishes.
 export const deleteStaffAdmin = async (req: AuthRequest, res: Response) => {
   try {
     const target = await findStaff(req.params.staffId, 'name email');
     if (!target) return notFound(res);
 
     await revokeAllSessions(target._id);
+    await StaffAssignment.deleteMany({ staffId: target._id });
     await User.deleteOne({ _id: target._id, role: 'staff' });
 
     recordAudit(req, {
@@ -340,6 +376,62 @@ export const deleteStaffAdmin = async (req: AuthRequest, res: Response) => {
     res.json({ status: 200, message: `${target.name}'s account was deleted.`, data: { _id: target._id } });
   } catch (error) {
     console.error('Admin delete staff error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// ── Lawyers a staff member assists (super-admin) ──────────────────────────────
+
+const delegationParties = async (staffId: unknown, lawyerId: unknown) => {
+  const staff = await findStaff(staffId, 'name');
+  const lawyer = typeof lawyerId === 'string' && mongoose.isValidObjectId(lawyerId)
+    ? await User.findOne({ _id: lawyerId, role: 'lawyer' }).select('name').lean()
+    : null;
+  return { staff, lawyer };
+};
+
+// POST /api/admin/staff/:staffId/delegations  body: { lawyerId, permissions[] }
+export const grantDelegationAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { staff, lawyer } = await delegationParties(req.params.staffId, req.body.lawyerId);
+    if (!staff) return notFound(res);
+    if (!lawyer) return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+
+    const row = await grantDelegation(req, staff, lawyer, req.body.permissions, 'admin');
+    if (!row) {
+      return res.status(409).json({ status: 409, message: `${staff.name} already assists ${lawyer.name}. Edit their permissions instead.` });
+    }
+    res.status(201).json({ status: 201, message: `${staff.name} now assists ${lawyer.name}`, data: await delegationsOf(staff._id) });
+  } catch (error) {
+    console.error('Admin grant delegation error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// PATCH /api/admin/staff/:staffId/delegations/:lawyerId  body: { permissions[] }
+export const updateDelegationAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { staff, lawyer } = await delegationParties(req.params.staffId, req.params.lawyerId);
+    if (!staff) return notFound(res);
+    const updated = lawyer && (await updateDelegation(req, staff, lawyer, req.body.permissions, 'admin'));
+    if (!updated) return res.status(404).json({ status: 404, message: `${staff.name} doesn't assist this lawyer` });
+    res.json({ status: 200, message: 'Permissions updated', data: await delegationsOf(staff._id) });
+  } catch (error) {
+    console.error('Admin update delegation error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// DELETE /api/admin/staff/:staffId/delegations/:lawyerId
+export const revokeDelegationAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { staff, lawyer } = await delegationParties(req.params.staffId, req.params.lawyerId);
+    if (!staff) return notFound(res);
+    const revoked = lawyer && (await revokeDelegation(req, staff, lawyer, 'admin'));
+    if (!revoked) return res.status(404).json({ status: 404, message: `${staff.name} doesn't assist this lawyer` });
+    res.json({ status: 200, message: `${staff.name} no longer assists ${lawyer.name}`, data: await delegationsOf(staff._id) });
+  } catch (error) {
+    console.error('Admin revoke delegation error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };

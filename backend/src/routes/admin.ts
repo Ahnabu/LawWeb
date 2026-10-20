@@ -64,6 +64,9 @@ import {
   blockStaffAdmin,
   unblockStaffAdmin,
   deleteStaffAdmin,
+  grantDelegationAdmin,
+  updateDelegationAdmin,
+  revokeDelegationAdmin,
 } from '../controllers/staffController';
 import { authenticateToken } from '../middleware/auth';
 import { requireAnyPermission, requireKind, requirePermission, requireSuperAdmin } from '../access/middleware';
@@ -77,6 +80,8 @@ import {
   updateRoleSchema,
   createStaffSchema,
   updateStaffSchema,
+  grantDelegationSchema,
+  updateDelegationSchema,
 } from '../middleware/validation';
 import { uploadContentImage } from '../config/multer.config';
 import { recordAudit } from '../utils/audit';
@@ -139,6 +144,10 @@ router.patch('/staff/:staffId', requireSuperAdmin, validateRequest(updateStaffSc
 router.patch('/staff/:staffId/block', requireSuperAdmin, blockStaffAdmin);
 router.patch('/staff/:staffId/unblock', requireSuperAdmin, unblockStaffAdmin);
 router.delete('/staff/:staffId', requireSuperAdmin, deleteStaffAdmin);
+// Lawyers a staff member assists (a lawyer manages their own from /api/workspace/me/team)
+router.post('/staff/:staffId/delegations', requireSuperAdmin, validateRequest(grantDelegationSchema), grantDelegationAdmin);
+router.patch('/staff/:staffId/delegations/:lawyerId', requireSuperAdmin, validateRequest(updateDelegationSchema), updateDelegationAdmin);
+router.delete('/staff/:staffId/delegations/:lawyerId', requireSuperAdmin, revokeDelegationAdmin);
 
 // ── Blogs ─────────────────────────────────────────────────────────────────────
 // Also served under /api/blogs (routes/blogs.ts, which the admin page uses)

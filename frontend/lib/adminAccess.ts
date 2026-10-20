@@ -62,6 +62,21 @@ export interface StaffMember {
   updatedAt?: string
   // Newest use of any live session; null when they have none
   lastActiveAt: string | null
+  // Details only: the lawyers they assist
+  delegations?: StaffDelegation[]
+}
+
+// A lawyer a staff member assists. Inactive while the lawyer is blocked or
+// removed; it works again once the lawyer is restored.
+export interface StaffDelegation {
+  lawyerId: string
+  lawyerName: string
+  lawyerActive: boolean
+  // As chosen (not expanded with implied permissions)
+  permissions: string[]
+  grantedByRole: 'admin' | 'lawyer'
+  grantedByName: string | null
+  updatedAt: string
 }
 
 export interface StaffCounts {
@@ -199,6 +214,21 @@ export function blockStaff(staffId: string, reason?: string): Promise<Result<Blo
 
 export function unblockStaff(staffId: string): Promise<Result<BlockState>> {
   return request(`/api/admin/staff/${staffId}/unblock`, { method: 'PATCH' }, 'Failed to unblock staff member')
+}
+
+// ─── Lawyers a staff member assists ───────────────────────────────────────────
+// Each call answers with the staff member's full delegation list
+
+export function grantStaffDelegation(staffId: string, lawyerId: string, permissions: string[]): Promise<Result<StaffDelegation[]>> {
+  return request(`/api/admin/staff/${staffId}/delegations`, { method: 'POST', ...jsonBody({ lawyerId, permissions }) }, 'Failed to add the lawyer')
+}
+
+export function updateStaffDelegation(staffId: string, lawyerId: string, permissions: string[]): Promise<Result<StaffDelegation[]>> {
+  return request(`/api/admin/staff/${staffId}/delegations/${lawyerId}`, { method: 'PATCH', ...jsonBody({ permissions }) }, 'Failed to update permissions')
+}
+
+export function revokeStaffDelegation(staffId: string, lawyerId: string): Promise<Result<StaffDelegation[]>> {
+  return request(`/api/admin/staff/${staffId}/delegations/${lawyerId}`, { method: 'DELETE' }, 'Failed to remove the lawyer')
 }
 
 export function deleteStaff(staffId: string): Promise<Result<{ _id: string }>> {

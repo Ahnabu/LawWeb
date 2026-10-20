@@ -36,6 +36,8 @@ export interface CaseClient {
 }
 
 export type CaseArchiveReason = 'manual' | 'lawyer-deleted'
+// Which side archived it: the lawyer's workspace (lawyer or assistant) or the firm
+export type CaseArchiveOrigin = 'lawyer' | 'firm'
 
 // Snapshot kept on a case after its lawyer account was deleted
 export interface FormerLawyer {
@@ -49,6 +51,8 @@ export interface CaseArchiveFields {
   archivedAt?: string | null
   archivedBy?: { _id: string; name?: string; role?: string } | string | null
   archiveReason?: CaseArchiveReason | null
+  // null on cases archived before origins were recorded
+  archiveOrigin?: CaseArchiveOrigin | null
   archiveNote?: string
   formerLawyer?: FormerLawyer | null
 }
@@ -261,9 +265,14 @@ export function formatCaseDate(value?: string | null): string {
   return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-/** Lawyers can restore only cases they archived themselves; anything else needs an admin */
-export function canLawyerRestore(c: CaseArchiveFields, userId?: string | null): boolean {
-  if (!c.isArchived || c.archiveReason !== 'manual' || !userId) return false
+/**
+ * The lawyer's side (the lawyer or an assistant) can restore what that side
+ * archived; anything the firm archived needs an admin. Same rule as the backend.
+ */
+export function canLawyerRestore(c: CaseArchiveFields, lawyerId?: string | null): boolean {
+  if (!c.isArchived || c.archiveReason !== 'manual' || !lawyerId) return false
+  if (c.archiveOrigin) return c.archiveOrigin === 'lawyer'
+  // Archived before origins were recorded: only what the lawyer archived
   const byId = c.archivedBy && typeof c.archivedBy === 'object' ? c.archivedBy._id : c.archivedBy
-  return byId === userId
+  return byId === lawyerId
 }

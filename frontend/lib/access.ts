@@ -2,9 +2,12 @@
 // Every button this hides is also refused by the API.
 import type { AuthUser } from './auth'
 
+// A lawyer this staff member assists. Only active lawyers are listed, and
+// `permissions` is already expanded with implied ones.
 export interface Delegation {
   lawyerId: string
   lawyerName?: string
+  lawyerPhoto?: string | null
   permissions: string[]
 }
 

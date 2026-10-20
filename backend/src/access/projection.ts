@@ -65,6 +65,18 @@ const normalize = (v: unknown): string => {
 };
 const sameValue = (current: unknown, next: unknown) => normalize(current) === normalize(next);
 
+// Finance and confidential fields set on a new case need the same permissions
+// as changing them later; cases.create alone covers the rest of the form.
+// Empty values (the form's blanks, 0, false, []) are not violations.
+export function forbiddenCreateFields(access: Access, lawyerId: unknown, body: Record<string, unknown>): string[] {
+  const ctx = { lawyerId };
+  const isSet = (v: unknown) => !(isEmpty(v) || v === 0 || v === false || (Array.isArray(v) && v.length === 0));
+  return [
+    ...(can(access, 'cases.finance.edit', ctx) ? [] : CASE_FINANCE_FIELDS),
+    ...(can(access, 'cases.confidential.edit', ctx) ? [] : CASE_CONFIDENTIAL_FIELDS),
+  ].filter((field) => isSet(body[field]));
+}
+
 // Body keys this actor may not change on this case. Values equal to the current
 // ones are not violations: the case pages send unchanged fields back.
 // `adminForm` adds the fields only the admin case form edits.

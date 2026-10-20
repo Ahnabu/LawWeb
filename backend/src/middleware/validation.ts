@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CONTENT_PAGE_KEYS } from '../config/contentSchemas';
+import { LAWYER_SCOPED, type Permission } from '../access/permissions';
 
 // Shared by register, reset and change password. bcrypt ignores bytes past 72.
 export const passwordSchema = z.string()
@@ -112,6 +113,11 @@ export const auditLogQueryFields = z.object({
     (v) => (v === '' ? undefined : v),
     z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid actor ID').optional()
   ),
+  // The lawyer a staff member acted for
+  onBehalfOf: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid lawyer ID').optional()
+  ),
   search: optionalQueryText(100),
   from: optionalQueryDate,
   to: optionalQueryDate,
@@ -154,6 +160,31 @@ export const updateStaffSchema = z.object({
     phone: staffPhone.optional(),
     staffRoleId: objectId.nullable().optional(),
   }),
+});
+
+// ── Lawyer assistants (delegations) ───────────────────────────────────────────
+// Only lawyer-scoped keys can be delegated; firm-only or unknown keys are a 400.
+const delegationPermissions = z
+  .array(z.string().max(60))
+  .min(1, 'Choose at least one permission')
+  .max(LAWYER_SCOPED.size)
+  .refine((perms) => perms.every((p) => LAWYER_SCOPED.has(p as Permission)), 'Only permissions for a lawyer\'s own work can be given to an assistant')
+  .transform((perms) => [...new Set(perms)]);
+
+export const inviteAssistantSchema = z.object({
+  body: z.object({
+    email: emailField,
+    // Required by the controller only when the email is new to the firm
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long').optional().or(z.literal('')),
+    phone: staffPhone.optional(),
+    permissions: delegationPermissions,
+  }),
+});
+
+export const updateDelegationSchema = z.object({ body: z.object({ permissions: delegationPermissions }) });
+
+export const grantDelegationSchema = z.object({
+  body: z.object({ lawyerId: objectId, permissions: delegationPermissions }),
 });
 
 export const formatZodIssues =(error: z.ZodError) =>

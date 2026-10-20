@@ -4,7 +4,8 @@ import mongoose from 'mongoose';
 import {
   PERMISSIONS, LAWYER_SCOPED, FIRM_ONLY, LAWYER_SELF_PERMISSIONS, withImplied, isPermission, Permission,
 } from '../../src/access/permissions';
-import { can, canInWorkspace, lawyersFor, scopeFor, isClientOfCase, isClientOfConsultation, refId } from '../../src/access/policy';
+import { can, canInWorkspace, lawyersFor, scopeFor, isClientOfCase, isClientOfConsultation, refId, hasAnyAccessTo, hiddenFromStaff } from '../../src/access/policy';
+import { cleanDelegationPermissions } from '../../src/access/delegations';
 import { projectCase, canWriteCase, forbiddenCaseWrites } from '../../src/access/projection';
 import { loadAccess } from '../../src/access/loadAccess';
 import { ROLE_TEMPLATES } from '../../src/access/roleTemplates';
@@ -163,9 +164,8 @@ const staffMulti = mk('staff', oid(), [], [[A, ['cases.edit']], [B, ['cases.view
   expect('loadAccess: admin is super-admin', (await loadAccess({ _id: A, role: 'admin' })).isSuperAdmin);
   const unknown = await loadAccess({ _id: A, role: 'root' });
   expect('loadAccess: unknown role -> least access', unknown.kind === 'client' && !unknown.isSuperAdmin);
-  const roleless = await loadAccess({ _id: A, role: 'staff', staffRoleId: null });
-  expect('loadAccess: staff without a role -> no firm permissions (no DB read)',
-    roleless.kind === 'staff' && !roleless.isSuperAdmin && roleless.firm.size === 0 && roleless.delegations.size === 0);
+  // Staff always read their delegations from the database (Phase 3), so staff
+  // loading is checked in endpoints.check.ts
 
   // ── Phase 2: firm roles ────────────────────────────────────────────────────
   expect('templates: only catalog keys', ROLE_TEMPLATES.every((t) => t.permissions.every((p) => isPermission(p))));
@@ -201,6 +201,27 @@ const staffMulti = mk('staff', oid(), [], [[A, ['cases.edit']], [B, ['cases.view
   expect('adminForm: title needs cases.edit, isFeatured needs cases.feature',
     JSON.stringify(forbiddenCaseWrites(accountantRole, adminCase, { title: 'New', isFeatured: true }, { adminForm: true }).sort()) === JSON.stringify(['isFeatured', 'title']));
   expect('adminForm: families ignored without the flag', forbiddenCaseWrites(accountantRole, adminCase, moveToB).length === 0);
+
+  // ── Phase 3: delegations ───────────────────────────────────────────────────
+  expect('hasAnyAccessTo: delegation for that lawyer only',
+    hasAnyAccessTo(staffDelegated, A) && !hasAnyAccessTo(staffDelegated, B) && hasAnyAccessTo(staffDelegated, { _id: A, name: 'A' }));
+  expect('hasAnyAccessTo: firm role with a lawyer-scoped key covers every lawyer',
+    hasAnyAccessTo(receptionRole, A) && hasAnyAccessTo(receptionRole, oid()));
+  expect('hasAnyAccessTo: firm role with firm-only keys covers none', !hasAnyAccessTo(editorRole, A));
+  expect('hasAnyAccessTo: lawyer own only, admin all, client none',
+    hasAnyAccessTo(lawyerA, A) && !hasAnyAccessTo(lawyerA, B) && hasAnyAccessTo(admin, B) && !hasAnyAccessTo(client, A));
+  expect('hiddenFromStaff: only staff without access',
+    hiddenFromStaff(staffDelegated, B) && !hiddenFromStaff(staffDelegated, A) && !hiddenFromStaff(lawyerA, B) && !hiddenFromStaff(client, A));
+  const cleaned = cleanDelegationPermissions(['cases.view', 'cases.view', 'blogs.manage', 'nope', 'appointments.manage']);
+  expect('cleanDelegationPermissions: lawyer-scoped, deduplicated', JSON.stringify(cleaned) === JSON.stringify(['cases.view', 'appointments.manage']), cleaned);
+  const delegatedFinance = mk('staff', oid(), [], [[A, ['cases.edit']], [B, ['cases.finance.edit', 'cases.confidential.view']]]);
+  expect('delegation: finance and confidential per lawyer',
+    !can(delegatedFinance, 'cases.finance.view', onA) && can(delegatedFinance, 'cases.finance.view', onB) &&
+    !can(delegatedFinance, 'cases.confidential.edit', onB) && !can(delegatedFinance, 'cases.edit', onB));
+  const projectedA = projectCase({ ...full, lawyerId: A }, delegatedFinance);
+  const projectedB = projectCase({ ...full, lawyerId: B }, delegatedFinance);
+  expect('delegation: projectCase per lawyer',
+    !('payments' in projectedA) && !('internalNotes' in projectedA) && 'payments' in projectedB && 'internalNotes' in projectedB);
 
   console.log(failures ? `\n${failures} FAILED` : '\nAll checks passed');
   process.exit(failures ? 1 : 0);
