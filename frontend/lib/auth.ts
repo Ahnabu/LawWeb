@@ -40,8 +40,6 @@ interface VerificationResponse {
 import { API_BASE_URL } from "./api";
 import { apiFetch, broadcastAuth, setAccessTokenExpiry } from "./http";
 
-const USER_ROLES: UserRole[] = ["admin", "lawyer", "client"];
-
 export const dashboardPathFor = (role: UserRole) => `/dashboard/${role}`;
 
 // Only same-site relative paths ("/appointment"), never "//evil.com" or "https://…",
@@ -65,23 +63,33 @@ export function postLoginPath(role: UserRole, redirect: string | null | undefine
   return safe;
 }
 
-export function readRoleCookie(): UserRole | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/(?:^|;\s*)userRole=([^;]+)/);
-  const role = match ? decodeURIComponent(match[1]) : null;
-  return role && USER_ROLES.includes(role as UserRole) ? (role as UserRole) : null;
+// Name and value are mirrored in middleware.ts
+const SESSION_HINT_COOKIE = "signedIn";
+
+export function hasSessionHint(): boolean {
+  if (typeof document === "undefined") return false;
+  // A legacy userRole cookie counts once so existing sessions are not dropped;
+  // the session check that follows replaces it (setSessionHint)
+  return /(?:^|;\s*)(?:signedIn=1|userRole=[^;]+)/.test(document.cookie);
 }
 
-// Non-httpOnly hint cookie read by middleware.ts for routing only. The backend
-// never trusts it; real authorization comes from the httpOnly token cookies.
-export function setRoleCookie(role: UserRole | null) {
+// Non-httpOnly hint cookie: "this browser has signed in", read by middleware.ts
+// and AuthProvider. It deliberately carries no role or id. The backend never
+// trusts it; real authorization comes from the httpOnly token cookies, and the
+// role used for routing comes from the verified /api/auth/profile response.
+export function setSessionHint(signedIn: boolean) {
   if (typeof document === "undefined") return;
-  if (role && USER_ROLES.includes(role)) {
-    document.cookie = `userRole=${role}; path=/; max-age=604800; samesite=lax`;
-  } else {
-    document.cookie = "userRole=; path=/; max-age=0; samesite=lax";
-  }
+  const secure = window.location.protocol === "https:" ? "; secure" : "";
+  document.cookie = signedIn
+    ? `${SESSION_HINT_COOKIE}=1; path=/; max-age=604800; samesite=lax${secure}`
+    : `${SESSION_HINT_COOKIE}=; path=/; max-age=0; samesite=lax${secure}`;
+  // Older builds stored the role in plain text here
+  document.cookie = "userRole=; path=/; max-age=0; samesite=lax";
 }
+
+// /api/auth/profile failed for a reason that says nothing about the session
+// (backend down, cold-start 503, network error)
+export class SessionCheckError extends Error {}
 
 const readJson = (response: Response) => response.json().catch(() => ({}));
 
@@ -113,19 +121,30 @@ export async function signIn(
   }
 
   setAccessTokenExpiry(data.accessTokenExpiresAt);
-  setRoleCookie(data.user.role);
+  setSessionHint(true);
 
   return data as LoginResponse;
 }
 
+// null = signed out (401, or 403 for a blocked account). Any other failure
+// throws SessionCheckError so callers do not sign the user out over an outage.
 export async function fetchSession(): Promise<AuthUser | null> {
-  const response = await apiFetch(`${API_BASE_URL}/api/auth/profile`, {
-    method: "GET",
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await apiFetch(`${API_BASE_URL}/api/auth/profile`, {
+      method: "GET",
+      cache: "no-store",
+    });
+  } catch {
+    throw new SessionCheckError("Unable to reach the server");
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    return null;
+  }
 
   if (!response.ok) {
-    return null;
+    throw new SessionCheckError(`Session check failed (${response.status})`);
   }
 
   const data = await response.json().catch(() => null);
@@ -185,7 +204,7 @@ export async function verifyEmail(
   }
 
   setAccessTokenExpiry(data.accessTokenExpiresAt);
-  setRoleCookie(data.user.role);
+  setSessionHint(true);
 
   return data as VerificationResponse;
 }
@@ -247,7 +266,7 @@ export async function resetPassword(token: string, password: string): Promise<{ 
 
   // Every session was revoked server-side, including any open in other tabs
   setAccessTokenExpiry(null);
-  setRoleCookie(null);
+  setSessionHint(false);
   broadcastAuth({ type: "signed-out" });
 
   return data as { message: string };
@@ -282,7 +301,7 @@ export async function signOut(): Promise<void> {
     });
   } finally {
     setAccessTokenExpiry(null);
-    setRoleCookie(null);
+    setSessionHint(false);
   }
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { fetchSession, readRoleCookie, safeRedirectPath, setRoleCookie, signOut, type AuthUser } from '../lib/auth'
+import { SessionCheckError, fetchSession, hasSessionHint, safeRedirectPath, setSessionHint, signOut, type AuthUser } from '../lib/auth'
 import { toast } from 'sonner'
 import {
   ACCOUNT_BLOCKED_EVENT,
@@ -74,12 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // wipe the fresh session, which looked like a spontaneous logout.
   const generation = useRef(0)
   const lastCheckedAt = useRef(0)
+  const currentUser = useRef<AuthUser | null>(null)
 
   const applySession = useCallback((session: AuthUser | null) => {
-    // The role cookie only steers middleware.ts; keep it in sync with the real
-    // session (this also extends its lifetime) instead of treating a mismatch
-    // as an attack and signing out.
-    setRoleCookie(session?.role ?? null)
+    // The hint cookie only steers middleware.ts; keep it in sync with the real
+    // session (this also extends its lifetime and migrates the old userRole cookie)
+    setSessionHint(Boolean(session))
+    currentUser.current = session
     setUser(session)
     setStatus(session ? 'authenticated' : 'unauthenticated')
   }, [])
@@ -87,7 +88,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadSession = useCallback(async () => {
     const startedAt = generation.current
     lastCheckedAt.current = Date.now()
-    const session = await fetchSession()
+
+    let session: AuthUser | null
+    try {
+      session = await fetchSession()
+    } catch (error) {
+      if (!(error instanceof SessionCheckError)) throw error
+      // Backend down or erroring: an open session stays as it is (a revalidation
+      // during an outage used to sign everyone out). With no session yet there is
+      // nothing to keep, so the visitor is treated as signed out, as before.
+      if (startedAt === generation.current && !currentUser.current) {
+        applySession(null)
+      }
+      return currentUser.current
+    }
 
     if (startedAt !== generation.current) {
       return session
@@ -103,9 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession])
 
   useEffect(() => {
-    // Every login sets the role hint cookie. Without it there is no session to
+    // Every login sets the session hint cookie. Without it there is no session to
     // look up, so anonymous visitors cost the API nothing on page load.
-    if (!readRoleCookie()) {
+    if (!hasSessionHint()) {
       applySession(null)
       return
     }

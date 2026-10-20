@@ -1,49 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const dashboardPathByRole: Record<string, string> = {
-  admin: '/dashboard/admin',
-  lawyer: '/dashboard/lawyer',
-  client: '/dashboard/client',
-}
+// Routing hint only (see lib/auth.ts setSessionHint). It says "this browser has
+// signed in" and nothing else: no role, so it cannot be read or edited to reach
+// another dashboard. Role routing happens client-side from the verified session
+// (app/dashboard/layout-wrapper.tsx, app/dashboard/page.tsx, app/profile/page.tsx).
+const hasSessionHint = (request: NextRequest) =>
+  request.cookies.get('signedIn')?.value === '1' ||
+  // Sessions from before the hint dropped the role; AuthProvider migrates them
+  Boolean(request.cookies.get('userRole')?.value)
 
-// The old /profile page now lives in each dashboard's account section
-const accountPathByRole: Record<string, string> = {
-  admin: '/dashboard/admin/settings',
-  lawyer: '/dashboard/lawyer/profile',
-  client: '/dashboard/client/profile',
-}
-
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+  const signedIn = hasSessionHint(request)
 
-  // Routing hint only (see lib/auth.ts setRoleCookie); ignore unknown values
-  const roleCookie = request.cookies.get('userRole')?.value
-  const userRole = roleCookie && roleCookie in dashboardPathByRole ? roleCookie : undefined
+  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/profile')
 
-  const isDashboardRoute = pathname.startsWith('/dashboard')
-  const isProfileRoute = pathname.startsWith('/profile')
-  const isLoginRoute = pathname.startsWith('/login')
-
-  if (!userRole && (isDashboardRoute || isProfileRoute)) {
+  if (!signedIn && isProtectedRoute) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  if (userRole && isProfileRoute) {
-    return NextResponse.redirect(new URL(accountPathByRole[userRole], request.url))
-  }
-
-  if (userRole && isLoginRoute) {
-    return NextResponse.redirect(new URL(dashboardPathByRole[userRole] ?? '/', request.url))
-  }
-
-  if (userRole && isDashboardRoute) {
-    const requiredRole = pathname.split('/')[2]
-
-    if (requiredRole && requiredRole !== userRole) {
-      return NextResponse.redirect(new URL(dashboardPathByRole[userRole] ?? '/', request.url))
-    }
+  // app/dashboard/page.tsx forwards to the account's own dashboard
+  if (signedIn && pathname.startsWith('/login')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return NextResponse.next()
