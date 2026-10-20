@@ -33,13 +33,6 @@ import {
   deleteUserAdmin,
 } from '../controllers/adminUserController';
 import {
-  listBlogs as getBlogs,
-  getBlogById,
-  createBlog,
-  updateBlog,
-  deleteBlog,
-} from '../controllers/blogController';
-import {
   listContentPages,
   getContentPageAdmin,
   saveContentDraft,
@@ -149,19 +142,7 @@ router.post('/staff/:staffId/delegations', requireSuperAdmin, validateRequest(gr
 router.patch('/staff/:staffId/delegations/:lawyerId', requireSuperAdmin, validateRequest(updateDelegationSchema), updateDelegationAdmin);
 router.delete('/staff/:staffId/delegations/:lawyerId', requireSuperAdmin, revokeDelegationAdmin);
 
-// ── Blogs ─────────────────────────────────────────────────────────────────────
-// Also served under /api/blogs (routes/blogs.ts, which the admin page uses)
-const blogsManage = requirePermission('blogs.manage');
-router.get("/blogs", blogsManage, getBlogs);
-router.post("/blogs", blogsManage, createBlog);
-router.get("/blogs/:blogId", blogsManage, getBlogById);
-router.patch("/blogs/:blogId", blogsManage, updateBlog);
-router.delete("/blogs/:blogId", blogsManage, deleteBlog);
-// Publish shortcut — sets status to 'published'
-router.patch("/blogs/:blogId/publish", blogsManage, (req, res, next) => {
-  req.body = { ...req.body, status: 'published' };
-  next();
-}, updateBlog);
+// Blogs are managed under /api/blogs (routes/blogs.ts)
 
 // ── Contact messages ──────────────────────────────────────────────────────────
 const messagesManage = requirePermission('messages.manage');

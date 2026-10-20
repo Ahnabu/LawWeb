@@ -11,6 +11,8 @@
     "dev": "nodemon",
     "clean": "rm -rf dist",
     "seed:admin": "ts-node --transpile-only src/scripts/seed-admin.ts",
+    "seed:rbac-demo": "ts-node --transpile-only src/scripts/seed-rbac-demo.ts",
+    "sync:indexes": "ts-node --transpile-only src/scripts/sync-rbac-indexes.ts",
     "migrate:temp-passwords": "ts-node --transpile-only src/scripts/replace-temp-passwords.ts",
     "test:content": "ts-node --transpile-only tests/content/schema.check.ts && ts-node --transpile-only tests/content/flow.check.ts",
     "test:access": "ts-node --transpile-only tests/access/policy.check.ts && ts-node --transpile-only tests/access/endpoints.check.ts"

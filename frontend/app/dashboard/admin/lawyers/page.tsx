@@ -962,6 +962,9 @@ function LawyerFormModal({
   onSaved: (saved: AdminLawyer, mode: "add" | "edit") => void;
 }) {
   const isEdit = Boolean(lawyer);
+  // Changing a login email is super-admin only (the backend refuses it too)
+  const { isSuperAdmin } = useAccess();
+  const emailLocked = isEdit && !isSuperAdmin;
   const initial = useMemo<LawyerFormValues>(() => (lawyer ? {
     name: lawyer.name ?? "",
     email: lawyer.email ?? "",
@@ -1044,7 +1047,7 @@ function LawyerFormModal({
   const field = (
     key: keyof LawyerFormValues,
     label: string,
-    opts: { type?: string; placeholder?: string; required?: boolean; wide?: boolean; lang?: string; autoComplete?: string } = {},
+    opts: { type?: string; placeholder?: string; required?: boolean; wide?: boolean; lang?: string; autoComplete?: string; disabled?: boolean; hint?: string } = {},
   ) => (
     <label className={`block ${opts.wide ? "sm:col-span-2" : ""}`}>
       <span className="label">{label} {opts.required && <span className="text-error">*</span>}</span>
@@ -1057,7 +1060,9 @@ function LawyerFormModal({
         aria-invalid={Boolean(errors[key])}
         className={fieldClass(key)}
         placeholder={opts.placeholder}
+        disabled={opts.disabled}
       />
+      {opts.hint && <span className="mt-1 block text-xs text-on-surface-variant">{opts.hint}</span>}
       {errors[key] && <span className="error-text block">{errors[key]}</span>}
     </label>
   );
@@ -1084,7 +1089,10 @@ function LawyerFormModal({
 
         <div className="grid gap-4 sm:grid-cols-2">
           {field("name", "Full Name", { required: true, wide: true, placeholder: "Lawyer's full name" })}
-          {field("email", "Email Address", { type: "email", required: true, wide: true, placeholder: "lawyer@islamassociates.com" })}
+          {field("email", "Email Address", {
+            type: "email", required: true, wide: true, placeholder: "lawyer@islamassociates.com",
+            disabled: emailLocked, hint: emailLocked ? "Only the super-admin can change a login email." : undefined,
+          })}
           {field("phone", "Phone Number", { type: "tel", required: true, placeholder: "+8801XXXXXXXXX" })}
           {field("barId", "Bar ID", { required: true, placeholder: "BC-XXXX" })}
           {field("specialization", "Specialization", { wide: true, placeholder: "e.g. Immigration & Corporate Law" })}

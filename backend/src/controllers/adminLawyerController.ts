@@ -1,7 +1,9 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import User from '../models/User';
+import { forbidden } from '../access/policy';
+import type { AuthedRequest } from '../access/types';
 import Case from '../models/Case';
 import StaffAssignment from '../models/StaffAssignment';
 import Consultation from '../models/Consultation';
@@ -14,9 +16,7 @@ import { sendAppointmentCancelledEmail } from '../utils/email';
 import { getFrontendUrl } from '../config/env';
 import { ACTIVE_STATUSES, businessNow, hasSlotStarted, parseDateOnly, toMinutes } from '../utils/schedule';
 
-interface AuthRequest extends Request {
-  user?: any;
-}
+type AuthRequest = AuthedRequest;
 
 // Fields the admin list and the edit form need. Never includes password data.
 const LAWYER_LIST_FIELDS =
@@ -211,6 +211,10 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ status: 400, message: 'Enter a valid email address' });
       }
       if (email !== lawyer.email) {
+        // The login email plus "forgot password" is the account: super-admin only
+        if (!req.access?.isSuperAdmin) {
+          return forbidden(res, "Only the super-admin can change a lawyer's login email.", 'FIELD_FORBIDDEN', { fields: ['email'] });
+        }
         const taken = await User.exists({ email, _id: { $ne: lawyer._id } });
         if (taken) {
           return res.status(409).json({ status: 409, message: 'Another account already uses this email' });

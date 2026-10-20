@@ -88,16 +88,6 @@ export interface CreateCasePayload {
   nextCourtDate?: string
 }
 
-export async function getMyCases(): Promise<Case[]> {
-  const res = await apiFetch(`${API_BASE_URL}/api/cases/my-cases`, {
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch cases')
-  return data.data as Case[]
-}
-
 export async function getCaseById(caseId: string): Promise<Case> {
   const res = await apiFetch(`${API_BASE_URL}/api/cases/${caseId}`, {
     credentials: 'include',

@@ -314,7 +314,11 @@ export default function AdminUserDetailsPage() {
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   className={inputClass}
                   required
+                  disabled={!access.isSuperAdmin}
                 />
+                {!access.isSuperAdmin && (
+                  <span className="mt-1 block text-xs text-on-surface-variant">Only the super-admin can change a login email.</span>
+                )}
               </label>
               <label className="block">
                 <span className="label">Phone</span>

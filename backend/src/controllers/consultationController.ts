@@ -175,7 +175,7 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// A lawyer's bookings: the lawyer branch of /my-consultations and the workspace list
+// One lawyer's bookings (the workspace list)
 export const listConsultationsInScope = (scope: Record<string, unknown>) =>
   Consultation.find(scope).populate('clientId', 'name email phone').sort({ date: -1 });
 
@@ -195,20 +195,14 @@ export const getMyConsultations = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    const access = req.access;
-    // Lawyers only (admins use /api/admin/consultations, staff /api/workspace/:lawyerId)
-    const scope = access?.kind === 'lawyer' ? scopeFor(access, 'appointments.view') : null;
-
-    let consultations;
-    if (access?.kind === 'client') {
-      consultations = await Consultation.find({ clientId: userId })
-        .populate('lawyerId', 'name email phone barId')
-        .sort({ date: -1 });
-    } else if (scope) {
-      consultations = await listConsultationsInScope(scope);
-    } else {
+    // Clients only: lawyers and staff use /api/workspace/:lawyerId/consultations,
+    // admins /api/admin/consultations
+    if (req.access?.kind !== 'client') {
       return res.status(403).json({ message: 'Unauthorized' });
     }
+    const consultations = await Consultation.find({ clientId: userId })
+      .populate('lawyerId', 'name email phone barId')
+      .sort({ date: -1 });
 
     res.json({ consultations });
   } catch (error) {

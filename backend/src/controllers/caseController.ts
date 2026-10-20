@@ -4,7 +4,7 @@ import Case from '../models/Case';
 import User from '../models/User';
 import { markActingFor, recordAudit } from '../utils/audit';
 import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
-import { can, canInWorkspace, hiddenFromStaff, isClientOfCase, lawyersFor, refId, scopeFor } from '../access/policy';
+import { can, canInWorkspace, hiddenFromStaff, isClientOfCase, refId } from '../access/policy';
 import { canWriteCase, forbiddenCaseWrites, forbiddenCreateFields, projectCase } from '../access/projection';
 import type { Access, AuthedRequest as AuthRequest } from '../access/types';
 
@@ -32,7 +32,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
     }
 
     const {
-      lawyerId, clientId, clientEmail, clientName, clientPhone, clientWhatsapp,
+      lawyerId, clientEmail, clientName, clientPhone, clientWhatsapp,
       type, title, description, nextCourtDate, filingDate, isOnline, priority,
       courtName, jurisdiction, opposingParty, opposingCounsel, stage,
       statute, caseValue, retainerAmount, estimatedFee, retainerPaid,
@@ -77,8 +77,12 @@ export const createCase = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // The linked client account comes from the email (as on the admin form), never
+    // from the body: the linked client sees the case, finance fields included
+    const clientUser = await User.findOne({ email: String(clientEmail).trim().toLowerCase(), role: 'client' }).select('_id').lean();
+
     const caseDoc = new Case({
-      clientId: clientId || null,
+      clientId: clientUser?._id ?? null,
       clientEmail,
       clientName,
       clientPhone: clientPhone || undefined,
@@ -133,19 +137,17 @@ export const createCase = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// A lawyer's case list: the lawyer branch of /my-cases and the workspace list.
-// `ownCasesOnly` skips populating the lawyer (they are all the same one).
+// One lawyer's case list (the workspace list). The lawyer isn't populated: it is
+// the same one on every case.
 export const listCasesInScope = async (
   access: Access,
   scope: Record<string, unknown>,
-  archived: unknown,
-  ownCasesOnly: boolean
+  archived: unknown
 ) => {
   const listQuery = Case.find({ ...scope, ...archivedFilterFromQuery(archived) })
     .populate('archivedBy', 'name role')
+    .populate('clientId', 'name email phone')
     .sort({ createdAt: -1 });
-  if (ownCasesOnly) listQuery.populate('clientId', 'name email phone');
-  else listQuery.populate('lawyerId', 'name email barId').populate('clientId', 'name email');
 
   const [list, activeCount, archivedCount] = await Promise.all([
     listQuery,
@@ -155,6 +157,8 @@ export const listCasesInScope = async (
   return { cases: list.map((c) => projectCase(c, access)), counts: { active: activeCount, archived: archivedCount } };
 };
 
+// A client's own cases. Lawyers and staff use /api/workspace/:lawyerId/cases,
+// admins /api/admin/cases.
 export const getMyCases = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
@@ -163,32 +167,20 @@ export const getMyCases = async (req: AuthRequest, res: Response) => {
     if (!userId || !access) {
       return res.status(401).json({ status: 401, message: 'Not authenticated' });
     }
-
-    let cases;
-    let counts: { active: number; archived: number } | undefined;
-    // Staff use /api/workspace/:lawyerId/cases, one lawyer at a time
-    const scope = access.kind === 'client' || access.kind === 'staff' ? null : scopeFor(access, 'cases.view');
-
-    if (access.kind === 'client') {
-      // Clients keep their full history; archived cases come back flagged with isArchived
-      cases = await Case.find({ clientId: userId })
-        .select(CLIENT_HIDDEN_FIELDS)
-        .populate('lawyerId', 'name email barId phone')
-        .sort({ createdAt: -1 });
-    } else if (scope) {
-      // A lawyer's own list skips the lawyer; wider lists name each case's lawyer
-      const lawyers = lawyersFor(access, 'cases.view');
-      const ownCasesOnly = lawyers !== 'all' && lawyers.length === 1 && lawyers[0] === access.userId;
-      ({ cases, counts } = await listCasesInScope(access, scope, req.query.archived, ownCasesOnly));
-    } else {
+    if (access.kind !== 'client') {
       return res.status(403).json({ status: 403, message: 'Unauthorized' });
     }
+
+    // Clients keep their full history; archived cases come back flagged with isArchived
+    const cases = await Case.find({ clientId: userId })
+      .select(CLIENT_HIDDEN_FIELDS)
+      .populate('lawyerId', 'name email barId phone')
+      .sort({ createdAt: -1 });
 
     res.json({
       status: 200,
       message: 'Cases retrieved successfully',
       data: cases,
-      ...(counts ? { meta: { counts } } : {}),
     });
   } catch (error) {
     console.error('Get cases error:', error);

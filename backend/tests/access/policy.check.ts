@@ -145,10 +145,23 @@ const staffMulti = mk('staff', oid(), [], [[A, ['cases.edit']], [B, ['cases.view
   const everything = { status: 'filed', caseValue: 5, internalNotes: 'changed', hearingEntry: { date: '2026-11-01', description: 'x' }, paymentEntry: { amount: 1 } };
   expect('forbiddenCaseWrites: admin -> []', forbiddenCaseWrites(admin, current, everything).length === 0);
   expect('forbiddenCaseWrites: own lawyer -> []', forbiddenCaseWrites(lawyerA, current, everything).length === 0);
-  const unchanged = { status: 'active', caseValue: 100, internalNotes: 'secret', nextCourtDate: '2026-11-01', clientPhone: '', witnessNames: ['w'] };
+  const unchanged = { status: 'active', nextCourtDate: '2026-11-01', clientPhone: '' };
   expect('forbiddenCaseWrites: unchanged values pass (incl. date string, empty vs undefined)',
-    forbiddenCaseWrites(accountant, current, unchanged).length === 0 && forbiddenCaseWrites(staffDelegated, current, unchanged).length === 0,
+    forbiddenCaseWrites(accountant, current, { ...unchanged, caseValue: 100 }).length === 0 && forbiddenCaseWrites(staffDelegated, current, unchanged).length === 0,
     forbiddenCaseWrites(staffDelegated, current, unchanged));
+  // Phase 4: a field the actor can't see is refused even when the value matches,
+  // or 200 vs 403 would reveal it
+  const hiddenUnchanged = forbiddenCaseWrites(staffDelegated, current, { caseValue: 100, internalNotes: 'secret', witnessNames: ['w'] });
+  expect('forbiddenCaseWrites: hidden fields refused even when unchanged (no oracle)',
+    JSON.stringify(hiddenUnchanged.sort()) === JSON.stringify(['caseValue', 'internalNotes', 'witnessNames']), hiddenUnchanged);
+  const financeViewer = mk('staff', oid(), [], [[A, ['cases.finance.view']]]);
+  expect('forbiddenCaseWrites: visible but read-only finance: unchanged passes, change refused',
+    forbiddenCaseWrites(financeViewer, current, { caseValue: 100 }).length === 0 &&
+    JSON.stringify(forbiddenCaseWrites(financeViewer, current, { caseValue: 7 })) === JSON.stringify(['caseValue']));
+  const firmEditor = mk('staff', oid(), ['cases.edit']);
+  expect('forbiddenCaseWrites (admin form): clientEmail needs cases.assign, clientId is not a form field',
+    JSON.stringify(forbiddenCaseWrites(firmEditor, { ...current, clientEmail: 'a@x.com' }, { clientEmail: 'b@x.com' }, { adminForm: true })) === JSON.stringify(['clientEmail']) &&
+    forbiddenCaseWrites(mk('staff', oid(), ['cases.assign']), { ...current, clientEmail: 'a@x.com' }, { clientEmail: 'b@x.com' }, { adminForm: true }).length === 0);
   const accountantViolations = forbiddenCaseWrites(accountant, current, everything);
   expect('forbiddenCaseWrites: accountant may change finance only',
     JSON.stringify(accountantViolations.sort()) === JSON.stringify(['hearingEntry', 'internalNotes', 'status']), accountantViolations);

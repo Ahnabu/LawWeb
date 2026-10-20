@@ -154,7 +154,7 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
 };
 
 const ADMIN_CASE_UPDATABLE_FIELDS = [
-  'status', 'stage', 'priority', 'type', 'title', 'description', 'lawyerId', 'clientId',
+  'status', 'stage', 'priority', 'type', 'title', 'description', 'lawyerId',
   'clientEmail', 'clientName', 'clientPhone', 'clientWhatsapp', 'isOnline', 'isFeatured',
   'courtName', 'jurisdiction', 'opposingParty', 'opposingCounsel', 'filingDate', 'nextCourtDate',
   'statute', 'caseValue', 'retainerAmount', 'estimatedFee', 'retainerPaid', 'referredBy',
@@ -203,6 +203,19 @@ export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
       const lawyer = await findAssignableLawyer(updates.lawyerId);
       if (!lawyer) {
         return res.status(400).json({ status: 400, message: LAWYER_UNAVAILABLE_MESSAGE });
+      }
+    }
+
+    // The linked client account follows the email, as on create; never taken from the body
+    if (updates.clientEmail !== undefined) {
+      if (typeof updates.clientEmail !== 'string' || !updates.clientEmail.trim()) {
+        return res.status(400).json({ status: 400, message: 'Client email is required' });
+      }
+      const clientEmail = updates.clientEmail.trim().toLowerCase();
+      updates.clientEmail = clientEmail;
+      if (clientEmail !== existing.clientEmail) {
+        const clientUser = await User.findOne({ email: clientEmail, role: 'client' }).select('_id').lean();
+        updates.clientId = clientUser?._id ?? null;
       }
     }
 

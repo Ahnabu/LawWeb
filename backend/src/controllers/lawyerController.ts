@@ -172,39 +172,6 @@ export const writeAvailability = async (
   return { ok: true as const, availability };
 };
 
-export const getMyAvailability = async (req: AuthRequest, res: Response) => {
-  try {
-    const availability = await readAvailability(req.user?._id);
-
-    res.json({
-      status: 200,
-      message: 'Availability retrieved successfully',
-      data: availability,
-    });
-  } catch (error) {
-    console.error('Get availability error:', error);
-    res.status(500).json({ status: 500, message: 'Internal server error' });
-  }
-};
-
-export const updateMyAvailability = async (req: AuthRequest, res: Response) => {
-  try {
-    const result = await writeAvailability(req, req.user, req.body ?? {});
-    if (!result.ok) {
-      return res.status(400).json({ status: 400, message: result.message });
-    }
-
-    res.json({
-      status: 200,
-      message: 'Availability updated successfully',
-      data: result.availability,
-    });
-  } catch (error) {
-    console.error('Update availability error:', error);
-    res.status(500).json({ status: 500, message: 'Internal server error' });
-  }
-};
-
 export const getLawyerAvailabilityPublic = async (req: Request, res: Response) => {
   try {
     const { lawyerId } = req.params;

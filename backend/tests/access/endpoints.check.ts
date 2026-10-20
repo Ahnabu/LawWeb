@@ -34,6 +34,7 @@ import ContentPage from '../../src/models/ContentPage';
 import { ROLE_TEMPLATES } from '../../src/access/roleTemplates';
 import { loadAccess } from '../../src/access/loadAccess';
 import Case from '../../src/models/Case';
+import LawyerProfile from '../../src/models/LawyerProfile';
 import Consultation from '../../src/models/Consultation';
 import { generateAccessToken } from '../../src/utils/jwt';
 import { DAY_KEYS, defaultSchedule } from '../../src/utils/schedule';
@@ -202,13 +203,11 @@ const futureWeekday = (offset: number) => {
   const caUrl = `/api/cases/${CA._id}`;
 
   // ── Reads against the base fixtures ────────────────────────────────────────
+  // Phase 4: clients only (lawyers use /api/workspace/me/cases, admins /api/admin/cases)
   await row('GET /api/cases/my-cases',
-    { admin: 200, lawyerA: 200, lawyerB: 200, clientA: 200, clientB: 200 },
+    { admin: 403, lawyerA: 403, lawyerB: 403, clientA: 200, clientB: 200 },
     (a) => request(a, 'GET', '/api/cases/my-cases'),
     {
-      admin: (j) => j.data.some((c: any) => id(c) === id(CA) && c.lawyerId?.name === 'LawyerA' && c.clientId?.name === 'ClientA' && c.internalNotes),
-      lawyerA: (j) => j.data.length === 1 && typeof j.data[0].lawyerId === 'string' && j.data[0].clientId?.name === 'ClientA' && j.data[0].payments.length === 1 && j.meta.counts.active === 1,
-      lawyerB: (j) => j.data.length === 0 && j.meta.counts.active === 0,
       clientA: (j) => j.data.length === 1 && j.data[0].internalNotes === undefined && j.data[0].lawyerId?.name === 'LawyerA' && !j.meta,
       clientB: (j) => j.data.length === 0,
     });
@@ -226,12 +225,11 @@ const futureWeekday = (offset: number) => {
     { admin: 404, lawyerA: 404, lawyerB: 404, clientA: 404, clientB: 404 },
     (a) => request(a, 'GET', `/api/cases/${new mongoose.Types.ObjectId()}`));
 
+  // Phase 4: clients only (lawyers use /api/workspace/me/consultations)
   await row('GET /api/consultations/my-consultations',
-    { admin: 403, lawyerA: 200, lawyerB: 200, clientA: 200, clientB: 200 },
+    { admin: 403, lawyerA: 403, lawyerB: 403, clientA: 200, clientB: 200 },
     (a) => request(a, 'GET', '/api/consultations/my-consultations'),
     {
-      lawyerA: (j) => j.consultations.length === 1 && j.consultations[0].clientId?.name === 'ClientA',
-      lawyerB: (j) => j.consultations.length === 0,
       clientA: (j) => j.consultations.length === 1 && j.consultations[0].lawyerId?.name === 'LawyerA',
       clientB: (j) => j.consultations.length === 0,
     });
@@ -247,25 +245,16 @@ const futureWeekday = (offset: number) => {
       clientB: (j) => j.notifications.length === 0,
     });
 
-  await row('GET /api/lawyers/me/availability',
-    { admin: 403, lawyerA: 200, lawyerB: 200, clientA: 403, clientB: 403 },
-    (a) => request(a, 'GET', '/api/lawyers/me/availability'),
-    { lawyerA: (j) => id(j.data.lawyerId) === A, lawyerB: (j) => id(j.data.lawyerId) === B });
-
-  await row('PUT /api/lawyers/me/availability',
-    { admin: 403, lawyerA: 200, lawyerB: null, clientA: 403, clientB: 403 },
-    (a) => request(a, 'PUT', '/api/lawyers/me/availability', { isAcceptingNewClients: true }),
-    { lawyerA: (j) => id(j.data.lawyerId) === A && j.data.isAcceptingNewClients === true });
-
-  await row('GET /api/lawyers/me/profile',
-    { admin: 403, lawyerA: 200, lawyerB: null, clientA: 403, clientB: 403 },
-    (a) => request(a, 'GET', '/api/lawyers/me/profile'),
-    { lawyerA: (j) => id(j.data.userId) === A && j.data.firstName === 'LawyerA' });
-
-  await row('PUT /api/lawyers/me/profile',
-    { admin: 403, lawyerA: 200, lawyerB: null, clientA: 403, clientB: 403 },
-    (a) => request(a, 'PUT', '/api/lawyers/me/profile', { designation: { en: 'Advocate', bn: '' } }),
-    { lawyerA: (j) => id(j.data.userId) === A && j.data.designation?.en === 'Advocate' });
+  // Phase 4: the lawyer /me endpoints are gone (the workspace replaced them).
+  // GET /me/availability now reaches the public /:lawyerId/availability, which refuses "me".
+  for (const [method, url] of [
+    ['GET', '/api/lawyers/me/availability'], ['PUT', '/api/lawyers/me/availability'],
+    ['GET', '/api/lawyers/me/profile'], ['PUT', '/api/lawyers/me/profile'], ['POST', '/api/lawyers/me/profile/image'],
+  ] as const) {
+    await row(`${method} ${url} (removed)`,
+      { admin: [400, 404], lawyerA: [400, 404], lawyerB: null, clientA: [400, 404], clientB: null },
+      (a) => request(a, method, url, method === 'GET' ? undefined : {}));
+  }
 
   await row('GET /api/admin/stats',
     { admin: 200, lawyerA: 403, lawyerB: 403, clientA: 403, clientB: 403 },
@@ -434,8 +423,6 @@ const futureWeekday = (offset: number) => {
     (a) => as(a, 'GET', '/api/admin/stats'),
     { superAdmin: (j) => typeof j.data.totalCases === 'number' && typeof j.data.totalClients === 'number' });
 
-  await staffRow('GET /api/admin/blogs', { superAdmin: 200, staffEditor: 200, staffReception: 403, staffAccountant: 403, staffNone: 403 },
-    (a) => as(a, 'GET', '/api/admin/blogs'));
   await staffRow('GET /api/blogs/admin/all', { superAdmin: 200, staffEditor: 200, staffReception: 403, staffAccountant: 403, staffNone: 403 },
     (a) => as(a, 'GET', '/api/blogs/admin/all'));
 
@@ -572,7 +559,7 @@ const futureWeekday = (offset: number) => {
   expect(`P2 staff: email of a lawyer -> ${r.status}`, r.status === 409 && /a lawyer/.test(r.json.message));
   r = await as('superAdmin', 'PATCH', `/api/admin/staff/${staffUsers.staffNone._id}`, { staffRoleId: String(roles.editor._id) });
   expect(`P2 staff: change role -> ${r.status}`, r.status === 200 && r.json.data.staffRoleId?.name === 'Content Editor');
-  r = await as('staffNone', 'GET', '/api/admin/blogs');
+  r = await as('staffNone', 'GET', '/api/blogs/admin/all');
   expect(`P2 staff: new role applies on next request -> ${r.status}`, r.status === 200);
   r = await as('superAdmin', 'PATCH', `/api/admin/staff/${users.clientA._id}`, { name: 'Nope' });
   expect(`P2 staff: a client is not a staff member -> ${r.status}`, r.status === 404);
@@ -662,7 +649,8 @@ const futureWeekday = (offset: number) => {
   await p3Row('PATCH /api/cases/<CA> {retainerAmount: changed}', { lawyerA: 200, lawyerB: 403, S1: 403, S2: 200, S0: 404, client: 403 },
     async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}`, { retainerAmount: 1 }),
     { S1: (j) => j.code === 'FIELD_FORBIDDEN' && j.fields?.includes('retainerAmount') });
-  await p3Row('PATCH /api/cases/<CA> {retainerAmount: unchanged, status}', { lawyerA: 200, S1: 200 },
+  // Phase 4: S1 can't see finance, so even an unchanged value is refused (no oracle)
+  await p3Row('PATCH /api/cases/<CA> {retainerAmount: unchanged, status}', { lawyerA: 200, S1: 403 },
     async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}`, { retainerAmount: 10000, status: 'filed' }));
   await p3Row('PATCH /api/cases/<CA>/archive', { lawyerA: 200, lawyerB: 403, S1: 403, S2: 200, S0: 404, client: 403 },
     async (a) => p3(a, 'PATCH', `/api/cases/${(await newCase())._id}/archive`),
@@ -873,6 +861,75 @@ const futureWeekday = (offset: number) => {
   // ── Deleting a staff account removes their delegations ─────────────────────
   r = await send(tokens.admin, 'DELETE', `/api/admin/staff/${p3Staff.S2._id}`);
   expect(`P3 staff deletion -> ${r.status}`, r.status === 200 && !(await StaffAssignment.exists({ staffId: p3Staff.S2._id })));
+
+  // ══ Phase 4: security review fixes ══════════════════════════════════════════
+  // S1 was revoked above, and removing lawyer A revoked their sessions
+  await StaffAssignment.deleteMany({ staffId: p3Staff.S1._id });
+  await delegate(p3Staff.S1, users.lawyerA, ['cases.edit']);
+  const lawyerANow = await User.findById(users.lawyerA._id).select('role tokenVersion').lean();
+  tokens.lawyerA = generateAccessToken({ _id: users.lawyerA._id, role: 'lawyer', tokenVersion: lawyerANow?.tokenVersion ?? 0 });
+  // A hidden field is refused even when the guess matches (no 200/403 oracle)
+  r = await p3('S1', 'PATCH', `/api/cases/${(await newCase())._id}`, { caseValue: 50000 });
+  expect(`P4 S1 PATCH unchanged hidden caseValue -> ${r.status}`, r.status === 403 && isFieldForbidden('caseValue')(r.json), r.json);
+  r = await p3('S1', 'PATCH', `/api/cases/${(await newCase())._id}`, { internalNotes: 'secret note', witnessNames: ['W1'] });
+  expect(`P4 S1 PATCH unchanged hidden confidential -> ${r.status}`, r.status === 403 && isFieldForbidden('internalNotes')(r.json) && isFieldForbidden('witnessNames')(r.json), r.json);
+  r = await p3('S1', 'PATCH', `/api/cases/${(await newCase())._id}`, { status: 'filed', stage: 'intake' });
+  expect(`P4 S1 PATCH visible fields still fine -> ${r.status}`, r.status === 200);
+
+  // The linked client follows clientEmail (needs cases.assign); clientId from the body is ignored
+  const caseEditorRole = await mkRole('Case Editor', ['cases.edit']);
+  const caseEditor = await mkStaff('StaffCaseEditor', caseEditorRole._id);
+  const caseEditorToken = generateAccessToken({ _id: caseEditor._id, role: caseEditor.role, tokenVersion: 0 });
+  const relink = await newCase();
+  r = await send(caseEditorToken, 'PATCH', `/api/admin/cases/${relink._id}`, { clientId: id(users.clientB._id), title: 'Edited' });
+  const relinked = await Case.findById(relink._id).select('clientId title').lean();
+  expect(`P4 case editor PATCH admin case {clientId} is ignored -> ${r.status}`,
+    r.status === 200 && id(relinked?.clientId) === id(users.clientA._id) && relinked?.title === 'Edited', relinked);
+  r = await send(caseEditorToken, 'PATCH', `/api/admin/cases/${relink._id}`, { clientEmail: 'clientb@test.local' });
+  expect(`P4 case editor PATCH admin case {clientEmail} -> ${r.status}`, r.status === 403 && isFieldForbidden('clientEmail')(r.json), r.json);
+  r = await send(tokens.admin, 'PATCH', `/api/admin/cases/${relink._id}`, { clientEmail: 'ClientB@test.local' });
+  expect(`P4 admin PATCH admin case {clientEmail} relinks the client -> ${r.status}`,
+    r.status === 200 && id(r.json.data.clientId) === id(users.clientB._id) && r.json.data.clientEmail === 'clientb@test.local', r.json);
+  r = await send(tokens.admin, 'PATCH', `/api/admin/cases/${relink._id}`, { clientEmail: 'nobody@test.local' });
+  expect(`P4 admin PATCH admin case {clientEmail} with no account unlinks -> ${r.status}`, r.status === 200 && !r.json.data.clientId, r.json);
+  r = await request('lawyerA', 'POST', '/api/cases', {
+    clientId: id(users.clientB._id), clientEmail: 'clienta@test.local', clientName: 'ClientA', type: 'civil', title: 'T', description: '<p>D</p>',
+  });
+  expect(`P4 lawyer POST /api/cases: clientId comes from clientEmail -> ${r.status}`,
+    r.status === 201 && id(r.json.data.clientId) === id(users.clientA._id), r.json);
+
+  // Login emails: super-admin only (email + "forgot password" would take the account over)
+  const lawyerManagerRole = await mkRole('Lawyer Manager', ['lawyers.manage']);
+  const lawyerManager = await mkStaff('StaffLawyerManager', lawyerManagerRole._id);
+  const lawyerManagerToken = generateAccessToken({ _id: lawyerManager._id, role: lawyerManager.role, tokenVersion: 0 });
+  r = await send(lawyerManagerToken, 'PATCH', `/api/admin/lawyers/${B}`, { email: 'taken-over@test.local' });
+  expect(`P4 lawyers.manage PATCH lawyer {email} -> ${r.status}`, r.status === 403 && isFieldForbidden('email')(r.json), r.json);
+  r = await send(lawyerManagerToken, 'PATCH', `/api/admin/lawyers/${B}`, { email: 'lawyerb@test.local', name: 'LawyerB' });
+  expect(`P4 lawyers.manage PATCH lawyer {same email, name} -> ${r.status}`, r.status === 200, r.json);
+  const emailClient = await User.create({ name: 'EmailClient', email: 'emailclient@test.local', password: 'Passw0rd!x', role: 'client', isVerified: true });
+  r = await as('staffManager', 'PATCH', `/api/admin/users/${emailClient._id}`, { email: 'taken-over@test.local' });
+  expect(`P4 clients.manage PATCH client {email} -> ${r.status}`, r.status === 403 && isFieldForbidden('email')(r.json), r.json);
+  r = await as('staffManager', 'PATCH', `/api/admin/users/${emailClient._id}`, { name: 'Renamed Client' });
+  expect(`P4 clients.manage PATCH client {name} -> ${r.status}`, r.status === 200, r.json);
+  r = await send(tokens.admin, 'PATCH', `/api/admin/users/${emailClient._id}`, { email: 'moved@test.local' });
+  expect(`P4 super-admin PATCH client {email} -> ${r.status}`, r.status === 200, r.json);
+
+  // User details: the case and booking lists need their own firm permissions
+  const clientViewerRole = await mkRole('Client Viewer', ['clients.view']);
+  const clientViewer = await mkStaff('StaffClientViewer', clientViewerRole._id);
+  r = await send(generateAccessToken({ _id: clientViewer._id, role: 'staff', tokenVersion: 0 }), 'GET', `/api/admin/users/${users.clientA._id}`);
+  expect(`P4 clients.view only: user details without cases/bookings -> ${r.status}`,
+    r.status === 200 && r.json.data.user && r.json.data.cases.length === 0 && r.json.data.consultations.length === 0, r.json);
+  r = await as('staffManager', 'GET', `/api/admin/users/${users.clientA._id}`);
+  expect(`P4 office manager: user details with cases and bookings -> ${r.status}`,
+    r.status === 200 && r.json.data.cases.length > 0 && r.json.data.consultations.length > 0, r.json?.data?.stats);
+
+  // The profile image URL is set only by the upload (it names the image the upload deletes)
+  await LawyerProfile.updateOne({ userId: users.lawyerA._id }, { $set: { profileImageUrl: 'https://res.example/lawweb/profiles/mine.jpg' } }, { upsert: true });
+  r = await request('lawyerA', 'PUT', '/api/workspace/me/profile', { profileImageUrl: 'https://res.example/lawweb/profiles/someone-else.jpg', designation: { en: 'Advocate', bn: '' } });
+  const imageAfter = await LawyerProfile.findOne({ userId: users.lawyerA._id }).select('profileImageUrl').lean();
+  expect(`P4 PUT profile {profileImageUrl} is ignored -> ${r.status}`,
+    r.status === 200 && imageAfter?.profileImageUrl === 'https://res.example/lawweb/profiles/mine.jpg', { status: r.status, imageAfter });
 
   server.close();
   await mongoose.connection.dropDatabase();

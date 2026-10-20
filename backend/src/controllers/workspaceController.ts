@@ -26,7 +26,7 @@ const serverError = (res: Response, label: string, error: unknown) => {
 // GET /cases?archived=false|true|all — same shape as the lawyer's /api/cases/my-cases
 export const getWorkspaceCases = async (req: WorkspaceRequest, res: Response) => {
   try {
-    const { cases, counts } = await listCasesInScope(req.access!, lawyerFilter(req), req.query.archived, true);
+    const { cases, counts } = await listCasesInScope(req.access!, lawyerFilter(req), req.query.archived);
     res.json({ status: 200, message: 'Cases retrieved successfully', data: cases, meta: { counts } });
   } catch (error) {
     serverError(res, 'Workspace cases', error);

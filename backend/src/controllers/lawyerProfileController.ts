@@ -1,4 +1,3 @@
-import { Response } from 'express';
 import mongoose from 'mongoose';
 import LawyerProfile from '../models/LawyerProfile';
 import User from '../models/User';
@@ -40,8 +39,10 @@ export const readLawyerProfile = async (lawyerId: Id) => {
   );
 };
 
+// Not profileImageUrl: only the upload sets it, and the upload deletes the old
+// image named there, so a writable URL could delete another lawyer's photo
 const ALLOWED_PROFILE_FIELDS = [
-  'firstName', 'lastName', 'profileImageUrl', 'designation', 'bio',
+  'firstName', 'lastName', 'designation', 'bio',
   'contactEmail', 'contactPhone', 'whatsappNumber', 'barNumber',
   'yearAdmitted', 'practiceAreas', 'languages', 'education',
   'certifications', 'hourlyRate', 'isActive',
@@ -120,41 +121,3 @@ export const writeProfileImage = async (req: AuthRequest, lawyer: LawyerRef, fil
   return imageUrl;
 };
 
-export const getMyLawyerProfile = async (req: AuthRequest, res: Response) => {
-  try {
-    const profile = await readLawyerProfile(req.user?._id);
-    res.json({ status: 200, message: 'Profile retrieved successfully', data: profile });
-  } catch (error) {
-    console.error('Get lawyer profile error:', error);
-    res.status(500).json({ status: 500, message: 'Internal server error' });
-  }
-};
-
-export const uploadProfileImage = async (req: AuthRequest, res: Response) => {
-  try {
-    const file = req.file as Express.Multer.File & { path: string; filename: string };
-
-    if (!file) {
-      return res.status(400).json({ status: 400, message: 'No image file provided' });
-    }
-
-    const imageUrl = await writeProfileImage(req, req.user, file);
-    res.json({ status: 200, message: 'Profile image uploaded successfully', data: { profileImageUrl: imageUrl } });
-  } catch (error) {
-    console.error('Upload profile image error:', error);
-    res.status(500).json({ status: 500, message: 'Internal server error' });
-  }
-};
-
-export const updateMyLawyerProfile = async (req: AuthRequest, res: Response) => {
-  try {
-    const result = await writeLawyerProfile(req, req.user, req.body ?? {});
-    if (!result.ok) {
-      return res.status(400).json({ status: 400, message: result.message });
-    }
-    res.json({ status: 200, message: 'Profile updated successfully', data: result.profile });
-  } catch (error) {
-    console.error('Update lawyer profile error:', error);
-    res.status(500).json({ status: 500, message: 'Internal server error' });
-  }
-};

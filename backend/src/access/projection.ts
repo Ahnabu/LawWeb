@@ -44,10 +44,11 @@ const FINANCE_WRITE_FIELDS = [...CASE_FINANCE_FIELDS, 'paymentEntry'] as const;
 
 // Fields only the admin case form (PATCH /api/admin/cases/:id) can change
 const ADMIN_FORM_FAMILIES: readonly [readonly string[], Permission][] = [
-  [['type', 'title', 'description', 'clientId', 'clientEmail', 'clientName', 'isOnline', 'filingDate'], 'cases.edit'],
+  [['type', 'title', 'description', 'clientName', 'isOnline', 'filingDate'], 'cases.edit'],
   [['isFeatured'], 'cases.feature'],
-  // Moving a case to another lawyer is a firm decision
-  [['lawyerId'], 'cases.assign'],
+  // Moving a case to another lawyer, or to another client account, is a firm decision
+  // (the linked client sees the case's finance fields)
+  [['lawyerId', 'clientEmail'], 'cases.assign'],
 ];
 
 // Appending an entry is always a change; other fields only when the value differs
@@ -78,7 +79,9 @@ export function forbiddenCreateFields(access: Access, lawyerId: unknown, body: R
 }
 
 // Body keys this actor may not change on this case. Values equal to the current
-// ones are not violations: the case pages send unchanged fields back.
+// ones are not violations: the case pages send unchanged fields back. That only
+// holds for fields the actor can see; for hidden ones any key is refused, or the
+// 200/403 answer would reveal the stored value.
 // `adminForm` adds the fields only the admin case form edits.
 export function forbiddenCaseWrites(
   access: Access,
@@ -88,20 +91,23 @@ export function forbiddenCaseWrites(
 ): string[] {
   if (access.isSuperAdmin) return [];
   const ctx = { lawyerId: caseDoc.lawyerId };
-  const families: [readonly string[], boolean][] = [
-    [GENERAL_WRITE_FIELDS, can(access, 'cases.edit', ctx)],
-    [FINANCE_WRITE_FIELDS, can(access, 'cases.finance.edit', ctx)],
-    [CASE_CONFIDENTIAL_FIELDS, can(access, 'cases.confidential.edit', ctx)],
-    ...(adminForm ? ADMIN_FORM_FAMILIES.map(([fields, perm]) => [fields, can(access, perm, ctx)] as [readonly string[], boolean]) : []),
+  // [fields, may edit, may view]
+  const families: [readonly string[], boolean, boolean][] = [
+    [GENERAL_WRITE_FIELDS, can(access, 'cases.edit', ctx), true],
+    [FINANCE_WRITE_FIELDS, can(access, 'cases.finance.edit', ctx), can(access, 'cases.finance.view', ctx)],
+    [CASE_CONFIDENTIAL_FIELDS, can(access, 'cases.confidential.edit', ctx), can(access, 'cases.confidential.view', ctx)],
+    ...(adminForm
+      ? ADMIN_FORM_FAMILIES.map(([fields, perm]) => [fields, can(access, perm, ctx), true] as [readonly string[], boolean, boolean])
+      : []),
   ];
 
   const violations: string[] = [];
-  for (const [fields, allowed] of families) {
+  for (const [fields, allowed, visible] of families) {
     if (allowed) continue;
     for (const field of fields) {
       if (body[field] === undefined) continue;
       const current = (caseDoc as Record<string, unknown>)[field];
-      const changes = APPEND_FIELDS.has(field) ? Boolean(body[field]) : !sameValue(current, body[field]);
+      const changes = !visible || (APPEND_FIELDS.has(field) ? Boolean(body[field]) : !sameValue(current, body[field]));
       if (changes) violations.push(field);
     }
   }

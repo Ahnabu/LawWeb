@@ -7,7 +7,7 @@ import { ACTIVE_STATUSES, businessNow } from '../utils/schedule';
 import { revokeAllSessions } from '../utils/session';
 import { recordAudit } from '../utils/audit';
 import { blockAccount, blockReasonFrom, blockState, unblockAccount } from '../utils/accountBlock';
-import { can } from '../access/policy';
+import { can, forbidden } from '../access/policy';
 import type { Access, AuthedRequest as AuthRequest } from '../access/types';
 
 export const getAllClientsAdmin = async (req: AuthRequest, res: Response) => {
@@ -155,14 +155,16 @@ export const getUserDetailsAdmin = async (req: AuthRequest, res: Response) => {
       : { $or: [{ clientId: objectId }, { clientEmail: user.email }] };
     const consultationFilter = isLawyer ? { lawyerId: objectId } : { clientId: objectId };
 
+    // The lists need their own firm permissions; clients.view alone shows the account
+    const access = req.access!;
     const [cases, consultations] = await Promise.all([
-      Case.find(caseFilter)
+      !can(access, 'cases.view') ? [] : Case.find(caseFilter)
         .select('caseNumber title status type isArchived lawyerId clientName clientEmail createdAt')
         .populate('lawyerId', 'name email')
         .sort({ createdAt: -1 })
         .limit(200)
         .lean(),
-      Consultation.find(consultationFilter)
+      !can(access, 'appointments.view') ? [] : Consultation.find(consultationFilter)
         .select('date time status subject consultationType meetingMode lawyerId clientId lawyerConfirmed createdAt')
         .populate('lawyerId', 'name email')
         .populate('clientId', 'name email')
@@ -240,6 +242,10 @@ export const updateUserAdmin = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ status: 400, message: 'Please enter a valid email address.' });
       }
       if (email !== user.email) {
+        // The login email plus "forgot password" is the account: super-admin only
+        if (!req.access?.isSuperAdmin) {
+          return forbidden(res, "Only the super-admin can change a login email.", 'FIELD_FORBIDDEN', { fields: ['email'] });
+        }
         const taken = await User.exists({ email, _id: { $ne: user._id } });
         if (taken) {
           return res.status(409).json({ status: 409, message: 'Another account already uses this email address.' });

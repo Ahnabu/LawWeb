@@ -1,12 +1,15 @@
 {
   "GET /api/cases/my-cases :: admin": {
-    "status": 200
+    "status": 403,
+    "message": "Unauthorized"
   },
   "GET /api/cases/my-cases :: lawyerA": {
-    "status": 200
+    "status": 403,
+    "message": "Unauthorized"
   },
   "GET /api/cases/my-cases :: lawyerB": {
-    "status": 200
+    "status": 403,
+    "message": "Unauthorized"
   },
   "GET /api/cases/my-cases :: clientA": {
     "status": 200
@@ -56,10 +59,12 @@
     "message": "Unauthorized"
   },
   "GET /api/consultations/my-consultations :: lawyerA": {
-    "status": 200
+    "status": 403,
+    "message": "Unauthorized"
   },
   "GET /api/consultations/my-consultations :: lawyerB": {
-    "status": 200
+    "status": 403,
+    "message": "Unauthorized"
   },
   "GET /api/consultations/my-consultations :: clientA": {
     "status": 200
@@ -82,68 +87,53 @@
   "GET /api/consultations/notifications :: clientB": {
     "status": 200
   },
-  "GET /api/lawyers/me/availability :: admin": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "GET /api/lawyers/me/availability (removed) :: admin": {
+    "status": 400,
+    "message": "Invalid lawyer ID"
   },
-  "GET /api/lawyers/me/availability :: lawyerA": {
-    "status": 200
+  "GET /api/lawyers/me/availability (removed) :: lawyerA": {
+    "status": 400,
+    "message": "Invalid lawyer ID"
   },
-  "GET /api/lawyers/me/availability :: lawyerB": {
-    "status": 200
+  "GET /api/lawyers/me/availability (removed) :: clientA": {
+    "status": 400,
+    "message": "Invalid lawyer ID"
   },
-  "GET /api/lawyers/me/availability :: clientA": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "PUT /api/lawyers/me/availability (removed) :: admin": {
+    "status": 404
   },
-  "GET /api/lawyers/me/availability :: clientB": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "PUT /api/lawyers/me/availability (removed) :: lawyerA": {
+    "status": 404
   },
-  "PUT /api/lawyers/me/availability :: admin": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "PUT /api/lawyers/me/availability (removed) :: clientA": {
+    "status": 404
   },
-  "PUT /api/lawyers/me/availability :: lawyerA": {
-    "status": 200
+  "GET /api/lawyers/me/profile (removed) :: admin": {
+    "status": 404
   },
-  "PUT /api/lawyers/me/availability :: clientA": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "GET /api/lawyers/me/profile (removed) :: lawyerA": {
+    "status": 404
   },
-  "PUT /api/lawyers/me/availability :: clientB": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "GET /api/lawyers/me/profile (removed) :: clientA": {
+    "status": 404
   },
-  "GET /api/lawyers/me/profile :: admin": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "PUT /api/lawyers/me/profile (removed) :: admin": {
+    "status": 404
   },
-  "GET /api/lawyers/me/profile :: lawyerA": {
-    "status": 200
+  "PUT /api/lawyers/me/profile (removed) :: lawyerA": {
+    "status": 404
   },
-  "GET /api/lawyers/me/profile :: clientA": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "PUT /api/lawyers/me/profile (removed) :: clientA": {
+    "status": 404
   },
-  "GET /api/lawyers/me/profile :: clientB": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "POST /api/lawyers/me/profile/image (removed) :: admin": {
+    "status": 404
   },
-  "PUT /api/lawyers/me/profile :: admin": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "POST /api/lawyers/me/profile/image (removed) :: lawyerA": {
+    "status": 404
   },
-  "PUT /api/lawyers/me/profile :: lawyerA": {
-    "status": 200
-  },
-  "PUT /api/lawyers/me/profile :: clientA": {
-    "status": 403,
-    "message": "Insufficient permissions"
-  },
-  "PUT /api/lawyers/me/profile :: clientB": {
-    "status": 403,
-    "message": "Insufficient permissions"
+  "POST /api/lawyers/me/profile/image (removed) :: clientA": {
+    "status": 404
   },
   "GET /api/admin/stats :: admin": {
     "status": 200

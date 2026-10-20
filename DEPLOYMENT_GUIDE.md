@@ -130,6 +130,59 @@ and pick up the published content within 5 minutes of the deploy.
 
 ---
 
+## Role-based access (staff, roles, lawyer assistants)
+
+Staff accounts, custom roles and lawyer assistants (design and history: `docs/rbac/`; guide for
+the firm: `docs/rbac/user-guide.md`).
+
+**Environment variables:** none new. `RBAC_DEMO_PASSWORD` is read only by the development seed
+script below.
+
+**Data:** no migration. Existing accounts keep their type; the existing admin is the super-admin.
+
+**Indexes:** `Role.nameKey` (unique), `StaffAssignment {staffId, lawyerId}` (unique) plus
+`staffId` and `lawyerId`, `User.staffRoleId`, `AuditLog {onBehalfOf, createdAt}`. Mongoose builds
+them on start-up, but on Vercel that happens lazily per cold start, so build them once:
+
+```bash
+cd backend
+MONGODB_URI="<production URI>" npm run sync:indexes
+```
+
+It only adds missing indexes (it never drops one) and is safe to run again.
+
+### Rollout
+
+1. **Deploy the backend and the frontend together.** The backend no longer has the endpoints the
+   pre-assistant frontend used (`/api/lawyers/me/availability`, `/api/lawyers/me/profile`,
+   `/api/lawyers/me/profile/image`, the lawyer view of `/api/cases/my-cases` and
+   `/api/consultations/my-consultations`, and `/api/admin/blogs*`). An older frontend talking to
+   this backend shows errors on the lawyer dashboard. The new frontend needs the new backend.
+2. Run `npm run sync:indexes` against production (above).
+3. **Smoke test in production:**
+   - The super-admin signs in and sees Team and Roles in the sidebar.
+   - A lawyer and a client sign in; their dashboards look as before (the lawyer also has My Team).
+   - Create a test staff account with an email the team controls, give it a role, sign in with the
+     setup link, check the sidebar, then delete the account from Team.
+
+**Rollback:** roll back both apps together, to the same earlier release. Rolling back only the
+backend breaks staff logins and the lawyer dashboard; rolling back only the frontend breaks the
+lawyer dashboard (see step 1).
+
+### Development and end-to-end tests
+
+- `npm run seed:rbac-demo` (backend) creates a demo lawyer, client and assistant
+  (`rbac-demo-*@example.com`, password `RBAC_DEMO_PASSWORD` or `Demo@12345`), a demo case and an
+  unconfirmed booking. `-- --clean` removes them. It refuses to run with `NODE_ENV=production`.
+- `frontend/e2e/rbac.spec.ts` runs the role-based access flows against the dev stack:
+  `E2E_ADMIN_EMAIL=... E2E_ADMIN_PASSWORD=... npx playwright test e2e/rbac.spec.ts` (frontend).
+  It runs the seed itself, so the backend `.env` must point at a development database.
+- In development every email goes to `RESEND_TEST_EMAIL`. With Resend's test sender that address
+  must be the Resend account owner's, or setup and assistant emails fail (accounts are still
+  created; the UI shows a warning).
+
+---
+
 ## Testing the Connection
 
 1. **Check Backend Health**
@@ -178,4 +231,6 @@ and pick up the published content within 5 minutes of the deploy.
 | 404 on health check | Ensure backend is deployed and running |
 | Published CMS content takes ~5 min to appear | Set `FRONTEND_REVALIDATE_URL` + `REVALIDATE_SECRET` on the backend and the same `REVALIDATE_SECRET` on the frontend; check backend logs for `Content revalidation failed` |
 | Canonical / `hreflang` / sitemap URLs point to the wrong domain | Set `NEXT_PUBLIC_SITE_URL` in Vercel and redeploy (it is read at build time) |
+| A staff member says a page shows "You don't have access" | Their role (Team → their name) or the lawyer's assistant settings don't include that area; changes apply on their next click |
+| Lawyer dashboard shows errors right after a deploy | The frontend and backend are from different releases; deploy both (see Role-based access) |
 
