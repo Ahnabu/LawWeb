@@ -49,7 +49,9 @@ export interface SidebarItem {
   icon?: React.ReactNode;
 }
 
+export type DashboardRole = "client" | "lawyer" | "admin" | "staff";
+
 export interface DashboardLayoutProps {
   children: React.ReactNode;
-  role: "client" | "lawyer" | "admin";
+  role: DashboardRole;
 }

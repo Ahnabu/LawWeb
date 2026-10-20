@@ -50,7 +50,7 @@ const sanitize = (value: unknown, depth = 0): unknown => {
 };
 
 const toRole = (role: unknown, hasId: boolean): AuditActorRole => {
-  if (role === 'admin' || role === 'lawyer' || role === 'client' || role === 'system') return role;
+  if (role === 'admin' || role === 'lawyer' || role === 'client' || role === 'staff' || role === 'system') return role;
   return hasId ? 'client' : 'anonymous';
 };
 

@@ -26,6 +26,7 @@ import {
 import { ImageFieldEditor, ListEditor, SiteSettingsEditor, TextFieldEditor } from "../../../../../components/ContentEditorFields";
 import { ContentHistory } from "../../../../../components/ContentHistory";
 import { confirmDialog } from "../../../../../components/ConfirmDialog";
+import { useAccess } from "../../../../../components/useAccess";
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -35,6 +36,7 @@ type Busy = "save" | "publish" | "discard" | "preview" | null;
 export default function AdminContentEditorPage() {
   const { pageKey } = useParams<{ pageKey: string }>();
   const def = getPageDef(pageKey);
+  const mayPublish = useAccess().can("content.publish");
 
   const [page, setPage] = useState<AdminContentPage | null>(null);
   const [data, setData] = useState<PageContent>({});
@@ -215,6 +217,9 @@ export default function AdminContentEditorPage() {
   };
 
   const canPublish = dirty || !!page?.hasUnpublishedChanges;
+  // Editors without content.publish save drafts only. Discard stays for them
+  // while it only drops unsaved edits (it never reaches the server then).
+  const showDiscard = mayPublish || !page?.hasUnpublishedChanges;
 
   return (
     <div className="space-y-5">
@@ -232,18 +237,22 @@ export default function AdminContentEditorPage() {
               className="btn btn-ghost btn-sm">
               {busy === "preview" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />} {dirty ? "Save & Preview" : "Preview"}
             </button>
-            <button onClick={discard} disabled={!canPublish || busy !== null}
-              className="btn btn-ghost btn-sm">
-              {busy === "discard" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Discard
-            </button>
+            {showDiscard && (
+              <button onClick={discard} disabled={!canPublish || busy !== null}
+                className="btn btn-ghost btn-sm">
+                {busy === "discard" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Discard
+              </button>
+            )}
             <button onClick={save} disabled={!dirty || busy !== null}
-              className="btn btn-secondary btn-sm">
+              className={`btn btn-sm ${mayPublish ? "btn-secondary" : "btn-primary"}`}>
               {busy === "save" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Draft
             </button>
-            <button onClick={publish} disabled={!canPublish || busy !== null}
-              className="btn btn-primary btn-sm">
-              {busy === "publish" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Publish
-            </button>
+            {mayPublish && (
+              <button onClick={publish} disabled={!canPublish || busy !== null}
+                className="btn btn-primary btn-sm">
+                {busy === "publish" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Publish
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -296,7 +305,7 @@ export default function AdminContentEditorPage() {
       )}
 
       {showHistory && page && (
-        <ContentHistory def={def} page={page} current={cleaned} dirty={dirty} onRestored={(next) => { setErrors([]); applyPage(next); }} />
+        <ContentHistory def={def} page={page} current={cleaned} dirty={dirty} canRestore={mayPublish} onRestored={(next) => { setErrors([]); applyPage(next); }} />
       )}
 
       {loading ? (

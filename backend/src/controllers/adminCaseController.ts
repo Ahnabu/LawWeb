@@ -5,10 +5,9 @@ import Case from '../models/Case';
 import { parsePagination, toCountMap } from '../utils/pagination';
 import { changedFields, recordAudit } from '../utils/audit';
 import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import { can, forbidden } from '../access/policy';
+import { forbiddenCaseWrites, projectCase } from '../access/projection';
+import type { AuthedRequest as AuthRequest } from '../access/types';
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -54,7 +53,7 @@ export const getAllCasesAdmin = async (req: AuthRequest, res: Response) => {
     const filter: Record<string, any> = { ...base, ...archiveFilter };
 
     const [cases, total, activeCount, archivedCount, byStatus] = await Promise.all([
-      Case.find(filter).populate(CASE_POPULATE).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit),
+      Case.find(filter).populate(CASE_POPULATE).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit).lean(),
       Case.countDocuments(filter),
       Case.countDocuments({ ...base, ...ACTIVE_FILTER }),
       Case.countDocuments({ ...base, ...ARCHIVED_FILTER }),
@@ -69,7 +68,8 @@ export const getAllCasesAdmin = async (req: AuthRequest, res: Response) => {
     res.json({
       status: 200,
       message: 'Cases retrieved successfully',
-      data: cases,
+      // Finance and confidential fields only for those allowed to see them
+      data: cases.map((c) => projectCase(c, req.access!)),
       meta: {
         total,
         page,
@@ -141,7 +141,7 @@ export const createCaseAdmin = async (req: AuthRequest, res: Response) => {
     res.status(201).json({
       status: 201,
       message: 'Case created successfully',
-      data: newCase,
+      data: projectCase(newCase, req.access!),
     });
   } catch (error) {
     console.error('Admin create case error:', error);
@@ -189,6 +189,12 @@ export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ status: 409, message: 'Restore the case to edit it' });
     }
 
+    // Each field family needs its own permission; reassigning needs cases.assign
+    const blocked = forbiddenCaseWrites(req.access!, existing, updates, { adminForm: true });
+    if (blocked.length) {
+      return forbidden(res, `You don't have permission to change: ${blocked.join(', ')}`, 'FIELD_FORBIDDEN', { fields: blocked });
+    }
+
     if (updates.lawyerId !== undefined && String(updates.lawyerId) !== String(existing.lawyerId)) {
       const lawyer = await findAssignableLawyer(updates.lawyerId);
       if (!lawyer) {
@@ -227,7 +233,7 @@ export const updateCaseAdmin = async (req: AuthRequest, res: Response) => {
     res.json({
       status: 200,
       message: 'Case updated successfully',
-      data: updatedCase,
+      data: projectCase(updatedCase, req.access!),
     });
   } catch (error) {
     console.error('Admin update case error:', error);
@@ -269,7 +275,7 @@ export const archiveCaseAdmin = async (req: AuthRequest, res: Response) => {
       metadata: note ? { note: note.slice(0, 200) } : undefined,
     });
 
-    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: caseDoc });
+    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: projectCase(caseDoc, req.access!) });
   } catch (error) {
     console.error('Admin archive case error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
@@ -290,6 +296,15 @@ export const restoreCaseAdmin = async (req: AuthRequest, res: Response) => {
     }
     if (!caseDoc.isArchived) {
       return res.status(409).json({ status: 409, message: 'This case is not archived' });
+    }
+
+    // Bringing back a deleted lawyer's case is a super-admin decision, and
+    // restoring onto a different lawyer is a reassignment
+    if (caseDoc.archiveReason === 'lawyer-deleted' && !req.access!.isSuperAdmin) {
+      return forbidden(res, "Only the super-admin can restore a removed lawyer's case.", 'ADMIN_RESTORE_ONLY');
+    }
+    if (requestedLawyerId && String(requestedLawyerId) !== String(caseDoc.lawyerId) && !can(req.access!, 'cases.assign')) {
+      return forbidden(res, "You don't have permission to move a case to another lawyer.");
     }
 
     if (requestedLawyerId) {
@@ -332,7 +347,7 @@ export const restoreCaseAdmin = async (req: AuthRequest, res: Response) => {
       metadata: requestedLawyerId ? { lawyerReassigned: true } : undefined,
     });
 
-    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: caseDoc });
+    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: projectCase(caseDoc, req.access!) });
   } catch (error) {
     console.error('Admin restore case error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });

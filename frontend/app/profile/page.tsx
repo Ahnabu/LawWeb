@@ -11,6 +11,8 @@ const accountPathByRole = {
   admin: '/dashboard/admin/settings',
   lawyer: '/dashboard/lawyer/profile',
   client: '/dashboard/client/profile',
+  // Staff account settings live with the admin pages they use
+  staff: '/dashboard/admin/settings',
 } as const
 
 function RedirectToAccount() {

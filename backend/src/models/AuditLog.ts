@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 // Append-only record of state-changing actions (sign-ins, admin edits, bookings,
 // CMS publishes...). Written through utils/audit.ts, read by admins only.
-export const AUDIT_ACTOR_ROLES = ['admin', 'lawyer', 'client', 'anonymous', 'system'] as const;
+export const AUDIT_ACTOR_ROLES = ['admin', 'lawyer', 'client', 'staff', 'anonymous', 'system'] as const;
 export type AuditActorRole = (typeof AUDIT_ACTOR_ROLES)[number];
 
 export const AUDIT_CATEGORIES = [
@@ -15,6 +15,8 @@ export const AUDIT_CATEGORIES = [
   'content',
   'contact',
   'profile',
+  // Roles, staff accounts (and, from Phase 3, lawyer delegations)
+  'access',
   'system',
 ] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];

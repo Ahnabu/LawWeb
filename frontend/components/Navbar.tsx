@@ -21,6 +21,7 @@ const roleDashboardPath = {
   admin: "/dashboard/admin",
   lawyer: "/dashboard/lawyer",
   client: "/dashboard/client",
+  staff: "/dashboard/staff",
 } as const;
 
 const menuItemClass =

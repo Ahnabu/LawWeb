@@ -24,6 +24,13 @@ import { apiFetch } from '../lib/http'
 const DRAFT_KEY = 'appointmentDraft'
 const PAGE_PATH = '/appointment'
 
+// "You're signed in as …" for accounts that cannot book
+const WRONG_ROLE_LABELS: Record<string, string> = {
+  admin: 'an admin',
+  lawyer: 'a lawyer',
+  staff: 'a staff member',
+}
+
 const EMPTY_FORM = {
   lawyerId: '',
   consultationType: 'initial-consultation',
@@ -294,7 +301,7 @@ export function AppointmentBookingForm() {
         )}
         {wrongRole && (
           <div className="notice notice-error">
-            Only client accounts can book consultations. You&apos;re signed in as {user?.role === 'admin' ? 'an admin' : 'a lawyer'}.
+            Only client accounts can book consultations. You&apos;re signed in as {WRONG_ROLE_LABELS[user?.role ?? ''] ?? 'a firm account'}.
           </div>
         )}
         {isClient && user && (

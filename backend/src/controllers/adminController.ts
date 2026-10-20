@@ -5,13 +5,14 @@ import Consultation from '../models/Consultation';
 import { ACTIVE_STATUSES, businessNow, parseDateOnly } from '../utils/schedule';
 import { parsePagination, toCountMap } from '../utils/pagination';
 import { recordAudit } from '../utils/audit';
+import { can } from '../access/policy';
+import type { Permission } from '../access/permissions';
+import ContactMessage from '../models/ContactMessage';
 
 // Dashboard stats and appointments. Cases, lawyers and users live in
 // adminCaseController, adminLawyerController and adminUserController.
 
-interface AuthRequest extends Request {
-  user?: any;
-}
+import type { AuthedRequest as AuthRequest } from '../access/types';
 
 export const getAdminStats = async (req: AuthRequest, res: Response) => {
   try {
@@ -20,30 +21,28 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
     const tomorrow = new Date(today);
     tomorrow.setUTCDate(today.getUTCDate() + 1);
 
-    // Archived cases are kept out of the headline numbers and reported separately
-    const [totalCases, activeCases, archivedCases, totalLawyers, totalClients, todayConsultations] = await Promise.all([
-      Case.countDocuments({ isArchived: { $ne: true } }),
-      Case.countDocuments({ isArchived: { $ne: true }, status: 'active' }),
-      Case.countDocuments({ isArchived: true }),
-      User.countDocuments({ role: 'lawyer', deletedAt: null }),
-      User.countDocuments({ role: 'client', isVerified: true }),
-      Consultation.countDocuments({
+    // Each figure only for those allowed to see that area; keys are left out
+    // (not zeroed), and only the counts that will be returned are run.
+    // Archived cases are kept out of the headline numbers and reported separately.
+    const counters: [string, Permission, () => Promise<number>][] = [
+      ['totalCases', 'cases.view', () => Case.countDocuments({ isArchived: { $ne: true } })],
+      ['activeCases', 'cases.view', () => Case.countDocuments({ isArchived: { $ne: true }, status: 'active' })],
+      ['archivedCases', 'cases.view', () => Case.countDocuments({ isArchived: true })],
+      ['totalLawyers', 'lawyers.view', () => User.countDocuments({ role: 'lawyer', deletedAt: null })],
+      ['totalClients', 'clients.view', () => User.countDocuments({ role: 'client', isVerified: true })],
+      ['todayConsultations', 'appointments.view', () => Consultation.countDocuments({
         date: { $gte: today, $lt: tomorrow },
         status: { $in: ['scheduled', 'rescheduled'] },
-      }),
-    ]);
+      })],
+      ['unreadMessages', 'messages.manage', () => ContactMessage.countDocuments({ status: 'new' })],
+    ];
+    const visible = counters.filter(([, perm]) => can(req.access!, perm));
+    const values = await Promise.all(visible.map(([, , count]) => count()));
 
     res.json({
       status: 200,
       message: 'Stats retrieved successfully',
-      data: {
-        totalCases,
-        activeCases,
-        archivedCases,
-        totalLawyers,
-        totalClients,
-        todayConsultations,
-      },
+      data: Object.fromEntries(visible.map(([key], i) => [key, values[i]])),
     });
   } catch (error) {
     console.error('Admin stats error:', error);

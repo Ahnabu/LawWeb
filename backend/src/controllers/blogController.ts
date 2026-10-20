@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import Blog from '../models/Blog';
 import { parsePagination, toCountMap } from '../utils/pagination';
 import { recordAudit } from '../utils/audit';
+import { can } from '../access/policy';
+import type { AuthedRequest } from '../access/types';
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -18,8 +20,9 @@ export const listBlogs = async (req: Request, res: Response) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
 
     const scope: Record<string, any> = {};
-    // The public route has no req.user; only admins may list drafts
-    const isAdmin = (req as Request & { user?: { role?: string } }).user?.role === 'admin';
+    // The public route has no req.access; only blog managers may list drafts
+    const access = (req as AuthedRequest).access;
+    const isAdmin = Boolean(access && can(access, 'blogs.manage'));
     if (!isAdmin) scope.status = 'published';
     if (typeof category === 'string' && category && category !== 'all') scope.category = category;
     if (search) {

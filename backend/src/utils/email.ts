@@ -154,20 +154,22 @@ export async function sendAccountSetupEmail({
   name,
   setupUrl,
   expiresHours,
+  accountLabel = "lawyer",
 }: {
   email: string;
   name: string;
   setupUrl: string;
   expiresHours: number;
+  accountLabel?: "lawyer" | "staff";
 }) {
   await sendEmail({
     to: email,
-    subject: `Your ${FIRM_NAME} lawyer account is ready`,
-    text: `Hi ${name},\n\nAn administrator created a ${FIRM_NAME} lawyer account for you. Set your password here:\n\n${setupUrl}\n\nThe link expires in ${expiresHours} hours. After that, use "Forgot password" on the login page to get a new one.`,
+    subject: `Your ${FIRM_NAME} ${accountLabel} account is ready`,
+    text: `Hi ${name},\n\nAn administrator created a ${FIRM_NAME} ${accountLabel} account for you. Set your password here:\n\n${setupUrl}\n\nThe link expires in ${expiresHours} hours. After that, use "Forgot password" on the login page to get a new one.`,
     html: layout(
-      "Your lawyer account is ready",
+      `Your ${accountLabel} account is ready`,
       `<p style="margin: 0 0 12px;">Hi ${escapeHtml(name)},</p>
-       <p style="margin: 0 0 12px;">An administrator created a ${FIRM_NAME_HTML} lawyer account for you. Set your password to sign in.</p>
+       <p style="margin: 0 0 12px;">An administrator created a ${FIRM_NAME_HTML} ${accountLabel} account for you. Set your password to sign in.</p>
        ${button(setupUrl, "Set your password")}
        <p style="margin: 0;">The link expires in ${expiresHours} hours. After that, use "Forgot password" on the login page to get a new one.</p>`,
     ),

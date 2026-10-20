@@ -4,10 +4,9 @@ import Case from '../models/Case';
 import User from '../models/User';
 import { recordAudit } from '../utils/audit';
 import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import { can, canInWorkspace, isClientOfCase, lawyersFor, refId, scopeFor } from '../access/policy';
+import { canWriteCase, forbiddenCaseWrites, projectCase } from '../access/projection';
+import type { AuthedRequest as AuthRequest } from '../access/types';
 
 // Lawyer/firm-only fields that must never reach a client
 const CLIENT_HIDDEN_FIELDS = '-internalNotes -archiveNote -archivedBy -formerLawyer.email -formerLawyer.barId';
@@ -25,9 +24,10 @@ const archivedFilterFromQuery = (value: unknown): Record<string, unknown> => {
 export const createCase = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
-    const userRole = req.user?.role;
+    const access = req.access;
 
-    if (!userId || (userRole !== 'admin' && userRole !== 'lawyer')) {
+    // A lawyer always creates for themselves; anyone else needs cases.create for the chosen lawyer
+    if (!userId || !access || (access.kind !== 'lawyer' && !can(access, 'cases.create', { lawyerId: req.body?.lawyerId }))) {
       return res.status(403).json({ status: 403, message: 'Only admins or lawyers can create cases' });
     }
 
@@ -52,7 +52,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
     if (!notesResult.ok) return res.status(400).json({ status: 400, message: notesResult.message });
 
     // Lawyers create cases assigned to themselves; admins can specify any lawyerId
-    const assignedLawyerId = userRole === 'lawyer' ? userId : lawyerId;
+    const assignedLawyerId = access.kind === 'lawyer' ? userId : lawyerId;
 
     if (!assignedLawyerId) {
       return res.status(400).json({ status: 400, message: 'lawyerId is required' });
@@ -114,7 +114,7 @@ export const createCase = async (req: AuthRequest, res: Response) => {
     res.status(201).json({
       status: 201,
       message: 'Case created successfully',
-      data: caseDoc,
+      data: projectCase(caseDoc, access),
     });
   } catch (error) {
     console.error('Create case error:', error);
@@ -125,27 +125,31 @@ export const createCase = async (req: AuthRequest, res: Response) => {
 export const getMyCases = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
-    const userRole = req.user?.role;
+    const access = req.access;
 
-    if (!userId) {
+    if (!userId || !access) {
       return res.status(401).json({ status: 401, message: 'Not authenticated' });
     }
 
     let cases;
     let counts: { active: number; archived: number } | undefined;
+    // Staff have no case workspace yet (Phase 3 opens it through delegations)
+    const scope = access.kind === 'client' || access.kind === 'staff' ? null : scopeFor(access, 'cases.view');
 
-    if (userRole === 'client') {
+    if (access.kind === 'client') {
       // Clients keep their full history; archived cases come back flagged with isArchived
       cases = await Case.find({ clientId: userId })
         .select(CLIENT_HIDDEN_FIELDS)
         .populate('lawyerId', 'name email barId phone')
         .sort({ createdAt: -1 });
-    } else if (userRole === 'lawyer' || userRole === 'admin') {
-      const scope: Record<string, unknown> = userRole === 'lawyer' ? { lawyerId: userId } : {};
+    } else if (scope) {
       const listQuery = Case.find({ ...scope, ...archivedFilterFromQuery(req.query.archived) })
         .populate('archivedBy', 'name role')
         .sort({ createdAt: -1 });
-      if (userRole === 'lawyer') listQuery.populate('clientId', 'name email phone');
+      // A lawyer's own list skips the lawyer; wider lists name each case's lawyer
+      const lawyers = lawyersFor(access, 'cases.view');
+      const ownCasesOnly = lawyers !== 'all' && lawyers.length === 1 && lawyers[0] === access.userId;
+      if (ownCasesOnly) listQuery.populate('clientId', 'name email phone');
       else listQuery.populate('lawyerId', 'name email barId').populate('clientId', 'name email');
 
       const [list, activeCount, archivedCount] = await Promise.all([
@@ -153,7 +157,7 @@ export const getMyCases = async (req: AuthRequest, res: Response) => {
         Case.countDocuments({ ...scope, ...ACTIVE_FILTER }),
         Case.countDocuments({ ...scope, isArchived: true }),
       ]);
-      cases = list;
+      cases = list.map((c) => projectCase(c, access));
       counts = { active: activeCount, archived: archivedCount };
     } else {
       return res.status(403).json({ status: 403, message: 'Unauthorized' });
@@ -173,8 +177,7 @@ export const getMyCases = async (req: AuthRequest, res: Response) => {
 
 export const getCaseById = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?._id;
-    const userRole = req.user?.role;
+    const access = req.access;
     const { caseId } = req.params;
 
     if (!mongoose.isValidObjectId(caseId)) {
@@ -190,24 +193,14 @@ export const getCaseById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
 
-    // Both refs are populated here, so compare the populated _id
-    const isClient = (caseDoc.clientId as any)?._id?.toString() === userId?.toString();
-    const isOwner =
-      userRole === 'admin' ||
-      (caseDoc.lawyerId as any)?._id?.toString() === userId?.toString() ||
-      isClient;
-
-    if (!isOwner) {
+    // A client sees their own case; anyone else needs cases.view for its lawyer
+    const allowed = access && (isClientOfCase(access, caseDoc) || can(access, 'cases.view', { lawyerId: caseDoc.lawyerId }));
+    if (!access || !allowed) {
       return res.status(403).json({ status: 403, message: 'Access denied' });
     }
 
-    const data = caseDoc.toObject() as unknown as Record<string, any>;
-    if (userRole === 'client') {
-      delete data.internalNotes;
-      delete data.archiveNote;
-      delete data.archivedBy;
-      if (data.formerLawyer) data.formerLawyer = { name: data.formerLawyer.name };
-    }
+    // Strips client-hidden, finance and confidential fields by what the actor may see
+    const data = projectCase(caseDoc, access);
 
     res.json({
       status: 200,
@@ -222,8 +215,7 @@ export const getCaseById = async (req: AuthRequest, res: Response) => {
 
 export const updateCase = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?._id;
-    const userRole = req.user?.role;
+    const access = req.access;
     const { caseId } = req.params;
     const {
       status, stage, notes, internalNotes, nextCourtDate, title, description,
@@ -240,16 +232,23 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
 
-    const canUpdate =
-      userRole === 'admin' ||
-      caseDoc.lawyerId.toString() === userId?.toString();
-
-    if (!canUpdate) {
+    if (!access || !canWriteCase(access, caseDoc.lawyerId)) {
       return res.status(403).json({ status: 403, message: 'Only the assigned lawyer or admin can update this case' });
     }
 
     if (caseDoc.isArchived) {
       return res.status(409).json({ status: 409, message: 'Restore the case to edit it' });
+    }
+
+    // Each field family (general, finance, confidential) needs its own permission
+    const blocked = forbiddenCaseWrites(access, caseDoc, req.body ?? {});
+    if (blocked.length) {
+      return res.status(403).json({
+        status: 403,
+        code: 'FIELD_FORBIDDEN',
+        message: `You don't have permission to change: ${blocked.join(', ')}`,
+        fields: blocked,
+      });
     }
 
     const previousStatus = caseDoc.status;
@@ -282,8 +281,9 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     if (hearingEntry) caseDoc.hearingHistory.push({ ...hearingEntry, date: new Date(hearingEntry.date) });
     // Append a new document reference
     if (documentEntry) caseDoc.documents.push({ ...documentEntry, date: documentEntry.date ? new Date(documentEntry.date) : new Date() });
-    if (title && userRole === 'admin') caseDoc.title = title;
-    if (description && userRole === 'admin') {
+    // Title and description belong to the firm: a lawyer's edits are ignored (not refused)
+    if (title && access.isSuperAdmin) caseDoc.title = title;
+    if (description && access.isSuperAdmin) {
       const result = normalizeRichText(description, 'Description', RICH_TEXT_LIMITS.caseDescription);
       if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
       if (result.value) caseDoc.description = result.value;
@@ -301,7 +301,7 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
       });
     }
     if (deletePaymentId) {
-      if (userRole !== 'admin') {
+      if (!access.isSuperAdmin) {
         return res.status(403).json({ status: 403, message: 'Only admins can delete payment entries' });
       }
       const paymentIndex = caseDoc.payments.findIndex((p: any) => p._id.toString() === deletePaymentId);
@@ -338,7 +338,7 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
     res.json({
       status: 200,
       message: 'Case updated successfully',
-      data: caseDoc,
+      data: projectCase(caseDoc, access),
     });
   } catch (error) {
     console.error('Update case error:', error);
@@ -348,10 +348,10 @@ export const updateCase = async (req: AuthRequest, res: Response) => {
 
 export const deleteCase = async (req: AuthRequest, res: Response) => {
   try {
-    const userRole = req.user?.role;
     const { caseId } = req.params;
 
-    if (userRole !== 'admin') {
+    // The route already requires the super-admin; kept as a second line of defence
+    if (!req.access?.isSuperAdmin) {
       return res.status(403).json({ status: 403, message: 'Only admins can delete cases' });
     }
 
@@ -421,8 +421,6 @@ export const trackCasePublic = async (req: Request, res: Response) => {
 
 export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?._id;
-    const userRole = req.user?.role;
     const { caseId } = req.params;
 
     const caseDoc = await Case.findById(caseId);
@@ -430,11 +428,7 @@ export const toggleFeaturedCase = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
 
-    const canToggle =
-      userRole === 'admin' ||
-      caseDoc.lawyerId.toString() === userId?.toString();
-
-    if (!canToggle) {
+    if (!req.access || !can(req.access, 'cases.feature', { lawyerId: caseDoc.lawyerId })) {
       return res.status(403).json({ status: 403, message: 'Access denied' });
     }
 
@@ -481,7 +475,7 @@ export const archiveMyCase = async (req: AuthRequest, res: Response) => {
     if (!caseDoc) {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
-    if (caseDoc.lawyerId?.toString() !== userId?.toString()) {
+    if (!req.access || !canInWorkspace(req.access, 'cases.archive', { lawyerId: caseDoc.lawyerId })) {
       return res.status(403).json({ status: 403, message: 'Only the assigned lawyer can archive this case' });
     }
     if (caseDoc.isArchived) {
@@ -509,7 +503,7 @@ export const archiveMyCase = async (req: AuthRequest, res: Response) => {
       metadata: note ? { note: note.slice(0, 200) } : undefined,
     });
 
-    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: caseDoc });
+    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} archived`, data: projectCase(caseDoc, req.access!) });
   } catch (error) {
     console.error('Archive case error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
@@ -528,13 +522,14 @@ export const restoreMyCase = async (req: AuthRequest, res: Response) => {
     if (!caseDoc) {
       return res.status(404).json({ status: 404, message: 'Case not found' });
     }
-    if (caseDoc.lawyerId?.toString() !== userId?.toString()) {
+    if (!req.access || !canInWorkspace(req.access, 'cases.archive', { lawyerId: caseDoc.lawyerId })) {
       return res.status(403).json({ status: 403, message: 'Only the assigned lawyer can restore this case' });
     }
     if (!caseDoc.isArchived) {
       return res.status(409).json({ status: 409, message: 'This case is not archived' });
     }
-    if (caseDoc.archiveReason !== 'manual' || caseDoc.archivedBy?.toString() !== userId?.toString()) {
+    // Phase 3 replaces this with archiveOrigin, so an assistant can restore what the lawyer side archived
+    if (caseDoc.archiveReason !== 'manual' || refId(caseDoc.archivedBy) !== String(userId)) {
       return res.status(403).json({
         status: 403,
         code: 'ADMIN_RESTORE_ONLY',
@@ -559,7 +554,7 @@ export const restoreMyCase = async (req: AuthRequest, res: Response) => {
       summary: `Restored case ${caseDoc.caseNumber}`,
     });
 
-    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: caseDoc });
+    res.json({ status: 200, message: `Case ${caseDoc.caseNumber} restored`, data: projectCase(caseDoc, req.access!) });
   } catch (error) {
     console.error('Restore case error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });

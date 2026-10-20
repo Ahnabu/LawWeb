@@ -12,7 +12,8 @@
     "clean": "rm -rf dist",
     "seed:admin": "ts-node --transpile-only src/scripts/seed-admin.ts",
     "migrate:temp-passwords": "ts-node --transpile-only src/scripts/replace-temp-passwords.ts",
-    "test:content": "ts-node --transpile-only tests/content/schema.check.ts && ts-node --transpile-only tests/content/flow.check.ts"
+    "test:content": "ts-node --transpile-only tests/content/schema.check.ts && ts-node --transpile-only tests/content/flow.check.ts",
+    "test:access": "ts-node --transpile-only tests/access/policy.check.ts && ts-node --transpile-only tests/access/endpoints.check.ts"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -45,6 +46,7 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^25.6.0",
     "@types/sanitize-html": "2.16.2",
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"

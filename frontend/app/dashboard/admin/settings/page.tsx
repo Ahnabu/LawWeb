@@ -14,9 +14,13 @@ export default function AdminSettingsPage() {
     .slice(0, 2)
     .toUpperCase();
 
+  // Staff see their firm role's name, the super-admin a label rather than "admin"
+  const roleLabel =
+    user?.role === "staff" ? user.access?.roleName || "Staff (no role yet)" : user?.role === "admin" ? "Super Admin" : user?.role;
+
   const details = [
     { label: "Email", value: user?.email },
-    { label: "Role", value: user?.role },
+    { label: "Role", value: roleLabel },
     { label: "Phone", value: user?.phone || "Not added" },
   ];
 
@@ -42,7 +46,7 @@ export default function AdminSettingsPage() {
           )}
           <div className="min-w-0">
             <p className="truncate font-display text-lg font-semibold text-heading">{user?.name}</p>
-            <p className="text-sm capitalize text-on-surface-variant">{user?.role}</p>
+            <p className="text-sm text-on-surface-variant">{roleLabel}</p>
           </div>
         </div>
 

@@ -106,7 +106,7 @@ export const auditLogQueryFields = z.object({
   action: optionalQueryText(80),
   actorRole: z.preprocess(
     (v) => (v === '' || v === 'all' ? undefined : v),
-    z.enum(['admin', 'lawyer', 'client', 'anonymous', 'system']).optional()
+    z.enum(['admin', 'lawyer', 'client', 'staff', 'anonymous', 'system']).optional()
   ),
   actor: z.preprocess(
     (v) => (v === '' ? undefined : v),
@@ -118,6 +118,43 @@ export const auditLogQueryFields = z.object({
 });
 
 export const auditLogListSchema = z.object({ query: auditLogQueryFields });
+
+// ── Roles and staff (super-admin) ─────────────────────────────────────────────
+// Permission keys are checked against the catalog in the controller, so the
+// response can list exactly which keys are unknown.
+const roleFields = {
+  name: z.string().trim().min(2, 'Role name must be at least 2 characters').max(60, 'Role name must be at most 60 characters'),
+  description: z.string().trim().max(300, 'Description must be at most 300 characters').optional(),
+  permissions: z.array(z.string().max(60)).max(100),
+};
+
+export const createRoleSchema = z.object({ body: z.object(roleFields) });
+
+export const updateRoleSchema = z.object({ body: z.object(roleFields).partial() });
+
+const objectId = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid ID');
+const staffPhone = z
+  .string()
+  .trim()
+  .max(30, 'Phone number too long')
+  .regex(/^\+?[\d\s\-()]*$/, 'Enter a valid phone number');
+
+export const createStaffSchema = z.object({
+  body: z.object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+    email: emailField,
+    phone: staffPhone.optional(),
+    staffRoleId: objectId.nullable().optional(),
+  }),
+});
+
+export const updateStaffSchema = z.object({
+  body: z.object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long').optional(),
+    phone: staffPhone.optional(),
+    staffRoleId: objectId.nullable().optional(),
+  }),
+});
 
 export const formatZodIssues =(error: z.ZodError) =>
   error.issues.map((issue) => ({

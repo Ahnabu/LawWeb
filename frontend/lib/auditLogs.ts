@@ -3,9 +3,10 @@ import { apiFetch } from './http'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AuditActorRole = 'admin' | 'lawyer' | 'client' | 'anonymous' | 'system'
+export type AuditActorRole = 'admin' | 'staff' | 'lawyer' | 'client' | 'anonymous' | 'system'
 export type AuditCategory =
   | 'auth'
+  | 'access'
   | 'user'
   | 'lawyer'
   | 'case'
@@ -106,6 +107,7 @@ export async function getAuditLogMeta(): Promise<AuditLogFilterMeta> {
 
 export const AUDIT_CATEGORY_LABELS: Record<AuditCategory, string> = {
   auth: 'Sign-in & security',
+  access: 'Staff & roles',
   user: 'Users',
   lawyer: 'Lawyers',
   case: 'Cases',
@@ -118,7 +120,8 @@ export const AUDIT_CATEGORY_LABELS: Record<AuditCategory, string> = {
 }
 
 export const AUDIT_ROLE_LABELS: Record<AuditActorRole, string> = {
-  admin: 'Admin',
+  admin: 'Super Admin',
+  staff: 'Staff',
   lawyer: 'Lawyer',
   client: 'Client',
   anonymous: 'Visitor',
@@ -127,6 +130,7 @@ export const AUDIT_ROLE_LABELS: Record<AuditActorRole, string> = {
 
 export const AUDIT_ROLE_STYLES: Record<AuditActorRole, string> = {
   admin: 'bg-secondary/15 text-secondary',
+  staff: 'bg-secondary/10 text-on-surface',
   lawyer: 'bg-primary/10 text-on-surface',
   client: 'bg-surface-container-high text-on-surface-variant',
   anonymous: 'bg-surface-container text-on-surface-variant',

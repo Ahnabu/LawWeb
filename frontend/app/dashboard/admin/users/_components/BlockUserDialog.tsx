@@ -11,10 +11,18 @@ interface BlockUserDialogProps {
   /** Resolves when the request has finished (the dialog shows a spinner meanwhile) */
   onConfirm: (reason: string) => Promise<void>;
   onClose: () => void;
+  /** What blocking does, listed in the dialog (defaults to the client wording) */
+  consequences?: string[];
 }
 
+const CLIENT_CONSEQUENCES = [
+  "They are signed out of every device immediately.",
+  "They cannot log in or reset their password while blocked.",
+  "Their cases and appointments are kept. You can unblock them at any time.",
+];
+
 // Styled like components/ConfirmDialog.tsx, with an optional reason field
-export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogProps) {
+export function BlockUserDialog({ user, onConfirm, onClose, consequences = CLIENT_CONSEQUENCES }: BlockUserDialogProps) {
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const reasonRef = useRef<HTMLTextAreaElement | null>(null);
@@ -75,9 +83,9 @@ export function BlockUserDialog({ user, onConfirm, onClose }: BlockUserDialogPro
         </div>
 
         <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-on-surface-variant">
-          <li>They are signed out of every device immediately.</li>
-          <li>They cannot log in or reset their password while blocked.</li>
-          <li>Their cases and appointments are kept. You can unblock them at any time.</li>
+          {consequences.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
         </ul>
 
         <label className="mt-5 block">

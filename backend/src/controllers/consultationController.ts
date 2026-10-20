@@ -16,10 +16,8 @@ import {
   parseDateOnly,
   toMinutes,
 } from '../utils/schedule';
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import { canInWorkspace, isClientOfConsultation, lawyersFor, scopeFor } from '../access/policy';
+import type { AuthedRequest as AuthRequest } from '../access/types';
 
 const isDuplicateKeyError = (error: unknown) =>
   typeof error === 'object' && error !== null && (error as { code?: number }).code === 11000;
@@ -46,7 +44,7 @@ export const bookConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    if (req.user.role !== 'client') {
+    if (req.access?.kind !== 'client') {
       return res.status(403).json({ message: 'Only clients can book consultations' });
     }
 
@@ -184,18 +182,17 @@ export const getMyConsultations = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const access = req.access;
+    // Lawyer workspace only (admins use /api/admin/consultations; Phase 3 adds staff)
+    const scope = access?.kind === 'lawyer' ? scopeFor(access, 'appointments.view') : null;
 
     let consultations;
-    if (user.role === 'client') {
+    if (access?.kind === 'client') {
       consultations = await Consultation.find({ clientId: userId })
         .populate('lawyerId', 'name email phone barId')
         .sort({ date: -1 });
-    } else if (user.role === 'lawyer') {
-      consultations = await Consultation.find({ lawyerId: userId })
+    } else if (scope) {
+      consultations = await Consultation.find(scope)
         .populate('clientId', 'name email phone')
         .sort({ date: -1 });
     } else {
@@ -226,8 +223,9 @@ export const cancelConsultation = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Consultation not found' });
     }
 
-    // Check if user is the client or lawyer
-    if (consultation.clientId.toString() !== userId.toString() && consultation.lawyerId.toString() !== userId.toString()) {
+    // The booking's client, or someone managing the lawyer's appointments
+    const access = req.access;
+    if (!access || (!isClientOfConsultation(access, consultation) && !canInWorkspace(access, 'appointments.manage', { lawyerId: consultation.lawyerId }))) {
       return res.status(403).json({ message: 'You do not have permission to cancel this consultation' });
     }
 
@@ -268,7 +266,7 @@ export const confirmConsultation = async (req: AuthRequest, res: Response) => {
     const consultation = await Consultation.findById(consultationId);
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
 
-    if (consultation.lawyerId.toString() !== userId.toString()) {
+    if (!req.access || !canInWorkspace(req.access, 'appointments.manage', { lawyerId: consultation.lawyerId })) {
       return res.status(403).json({ message: 'Only the assigned lawyer can confirm this consultation' });
     }
 
@@ -298,14 +296,17 @@ export const confirmConsultation = async (req: AuthRequest, res: Response) => {
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
-    const role = req.user?.role;
-    if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+    const access = req.access;
+    if (!userId || !access) return res.status(401).json({ message: 'Not authenticated' });
 
     const notifications: { id: string; title: string; body: string; time: Date; type: string }[] = [];
 
-    if (role === 'lawyer') {
+    if (access.kind === 'lawyer') {
+      // Phase 3 reuses this branch for staff working for specific lawyers
+      const appointmentScope = scopeFor(access, 'appointments.view');
+      const caseScope = scopeFor(access, 'cases.view');
       // Unconfirmed scheduled appointments
-      const unconfirmed = await Consultation.find({ lawyerId: userId, lawyerConfirmed: false, status: 'scheduled' })
+      const unconfirmed = !appointmentScope ? [] : await Consultation.find({ ...appointmentScope, lawyerConfirmed: false, status: 'scheduled' })
         .populate('clientId', 'name')
         .sort({ createdAt: -1 })
         .limit(5)
@@ -321,8 +322,8 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
         });
       }
       // Recently updated cases
-      const recentCases = await Case
-        .find({ lawyerId: userId })
+      const recentCases = !caseScope ? [] : await Case
+        .find(caseScope)
         .sort({ updatedAt: -1 })
         .limit(3)
         .lean();
@@ -335,7 +336,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
           type: 'case',
         });
       }
-    } else if (role === 'client') {
+    } else if (access.kind === 'client') {
       // Recent appointment changes
       const consultations = await Consultation.find({ clientId: userId })
         .populate('lawyerId', 'name')
@@ -371,7 +372,8 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
           type: 'case',
         });
       }
-    } else if (role === 'admin') {
+    } else if (access.isSuperAdmin || (access.kind === 'staff' && lawyersFor(access, 'appointments.view') === 'all')) {
+      // Firm-wide view: the super-admin, or staff who see every lawyer's appointments
       const recent = await Consultation.find()
         .populate('clientId', 'name')
         .populate('lawyerId', 'name')
@@ -419,8 +421,8 @@ export const updateConsultationStatus = async (req: AuthRequest, res: Response) 
       return res.status(404).json({ message: 'Consultation not found' });
     }
 
-    // Only lawyer can update status
-    if (consultation.lawyerId.toString() !== userId.toString()) {
+    // Only the lawyer's side can update status (admins use /api/admin/consultations)
+    if (!req.access || !canInWorkspace(req.access, 'appointments.manage', { lawyerId: consultation.lawyerId })) {
       return res.status(403).json({ message: 'Only the lawyer can update consultation status' });
     }
 

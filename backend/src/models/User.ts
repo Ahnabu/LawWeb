@@ -5,7 +5,10 @@ export interface IUser extends Document<mongoose.Types.ObjectId> {
   name: string;
   email: string;
   password?: string;
-  role: 'admin' | 'lawyer' | 'client';
+  // 'admin' is the super-admin; 'staff' are firm employees with a firm role
+  role: 'admin' | 'lawyer' | 'client' | 'staff';
+  // Staff only: their one firm role (null = signed in, but no access yet)
+  staffRoleId?: mongoose.Types.ObjectId | null;
   barId?: string; // For lawyers
   phone?: string;
   specialization?: string;
@@ -43,7 +46,8 @@ const UserSchema: Schema = new Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, select: false }, // Hidden by default
-    role: { type: String, enum: ['admin', 'lawyer', 'client'], default: 'client' },
+    role: { type: String, enum: ['admin', 'lawyer', 'client', 'staff'], default: 'client' },
+    staffRoleId: { type: Schema.Types.ObjectId, ref: 'Role', default: null, index: true },
     barId: { type: String, sparse: true },
     phone: { type: String },
     specialization: { type: String },

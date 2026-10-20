@@ -19,10 +19,7 @@ import {
   toDateKey,
   toMinutes,
 } from '../utils/schedule';
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import type { AuthedRequest as AuthRequest } from '../access/types';
 
 // Who the public site lists and lets clients book: verified, not blocked.
 // Deleted lawyers simply no longer exist.
@@ -117,16 +114,67 @@ export const getLawyerProfile = async (req: Request, res: Response) => {
   }
 };
 
+// Cores take an explicit lawyer, so the Phase 3 workspace routes (/:lawyerId)
+// reuse them; the /me handlers pass the signed-in lawyer.
+type Id = mongoose.Types.ObjectId | string;
+
+export const readAvailability = async (lawyerId: Id) =>
+  // Default availability if none set yet
+  (await LawyerAvailability.findOne({ lawyerId })) ?? new LawyerAvailability({ lawyerId });
+
+// `lawyer` is the account whose schedule changes; the audit entry names them,
+// so an assistant's edit reads "Sara updated Adv. Rahman's availability" (Phase 3)
+export const writeAvailability = async (
+  req: AuthRequest,
+  lawyer: { _id: Id; name?: string },
+  body: { schedule?: unknown; isAcceptingNewClients?: unknown }
+) => {
+  const { schedule, isAcceptingNewClients } = body;
+
+  let normalizedSchedule: WeekSchedule | undefined;
+  if (schedule !== undefined) {
+    const result = normalizeSchedule(schedule);
+    if (result.error) return { ok: false as const, message: result.error };
+    normalizedSchedule = result.schedule;
+  }
+
+  if (isAcceptingNewClients !== undefined && typeof isAcceptingNewClients !== 'boolean') {
+    return { ok: false as const, message: 'isAcceptingNewClients must be a boolean' };
+  }
+
+  const availability = await LawyerAvailability.findOneAndUpdate(
+    { lawyerId: lawyer._id },
+    {
+      $set: {
+        ...(normalizedSchedule && { schedule: normalizedSchedule }),
+        ...(isAcceptingNewClients !== undefined && { isAcceptingNewClients }),
+      },
+    },
+    { new: true, upsert: true, runValidators: true }
+  );
+
+  const self = String(lawyer._id) === String(req.user?._id);
+  recordAudit(req, {
+    action: 'availability.updated',
+    category: 'profile',
+    targetType: 'lawyer',
+    targetId: lawyer._id,
+    targetLabel: lawyer.name,
+    summary: self
+      ? `${lawyer.name ?? 'Lawyer'} updated their availability`
+      : `${req.user?.name ?? 'Someone'} updated ${lawyer.name ?? 'a lawyer'}'s availability`,
+    metadata: {
+      fields: [...(normalizedSchedule ? ['schedule'] : []), ...(isAcceptingNewClients !== undefined ? ['isAcceptingNewClients'] : [])],
+      ...(isAcceptingNewClients !== undefined ? { isAcceptingNewClients } : {}),
+    },
+  });
+
+  return { ok: true as const, availability };
+};
+
 export const getMyAvailability = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?._id;
-
-    let availability = await LawyerAvailability.findOne({ lawyerId: userId });
-
-    if (!availability) {
-      // Return default availability if none set yet
-      availability = new LawyerAvailability({ lawyerId: userId });
-    }
+    const availability = await readAvailability(req.user?._id);
 
     res.json({
       status: 200,
@@ -141,50 +189,15 @@ export const getMyAvailability = async (req: AuthRequest, res: Response) => {
 
 export const updateMyAvailability = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?._id;
-    const { schedule, isAcceptingNewClients } = req.body;
-
-    let normalizedSchedule: WeekSchedule | undefined;
-    if (schedule !== undefined) {
-      const result = normalizeSchedule(schedule);
-      if (result.error) {
-        return res.status(400).json({ status: 400, message: result.error });
-      }
-      normalizedSchedule = result.schedule;
+    const result = await writeAvailability(req, req.user, req.body ?? {});
+    if (!result.ok) {
+      return res.status(400).json({ status: 400, message: result.message });
     }
-
-    if (isAcceptingNewClients !== undefined && typeof isAcceptingNewClients !== 'boolean') {
-      return res.status(400).json({ status: 400, message: 'isAcceptingNewClients must be a boolean' });
-    }
-
-    const availability = await LawyerAvailability.findOneAndUpdate(
-      { lawyerId: userId },
-      {
-        $set: {
-          ...(normalizedSchedule && { schedule: normalizedSchedule }),
-          ...(isAcceptingNewClients !== undefined && { isAcceptingNewClients }),
-        },
-      },
-      { new: true, upsert: true, runValidators: true }
-    );
-
-    recordAudit(req, {
-      action: 'availability.updated',
-      category: 'profile',
-      targetType: 'lawyer',
-      targetId: userId,
-      targetLabel: req.user?.name,
-      summary: `${req.user?.name ?? 'Lawyer'} updated their availability`,
-      metadata: {
-        fields: [...(normalizedSchedule ? ['schedule'] : []), ...(isAcceptingNewClients !== undefined ? ['isAcceptingNewClients'] : [])],
-        ...(isAcceptingNewClients !== undefined ? { isAcceptingNewClients } : {}),
-      },
-    });
 
     res.json({
       status: 200,
       message: 'Availability updated successfully',
-      data: availability,
+      data: result.availability,
     });
   } catch (error) {
     console.error('Update availability error:', error);

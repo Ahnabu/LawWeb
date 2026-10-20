@@ -7,7 +7,8 @@ import {
   updateBlog,
   deleteBlog,
 } from '../controllers/blogController';
-import { authenticateToken, authorizeRoles } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../access/middleware';
 import { uploadBlogCover } from '../config/multer.config';
 import { recordAudit } from '../utils/audit';
 
@@ -17,8 +18,8 @@ const router = express.Router();
 router.get('/', listBlogs);
 router.get('/slug/:slug', getBlogBySlug);
 
-// ── Admin-only routes ─────────────────────────────────────────────────────────
-router.use(authenticateToken, authorizeRoles('admin'));
+// ── Blog management (super-admin, or staff whose role has blogs.manage) ───────
+router.use(authenticateToken, requirePermission('blogs.manage'));
 
 router.get('/admin/all', listBlogs);
 router.get('/admin/:blogId', getBlogById);

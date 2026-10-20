@@ -10,31 +10,41 @@ import {
   PanelLeftClose,
   LayoutDashboard,
   FileText,
-  Users,
   Briefcase,
   Calendar,
   Settings,
   Home,
-  Scale,
   Sun,
   Moon,
-  Newspaper,
-  MessageSquare,
-  History,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
-import { SidebarItem } from "../types/dashboard";
+import { SidebarItem, type DashboardRole } from "../types/dashboard";
+import { SETTINGS_NAV_ITEM, adminNavFor } from "./adminNav";
+import type { AuthUser } from "../lib/auth";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  role: "client" | "lawyer" | "admin";
+  role: DashboardRole;
 }
 
 const getSidebarItems = (
-  role: "client" | "lawyer" | "admin",
+  role: DashboardRole,
+  user: AuthUser | null,
 ): SidebarItem[] => {
+  // Staff see the same sidebar in every area: their home, the admin pages
+  // their role opens, then Settings
+  if (user?.role === "staff") {
+    return [
+      { href: "/dashboard/staff", label: "Home", icon: <Home className="h-4.5 w-4.5" /> },
+      ...adminNavFor(user),
+      SETTINGS_NAV_ITEM,
+    ];
+  }
+  // Admin pages are filtered by access (the super-admin sees all, plus Team and Roles)
+  if (role === "admin") return [...adminNavFor(user), SETTINGS_NAV_ITEM];
+
   const baseItems: Record<string, SidebarItem[]> = {
     client: [
       {
@@ -90,58 +100,6 @@ const getSidebarItems = (
         icon: <Settings className="h-4.5 w-4.5" />,
       },
     ],
-    admin: [
-      {
-        href: "/dashboard/admin",
-        label: "Dashboard",
-        icon: <LayoutDashboard className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/appointments",
-        label: "Appointments",
-        icon: <Calendar className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/messages",
-        label: "Messages",
-        icon: <MessageSquare className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/cases",
-        label: "Cases",
-        icon: <Briefcase className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/lawyers",
-        label: "Lawyers",
-        icon: <Scale className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/users",
-        label: "Users",
-        icon: <Users className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/blogs",
-        label: "Blogs",
-        icon: <Newspaper className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/content",
-        label: "Content",
-        icon: <FileText className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/audit-logs",
-        label: "Audit Logs",
-        icon: <History className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/settings",
-        label: "Settings",
-        icon: <Settings className="h-4.5 w-4.5" />,
-      },
-    ],
   };
   return baseItems[role] || [];
 };
@@ -153,7 +111,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const sidebarItems = getSidebarItems(role);
+  const sidebarItems = getSidebarItems(role, user);
 
   useEffect(() => {
     const checkMobile = () => {
