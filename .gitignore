@@ -37,3 +37,4 @@ agents/
 docs/
 # OS files
 .DS_Store
+*.tsbuildinfo
