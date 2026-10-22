@@ -1,12 +1,14 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { IUser } from "../models/User";
-type UserSummary = Pick<IUser, "name" | "email" | "role" | "barId" | "phone" | "profileImageUrl" | "isVerified" | "passwordNeedsChange"> & {
+import type { Access } from "../access/types";
+type UserSummary = Pick<IUser, "name" | "email" | "role" | "barId" | "phone" | "profileImageUrl" | "isVerified" | "passwordNeedsChange" | "staffRoleId"> & {
     _id: mongoose.Types.ObjectId;
     tokenVersion?: number;
 };
 interface AuthRequest extends Request {
     user?: UserSummary;
+    access?: Access;
 }
 type Recipient = {
     _id: mongoose.Types.ObjectId;
@@ -14,7 +16,7 @@ type Recipient = {
     email: string;
 };
 export declare const ACCOUNT_SETUP_EXPIRY_HOURS = 72;
-export declare const sendAccountSetupLink: (user: Recipient) => Promise<void>;
+export declare const sendAccountSetupLink: (user: Recipient, accountLabel?: "lawyer" | "staff", invitedBy?: string) => Promise<void>;
 export declare const register: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const login: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const logout: (req: Request, res: Response) => Promise<void>;

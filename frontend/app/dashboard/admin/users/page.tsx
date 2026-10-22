@@ -13,6 +13,7 @@ import {
 } from "../../../../lib/adminUsers";
 import { BlockUserDialog } from "./_components/BlockUserDialog";
 import { Pagination } from "../../../../components/Pagination";
+import { useAccess } from "../../../../components/useAccess";
 import { UserAvatar, UserStatusBadge, confirmAndDelete, confirmAndUnblock, performBlock } from "./_components/userActions";
 
 const LIMIT = 20;
@@ -36,6 +37,8 @@ const FILTER_DOTS: Record<UserStatusFilter, string | null> = {
 const EMPTY_COUNTS: UserCounts = { all: 0, active: 0, blocked: 0, unverified: 0 };
 
 export default function AdminUsersPage() {
+  // Roles with clients.view only can look but not change (the API refuses the rest)
+  const canManage = useAccess().can("clients.manage");
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [counts, setCounts] = useState<UserCounts>(EMPTY_COUNTS);
   const [total, setTotal] = useState(0);
@@ -307,7 +310,7 @@ export default function AdminUsersPage() {
                           >
                             <Eye className="h-4 w-4" aria-hidden="true" />
                           </Link>
-                          {user.isBlocked ? (
+                          {!canManage ? null : user.isBlocked ? (
                             <button
                               type="button"
                               disabled={busy}
@@ -330,16 +333,18 @@ export default function AdminUsersPage() {
                               <Ban className="h-4 w-4" aria-hidden="true" />
                             </button>
                           )}
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void handleDelete(user)}
-                            title="Delete"
-                            aria-label={`Delete ${user.name}`}
-                            className="btn btn-ghost btn-icon hover:text-error"
-                          >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </button>
+                          {canManage && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void handleDelete(user)}
+                              title="Delete"
+                              aria-label={`Delete ${user.name}`}
+                              className="btn btn-ghost btn-icon hover:text-error"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

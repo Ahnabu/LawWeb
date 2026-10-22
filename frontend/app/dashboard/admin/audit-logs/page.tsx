@@ -52,6 +52,9 @@ function AuditLogsView() {
   // ?actor=<userId>&actorName=<label> comes from the user detail page
   const actor = searchParams.get("actor") ?? "";
   const actorName = searchParams.get("actorName") ?? "";
+  // ?onBehalfOf=<lawyerId>&onBehalfOfName=<label>: what staff did for one lawyer
+  const onBehalfOf = searchParams.get("onBehalfOf") ?? "";
+  const onBehalfOfName = searchParams.get("onBehalfOfName") ?? "";
 
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [total, setTotal] = useState(0);
@@ -78,7 +81,7 @@ function AuditLogsView() {
   useEffect(() => {
     setPage(1);
     setOpenId(null);
-  }, [actor]);
+  }, [actor, onBehalfOf]);
 
   // Relative times stay fresh while the page is open
   useEffect(() => {
@@ -119,6 +122,7 @@ function AuditLogsView() {
         actorRole,
         action: action || undefined,
         actor: actor || undefined,
+        onBehalfOf: onBehalfOf || undefined,
         search,
         from: from || undefined,
         to: to || undefined,
@@ -133,7 +137,7 @@ function AuditLogsView() {
     } finally {
       if (id === requestId.current) setIsLoading(false);
     }
-  }, [page, category, actorRole, action, actor, search, from, to]);
+  }, [page, category, actorRole, action, actor, onBehalfOf, search, from, to]);
 
   useEffect(() => {
     void fetchLogs();
@@ -149,7 +153,7 @@ function AuditLogsView() {
     };
 
   const hasFilters =
-    Boolean(search) || category !== "all" || actorRole !== "all" || Boolean(action) || Boolean(from) || Boolean(to) || Boolean(actor);
+    Boolean(search) || category !== "all" || actorRole !== "all" || Boolean(action) || Boolean(from) || Boolean(to) || Boolean(actor) || Boolean(onBehalfOf);
 
   const clearFilters = () => {
     setSearchInput("");
@@ -161,7 +165,7 @@ function AuditLogsView() {
     setTo("");
     setPage(1);
     setOpenId(null);
-    if (actor) router.replace("/dashboard/admin/audit-logs");
+    if (actor || onBehalfOf) router.replace("/dashboard/admin/audit-logs");
   };
 
   return (
@@ -169,10 +173,25 @@ function AuditLogsView() {
       <header className="space-y-1">
         <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">Audit Logs</h3>
         <p className="text-sm text-on-surface-variant">
-          A record of sign-ins and every change made by admins, lawyers and clients. Times are shown in Dhaka time.
+          A record of sign-ins and every change made by admins, staff, lawyers and clients. Times are shown in Dhaka time.
           {retentionDays ? ` Entries are kept for ${retentionDays} days.` : ""}
         </p>
       </header>
+
+      {onBehalfOf && (
+        <div className="notice notice-info flex flex-wrap items-center justify-between gap-3">
+          <span>
+            Showing what staff did on behalf of <span className="font-semibold">{onBehalfOfName || "this lawyer"}</span> only.
+          </span>
+          <button
+            type="button"
+            onClick={() => router.replace("/dashboard/admin/audit-logs")}
+            className="btn btn-ghost btn-sm"
+          >
+            <X className="h-4 w-4" aria-hidden="true" /> Show everything
+          </button>
+        </div>
+      )}
 
       {actor && (
         <div className="notice notice-info flex flex-wrap items-center justify-between gap-3">
@@ -337,14 +356,21 @@ function AuditLogsView() {
                       <span className="text-sm text-on-surface-variant" title={formatAuditTime(log.createdAt)}>
                         {formatRelativeTime(log.createdAt, now)}
                       </span>
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-medium text-on-surface" title={log.actorEmail || undefined}>
-                          {log.actorName || log.actorEmail || "Unknown"}
+                      <span className="min-w-0">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-medium text-on-surface" title={log.actorEmail || undefined}>
+                            {log.actorName || log.actorEmail || "Unknown"}
+                          </span>
+                          <span className="chip shrink-0">
+                            <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${ROLE_DOTS[log.actorRole] ?? ROLE_DOTS.system}`} />
+                            {AUDIT_ROLE_LABELS[log.actorRole] ?? log.actorRole}
+                          </span>
                         </span>
-                        <span className="chip shrink-0">
-                          <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${ROLE_DOTS[log.actorRole] ?? ROLE_DOTS.system}`} />
-                          {AUDIT_ROLE_LABELS[log.actorRole] ?? log.actorRole}
-                        </span>
+                        {log.onBehalfOf && (
+                          <span className="block truncate text-xs text-on-surface-variant">
+                            on behalf of {log.onBehalfOfName || "a lawyer"}
+                          </span>
+                        )}
                       </span>
                       <span className="flex min-w-0 items-start gap-2">
                         {open ? (
@@ -382,6 +408,19 @@ function AuditLogsView() {
                                 ) : (
                                   log.actorEmail
                                 )}
+                              </dd>
+                            </>
+                          )}
+                          {log.onBehalfOf && (
+                            <>
+                              <dt className="text-on-surface-variant">On behalf of</dt>
+                              <dd className="text-on-surface">
+                                <Link
+                                  href={`/dashboard/admin/audit-logs?onBehalfOf=${log.onBehalfOf}&onBehalfOfName=${encodeURIComponent(log.onBehalfOfName || "")}`}
+                                  className="text-link font-normal"
+                                >
+                                  {log.onBehalfOfName || log.onBehalfOf}
+                                </Link>
                               </dd>
                             </>
                           )}

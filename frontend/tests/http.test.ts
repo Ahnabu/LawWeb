@@ -135,6 +135,13 @@ describe('post-login redirect', () => {
     expect(postLoginPath('client', '/appointment?lawyerId=1')).toBe('/appointment?lawyerId=1')
   })
 
+  it('lets staff land on their home or the admin pages, nowhere else', () => {
+    expect(postLoginPath('staff', null)).toBe('/dashboard/staff')
+    expect(postLoginPath('staff', '/dashboard/admin/blogs')).toBe('/dashboard/admin/blogs')
+    expect(postLoginPath('staff', '/dashboard/lawyer')).toBe('/dashboard/staff')
+    expect(postLoginPath('admin', '/dashboard/staff')).toBe('/dashboard/admin')
+  })
+
   it('rejects off-site redirects', () => {
     expect(safeRedirectPath('https://evil.example')).toBeNull()
     expect(safeRedirectPath('//evil.example')).toBeNull()

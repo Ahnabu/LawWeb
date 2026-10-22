@@ -46,6 +46,7 @@ const email_1 = require("../utils/email");
 const env_1 = require("../config/env");
 const auth_1 = require("../middleware/auth");
 const audit_1 = require("../utils/audit");
+const loadAccess_1 = require("../access/loadAccess");
 const VERIFICATION_CODE_EXPIRY_MINUTES = 10;
 const VERIFICATION_MAX_ATTEMPTS = 5;
 const PASSWORD_RESET_EXPIRY_MINUTES = 30;
@@ -65,7 +66,9 @@ const isDuplicateKeyError = (error) => error?.code === 11000;
 // Compared against for unknown emails so a login costs the same bcrypt time
 // whether or not the account exists (no timing oracle for registered emails).
 const DUMMY_PASSWORD_HASH = bcryptjs_1.default.hashSync(crypto_1.default.randomBytes(16).toString("hex"), User_1.PASSWORD_HASH_ROUNDS);
-const toUserResponse = (user) => ({
+// `access` lets the frontend hide what the API would refuse (it never decides
+// anything itself). Delegations arrive in Phase 3.
+const toUserResponse = (user, access) => ({
     _id: user._id,
     name: user.name,
     email: user.email,
@@ -75,6 +78,19 @@ const toUserResponse = (user) => ({
     profileImageUrl: user.profileImageUrl,
     isVerified: user.isVerified,
     passwordNeedsChange: user.passwordNeedsChange,
+    access: {
+        superAdmin: access.isSuperAdmin,
+        firm: [...access.firm],
+        // Staff only: the firm role's name, shown on the account page
+        ...(access.kind === "staff" ? { roleName: access.firmRoleName ?? null } : {}),
+        // Staff only: the lawyers they assist (active lawyers only), with expanded permissions
+        delegations: (access.delegatedLawyers ?? []).map((lawyer) => ({
+            lawyerId: lawyer.id,
+            lawyerName: lawyer.name,
+            lawyerPhoto: lawyer.profileImageUrl ?? null,
+            permissions: [...(access.delegations.get(lawyer.id) ?? [])],
+        })),
+    },
 });
 // Work that runs after the response is sent. Used where the response time must
 // not depend on whether an account exists, and where the caller need not wait.
@@ -134,10 +150,10 @@ const newResetToken = (ttlMs) => {
         },
     };
 };
-// Used by the admin "add lawyer" flow and the temp-password migration: the
-// account gets a random password nobody knows, and the lawyer chooses their own
-// through this link.
-const sendAccountSetupLink = async (user) => {
+// Used by the admin "add lawyer" and "add staff" flows and the temp-password
+// migration: the account gets a random password nobody knows, and its owner
+// chooses their own through this link.
+const sendAccountSetupLink = async (user, accountLabel = "lawyer", invitedBy) => {
     const { token, fields } = newResetToken(exports.ACCOUNT_SETUP_EXPIRY_HOURS * 60 * 60 * 1000);
     await User_1.default.updateOne({ _id: user._id }, { $set: fields });
     await (0, email_1.sendAccountSetupEmail)({
@@ -145,6 +161,8 @@ const sendAccountSetupLink = async (user) => {
         name: user.name,
         setupUrl: resetUrlFor(token),
         expiresHours: exports.ACCOUNT_SETUP_EXPIRY_HOURS,
+        accountLabel,
+        invitedBy,
     });
 };
 exports.sendAccountSetupLink = sendAccountSetupLink;
@@ -155,6 +173,7 @@ const register = async (req, res) => {
     try {
         const { name, email, password, role, barId, phone } = req.body;
         const normalizedEmail = normalizeEmail(email);
+        // Self-registration must never yield an admin or staff account
         const selectedRole = role === "lawyer" ? "lawyer" : "client";
         const existingUser = await User_1.default.findOne({ email: normalizedEmail })
             .select("name email isVerified isBlocked")
@@ -289,7 +308,7 @@ const login = async (req, res) => {
         });
         res.json({
             message: "Login successful",
-            user: toUserResponse(user),
+            user: toUserResponse(user, await (0, loadAccess_1.loadAccess)(user)),
             accessTokenExpiresAt,
         });
     }
@@ -338,7 +357,13 @@ const getProfile = async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ message: "Not authenticated" });
     }
-    res.json({ user: toUserResponse(req.user) });
+    try {
+        res.json({ user: toUserResponse(req.user, req.access ?? (await (0, loadAccess_1.loadAccess)(req.user))) });
+    }
+    catch (error) {
+        console.error("Get profile error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 };
 exports.getProfile = getProfile;
 // Exchanges the refresh cookie for a new access token AND a new refresh token.
@@ -401,7 +426,7 @@ const refreshToken = async (req, res) => {
         }
         res.json({
             message: "Token refreshed successfully",
-            user: toUserResponse(user),
+            user: toUserResponse(user, await (0, loadAccess_1.loadAccess)(user)),
             accessTokenExpiresAt: result.accessTokenExpiresAt,
         });
     }
@@ -508,7 +533,7 @@ const verifyEmail = async (req, res) => {
         });
         res.json({
             message: "Email verified successfully.",
-            user: toUserResponse(user),
+            user: toUserResponse(user, await (0, loadAccess_1.loadAccess)(user)),
             accessTokenExpiresAt,
         });
     }
@@ -731,7 +756,7 @@ const changePassword = async (req, res) => {
         });
         res.json({
             message: "Password changed successfully.",
-            user: toUserResponse(user),
+            user: toUserResponse(user, await (0, loadAccess_1.loadAccess)(user)),
             accessTokenExpiresAt,
         });
     }

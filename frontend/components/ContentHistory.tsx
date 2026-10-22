@@ -22,11 +22,13 @@ const formatDateTime = (value: string) =>
 // Every publish is kept as a revision (the newest 20). Compare lists what
 // differs from the editor's current state; Restore copies a revision into the
 // draft, which the admin then reviews and publishes.
-export function ContentHistory({ def, page, current, dirty, onRestored }: {
+export function ContentHistory({ def, page, current, dirty, canRestore = true, onRestored }: {
   def: ContentPageDef;
   page: AdminContentPage;
   current: PageContent;
   dirty: boolean;
+  // Restoring needs content.publish; without it the history is compare-only
+  canRestore?: boolean;
   onRestored: (page: AdminContentPage) => void;
 }) {
   const [revisions, setRevisions] = useState<ContentRevisionSummary[]>([]);
@@ -116,11 +118,13 @@ export function ContentHistory({ def, page, current, dirty, onRestored }: {
                     {busy === `compare-${revision.version}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <GitCompare className="h-3.5 w-3.5" aria-hidden="true" />}
                     {compared?.version === revision.version ? "Hide" : "Compare"}
                   </button>
-                  <button type="button" onClick={() => restore(revision.version)} disabled={busy !== null}
-                    className="btn btn-secondary btn-sm">
-                    {busy === `restore-${revision.version}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
-                    Restore
-                  </button>
+                  {canRestore && (
+                    <button type="button" onClick={() => restore(revision.version)} disabled={busy !== null}
+                      className="btn btn-secondary btn-sm">
+                      {busy === `restore-${revision.version}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
+                      Restore
+                    </button>
+                  )}
                 </div>
               </div>
 

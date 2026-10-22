@@ -37,9 +37,11 @@ const consoleErrors: string[] = [];
 
 const toast = (text: string | RegExp) => page.locator("[data-sonner-toast]").filter({ hasText: text }).first();
 const dialog = () => page.getByRole("alertdialog");
-const lawyerCard = () => page.locator("div.rounded-xl.p-4", { hasText: lawyer.email }).first();
-const caseCard = () => page.locator("div.rounded-xl.overflow-hidden", { hasText: caseTitle }).first();
-const blogCard = (title: string) => page.locator("div.rounded-xl.p-4").filter({ has: page.getByText(title, { exact: true }) }).first();
+// List rows are <li> items (toasts are too, so they are excluded)
+const listItem = () => page.locator("main li:not([data-sonner-toast])");
+const lawyerCard = () => listItem().filter({ hasText: lawyer.email }).first();
+const caseCard = () => listItem().filter({ hasText: caseTitle }).first();
+const blogCard = (title: string) => listItem().filter({ has: page.getByText(title, { exact: true }) }).first();
 
 async function goto(path: string, heading: string | RegExp) {
   await page.goto(path);
@@ -121,7 +123,8 @@ test("lawyers: required-field validation", async () => {
   await goto("/dashboard/admin/lawyers", "Lawyer Management");
   await page.getByRole("button", { name: "Add Lawyer" }).click();
   await page.getByRole("button", { name: "Create Lawyer Account" }).click();
-  await expect(page.getByText("Name, email, phone, and Bar ID are required.")).toBeVisible();
+  await expect(page.getByText("Bar ID is required.")).toBeVisible();
+  await expect(page.getByText("Enter a valid email address.")).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
 });
 

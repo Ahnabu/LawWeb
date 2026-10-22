@@ -1,4 +1,6 @@
-export type UserRole = "admin" | "lawyer" | "client";
+import type { UserAccess } from "./access";
+
+export type UserRole = "admin" | "lawyer" | "client" | "staff";
 
 export interface AuthError extends Error {
   verificationRequired?: boolean;
@@ -17,6 +19,8 @@ export interface AuthUser {
   profileImageUrl?: string;
   isVerified?: boolean;
   passwordNeedsChange?: boolean;
+  /** What the account may do (UI hints only; the backend enforces) */
+  access?: UserAccess;
 }
 
 interface LoginResponse {
@@ -51,6 +55,15 @@ export function safeRedirectPath(path: string | null | undefined): string | null
   return path;
 }
 
+// Dashboards each account type may open. Staff work in the admin pages their
+// role allows (each page then checks the permission itself).
+const DASHBOARDS_BY_ROLE: Record<UserRole, readonly string[]> = {
+  admin: ["admin"],
+  lawyer: ["lawyer"],
+  client: ["client"],
+  staff: ["staff", "admin"],
+};
+
 // Where to go after login: the saved redirect unless it points at another
 // role's dashboard (which would only bounce), otherwise the user's own dashboard.
 export function postLoginPath(role: UserRole, redirect: string | null | undefined): string {
@@ -58,7 +71,7 @@ export function postLoginPath(role: UserRole, redirect: string | null | undefine
   if (!safe) return dashboardPathFor(role);
 
   const match = safe.match(/^\/dashboard\/([^/?#]+)/);
-  if (match && match[1] !== role) return dashboardPathFor(role);
+  if (match && !DASHBOARDS_BY_ROLE[role]?.includes(match[1])) return dashboardPathFor(role);
 
   return safe;
 }

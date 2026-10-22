@@ -119,31 +119,7 @@ export async function updateConsultationStatus(
   if (!res.ok) throw new Error(data.message || 'Failed to update consultation')
 }
 
-// ─── Availability API ─────────────────────────────────────────────────────────
-
-export async function getMyAvailability(): Promise<LawyerAvailability> {
-  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/availability`, {
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch availability')
-  return data.data as LawyerAvailability
-}
-
-export async function updateMyAvailability(
-  payload: Partial<Pick<LawyerAvailability, 'schedule' | 'isAcceptingNewClients'>>
-): Promise<LawyerAvailability> {
-  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/availability`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to update availability')
-  return data.data as LawyerAvailability
-}
+// Lawyer availability and profile calls are in lib/workspace.ts
 
 // ─── Admin API ────────────────────────────────────────────────────────────────
 
@@ -233,6 +209,8 @@ export interface AdminLawyerCounts {
 
 export interface AdminLawyerDetails extends AdminLawyer {
   stats: { totalCases: number; activeCases: number; totalConsultations: number }
+  /** Staff who assist this lawyer (permissions as chosen) */
+  assistants?: { staffId: string; name: string; permissions: string[] }[]
 }
 
 export interface LawyerInput {
@@ -259,6 +237,8 @@ export interface LawyerDeletionImpact {
   pastConsultations: number
   hasProfile: boolean
   hasAvailability: boolean
+  /** Staff who assist this lawyer; they lose access until the lawyer is restored */
+  assistantCount?: number
 }
 
 export interface LawyerDeletionSummary {
@@ -429,28 +409,6 @@ export interface LawyerProfileData {
   hourlyRate?: number
   isActive: boolean
   joinedAt?: string
-}
-
-export async function getMyLawyerProfile(): Promise<LawyerProfileData> {
-  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch profile')
-  return data.data as LawyerProfileData
-}
-
-export async function updateMyLawyerProfile(payload: Partial<LawyerProfileData>): Promise<LawyerProfileData> {
-  const res = await apiFetch(`${API_BASE_URL}/api/lawyers/me/profile`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || 'Failed to update profile')
-  return data.data as LawyerProfileData
 }
 
 // ─── Label maps ───────────────────────────────────────────────────────────────

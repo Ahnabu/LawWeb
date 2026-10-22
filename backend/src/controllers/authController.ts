@@ -25,6 +25,8 @@ import {
 import { getFrontendUrl } from "../config/env";
 import { ACCOUNT_BLOCKED_MESSAGE, AUTH_USER_FIELDS } from "../middleware/auth";
 import { recordAudit } from "../utils/audit";
+import { loadAccess } from "../access/loadAccess";
+import type { Access } from "../access/types";
 
 type UserSummary = Pick<
   IUser,
@@ -36,6 +38,7 @@ type UserSummary = Pick<
   | "profileImageUrl"
   | "isVerified"
   | "passwordNeedsChange"
+  | "staffRoleId"
 > & {
   _id: mongoose.Types.ObjectId;
   tokenVersion?: number;
@@ -43,6 +46,7 @@ type UserSummary = Pick<
 
 interface AuthRequest extends Request {
   user?: UserSummary;
+  access?: Access;
 }
 
 type Recipient = { _id: mongoose.Types.ObjectId; name: string; email: string };
@@ -79,7 +83,9 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
   PASSWORD_HASH_ROUNDS,
 );
 
-const toUserResponse = (user: UserSummary) => ({
+// `access` lets the frontend hide what the API would refuse (it never decides
+// anything itself). Delegations arrive in Phase 3.
+const toUserResponse = (user: UserSummary, access: Access) => ({
   _id: user._id,
   name: user.name,
   email: user.email,
@@ -89,6 +95,19 @@ const toUserResponse = (user: UserSummary) => ({
   profileImageUrl: user.profileImageUrl,
   isVerified: user.isVerified,
   passwordNeedsChange: user.passwordNeedsChange,
+  access: {
+    superAdmin: access.isSuperAdmin,
+    firm: [...access.firm],
+    // Staff only: the firm role's name, shown on the account page
+    ...(access.kind === "staff" ? { roleName: access.firmRoleName ?? null } : {}),
+    // Staff only: the lawyers they assist (active lawyers only), with expanded permissions
+    delegations: (access.delegatedLawyers ?? []).map((lawyer) => ({
+      lawyerId: lawyer.id,
+      lawyerName: lawyer.name,
+      lawyerPhoto: lawyer.profileImageUrl ?? null,
+      permissions: [...(access.delegations.get(lawyer.id) ?? [])],
+    })),
+  },
 });
 
 // Work that runs after the response is sent. Used where the response time must
@@ -163,10 +182,14 @@ const newResetToken = (ttlMs: number) => {
   };
 };
 
-// Used by the admin "add lawyer" flow and the temp-password migration: the
-// account gets a random password nobody knows, and the lawyer chooses their own
-// through this link.
-export const sendAccountSetupLink = async (user: Recipient) => {
+// Used by the admin "add lawyer" and "add staff" flows and the temp-password
+// migration: the account gets a random password nobody knows, and its owner
+// chooses their own through this link.
+export const sendAccountSetupLink = async (
+  user: Recipient,
+  accountLabel: "lawyer" | "staff" = "lawyer",
+  invitedBy?: string,
+) => {
   const { token, fields } = newResetToken(
     ACCOUNT_SETUP_EXPIRY_HOURS * 60 * 60 * 1000,
   );
@@ -176,6 +199,8 @@ export const sendAccountSetupLink = async (user: Recipient) => {
     name: user.name,
     setupUrl: resetUrlFor(token),
     expiresHours: ACCOUNT_SETUP_EXPIRY_HOURS,
+    accountLabel,
+    invitedBy,
   });
 };
 
@@ -189,6 +214,7 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, barId, phone } = req.body;
     const normalizedEmail = normalizeEmail(email);
+    // Self-registration must never yield an admin or staff account
     const selectedRole = role === "lawyer" ? "lawyer" : "client";
 
     const existingUser = await User.findOne({ email: normalizedEmail })
@@ -341,7 +367,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({
       message: "Login successful",
-      user: toUserResponse(user),
+      user: toUserResponse(user, await loadAccess(user)),
       accessTokenExpiresAt,
     });
   } catch (error) {
@@ -388,7 +414,12 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ message: "Not authenticated" });
   }
 
-  res.json({ user: toUserResponse(req.user) });
+  try {
+    res.json({ user: toUserResponse(req.user, req.access ?? (await loadAccess(req.user))) });
+  } catch (error) {
+    console.error("Get profile error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 // Exchanges the refresh cookie for a new access token AND a new refresh token.
@@ -463,7 +494,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     res.json({
       message: "Token refreshed successfully",
-      user: toUserResponse(user),
+      user: toUserResponse(user, await loadAccess(user)),
       accessTokenExpiresAt: result.accessTokenExpiresAt,
     });
   } catch (error) {
@@ -593,7 +624,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
     res.json({
       message: "Email verified successfully.",
-      user: toUserResponse(user),
+      user: toUserResponse(user, await loadAccess(user)),
       accessTokenExpiresAt,
     });
   } catch (error) {
@@ -862,7 +893,7 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
 
     res.json({
       message: "Password changed successfully.",
-      user: toUserResponse(user),
+      user: toUserResponse(user, await loadAccess(user)),
       accessTokenExpiresAt,
     });
   } catch (error) {

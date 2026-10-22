@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
 import { confirmDialog } from "../../../../components/ConfirmDialog";
 import { Pagination } from "../../../../components/Pagination";
+import { useAccess } from "../../../../components/useAccess";
 import { ArchivedBadge, askArchiveCase } from "../../../../components/CaseArchive";
 import { RichText } from "../../../../components/RichText";
 import { RichTextEditor } from "../../../../components/RichTextEditor";
@@ -52,10 +53,17 @@ interface CaseItem extends CaseArchiveFields {
   // null when the assigned lawyer account was deleted
   lawyerId?: { _id: string; name?: string; email?: string; barId?: string; isBlocked?: boolean } | null;
   clientId?: { name?: string; email?: string };
+  // Finance fields are left out of the response for roles without cases.finance.view
   totalPayment?: number;
   payments?: IPayment[];
   createdAt: string;
 }
+
+const hasFinance = (item: CaseItem) => "payments" in item || "totalPayment" in item;
+
+// A case whose lawyer is gone or blocked must be reassigned to be restored
+const needsReassign = (item: CaseItem) =>
+  !item.lawyerId || Boolean(item.lawyerId.isBlocked) || item.archiveReason === "lawyer-deleted";
 
 const CASE_TYPES = [
   "immigration",
@@ -106,6 +114,20 @@ const EMPTY_FORM = {
 };
 
 export default function AdminCasesPage() {
+  // What this account may do here (UI hint; the API refuses the rest)
+  const access = useAccess();
+  const canCreate = access.can("cases.create");
+  const canEdit = access.can("cases.edit");
+  const canAssign = access.can("cases.assign");
+  const canArchive = access.can("cases.archive");
+  const canEditFinance = access.can("cases.finance.edit");
+  const canSeeLawyers = access.can("lawyers.view");
+  // Restoring a removed lawyer's case is the super-admin's call
+  const canRestore = (item: CaseItem) =>
+    canArchive &&
+    (item.archiveReason !== "lawyer-deleted" || access.isSuperAdmin) &&
+    (!needsReassign(item) || canAssign);
+
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [lawyers, setLawyers] = useState<LawyerOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -297,26 +319,29 @@ export default function AdminCasesPage() {
     return () => clearTimeout(t);
   }, [searchInput, search]);
 
+  // The lawyer choices for creating and reassigning. Roles without lawyers.view
+  // use the public list (active, unblocked lawyers only).
+  const needsLawyers = canCreate || canArchive;
   const fetchLawyers = useCallback(async () => {
     try {
-      const res = await apiFetch(`${API_BASE_URL}/api/admin/lawyers`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/${canSeeLawyers ? "admin/lawyers" : "lawyers"}`, {
         credentials: "include",
       });
       if (!res.ok) return;
       const data = await res.json();
-      setLawyers(data.data ?? []);
+      setLawyers((canSeeLawyers ? data.data : data.lawyers) ?? []);
     } catch {
       /* silent */
     }
-  }, []);
+  }, [canSeeLawyers]);
 
   useEffect(() => {
     void fetchCases();
   }, [fetchCases]);
 
   useEffect(() => {
-    void fetchLawyers();
-  }, [fetchLawyers]);
+    if (needsLawyers) void fetchLawyers();
+  }, [fetchLawyers, needsLawyers]);
 
   // Blocked lawyers cannot be given cases
   const assignableLawyers = lawyers.filter((l) => !l.isBlocked);
@@ -358,7 +383,7 @@ export default function AdminCasesPage() {
 
   const handleRestore = async (item: CaseItem) => {
     // Without a usable lawyer the case must be reassigned as part of the restore
-    if (!item.lawyerId || item.lawyerId.isBlocked || item.archiveReason === "lawyer-deleted") {
+    if (!item.lawyerId || needsReassign(item)) {
       openRestoreModal(item);
       return;
     }
@@ -501,14 +526,16 @@ export default function AdminCasesPage() {
             Monitor and manage all case activity across the platform.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="btn btn-primary"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Add Case
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="btn btn-primary"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add Case
+          </button>
+        )}
       </header>
 
       {/* Active / Archived tabs + search */}
@@ -637,26 +664,30 @@ export default function AdminCasesPage() {
                 <div className="flex shrink-0 flex-wrap items-center gap-1">
                   {item.isArchived ? (
                     <>
-                      <button
-                        type="button"
-                        disabled={busyId === item._id}
-                        onClick={() => handleRestore(item)}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                        Restore
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId === item._id}
-                        onClick={() => handleDeletePermanently(item)}
-                        className="btn btn-ghost btn-sm hover:text-error"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        Delete
-                      </button>
+                      {canRestore(item) && (
+                        <button
+                          type="button"
+                          disabled={busyId === item._id}
+                          onClick={() => handleRestore(item)}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                          Restore
+                        </button>
+                      )}
+                      {access.isSuperAdmin && (
+                        <button
+                          type="button"
+                          disabled={busyId === item._id}
+                          onClick={() => handleDeletePermanently(item)}
+                          className="btn btn-ghost btn-sm hover:text-error"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Delete
+                        </button>
+                      )}
                     </>
-                  ) : (
+                  ) : canArchive && (
                     <button
                       type="button"
                       disabled={busyId === item._id}
@@ -748,10 +779,11 @@ export default function AdminCasesPage() {
                     </div>
                   )}
 
-                  {/* Financials & Payments Section */}
+                  {/* Financials & Payments Section (only when the response includes them) */}
+                  {hasFinance(item) && (
                   <div className="border-t border-outline-variant pt-5 space-y-4">
                     <h4 className="font-display text-base font-semibold text-on-surface">Financials & Payments</h4>
-                    <div className={`grid gap-4 ${item.isArchived ? "" : "sm:grid-cols-2"}`}>
+                    <div className={`grid gap-4 ${item.isArchived || !canEditFinance ? "" : "sm:grid-cols-2"}`}>
                       {/* Column 1: Summary */}
                       <div className="panel p-4 space-y-3">
                         <div className="flex justify-between items-center gap-3 text-sm">
@@ -785,7 +817,7 @@ export default function AdminCasesPage() {
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <span className="font-semibold text-on-surface tabular-nums">৳{(item.totalPayment || 0).toLocaleString()}</span>
-                              {!item.isArchived && (
+                              {!item.isArchived && canEditFinance && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -817,7 +849,7 @@ export default function AdminCasesPage() {
                       </div>
 
                       {/* Column 2: Record Payment (not on archived cases) */}
-                      {!item.isArchived && (
+                      {!item.isArchived && canEditFinance && (
                       <form onSubmit={(e) => handleRecordPayment(e, item._id)} className="panel p-4 space-y-3">
                         <h5 className="text-sm font-semibold text-on-surface">Record Offline Payment</h5>
                         <div className="grid gap-3 grid-cols-2">
@@ -882,7 +914,7 @@ export default function AdminCasesPage() {
                                 <th className="px-3 py-2 font-semibold">Date</th>
                                 <th className="px-3 py-2 font-semibold">Details</th>
                                 <th className="px-3 py-2 text-right font-semibold">Amount</th>
-                                {!item.isArchived && <th className="px-3 py-2 text-right font-semibold"><span className="sr-only">Action</span></th>}
+                                {!item.isArchived && access.isSuperAdmin && <th className="px-3 py-2 text-right font-semibold"><span className="sr-only">Action</span></th>}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-outline-variant">
@@ -895,7 +927,8 @@ export default function AdminCasesPage() {
                                   <td className="px-3 py-2 text-right font-medium text-success tabular-nums whitespace-nowrap">
                                     ৳{p.amount.toLocaleString()}
                                   </td>
-                                  {!item.isArchived && (
+                                  {/* Deleting a payment entry is super-admin only */}
+                                  {!item.isArchived && access.isSuperAdmin && (
                                     <td className="px-2 py-1 text-right">
                                       <button
                                         type="button"
@@ -914,9 +947,10 @@ export default function AdminCasesPage() {
                       )}
                     </div>
                   </div>
+                  )}
 
                   {/* Status update (archived cases are read-only) */}
-                  {!item.isArchived && (
+                  {!item.isArchived && canEdit && (
                   <div className="flex flex-wrap gap-2 border-t border-outline-variant pt-5">
                     <p className="w-full text-sm font-semibold text-on-surface">Update Status</p>
                     {CASE_STATUSES.map((s) => (

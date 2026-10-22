@@ -9,6 +9,7 @@ import {
 } from "../lib/content";
 import { getAdminContentPages } from "../lib/adminContent";
 import { useAuth } from "./AuthProvider";
+import { can } from "../lib/access";
 
 interface ContentContextValue {
   content: PublishedContent;
@@ -67,7 +68,7 @@ export function ContentProvider({
 
   useEffect(() => {
     if (status === "loading" || !readPreviewFlag()) return;
-    if (user?.role !== "admin") {
+    if (!can(user, "content.edit")) {
       clearPreviewFlag();
       return;
     }

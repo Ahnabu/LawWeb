@@ -3,9 +3,10 @@ import { apiFetch } from './http'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AuditActorRole = 'admin' | 'lawyer' | 'client' | 'anonymous' | 'system'
+export type AuditActorRole = 'admin' | 'staff' | 'lawyer' | 'client' | 'anonymous' | 'system'
 export type AuditCategory =
   | 'auth'
+  | 'access'
   | 'user'
   | 'lawyer'
   | 'case'
@@ -29,6 +30,9 @@ export interface AuditLogEntry {
   targetLabel?: string
   summary: string
   metadata?: Record<string, unknown>
+  // The lawyer a staff member acted for
+  onBehalfOf?: string | null
+  onBehalfOfName?: string
   ip?: string
   userAgent?: string
   createdAt: string
@@ -55,6 +59,8 @@ export interface AuditLogQuery {
   action?: string
   actorRole?: AuditActorRole | 'all'
   actor?: string
+  /** A lawyer's id: what staff did on their behalf */
+  onBehalfOf?: string
   search?: string
   /** YYYY-MM-DD, interpreted as a firm (Asia/Dhaka) calendar day */
   from?: string
@@ -89,6 +95,7 @@ export async function listAuditLogs(
   if (params.action) qs.set('action', params.action)
   if (params.actorRole && params.actorRole !== 'all') qs.set('actorRole', params.actorRole)
   if (params.actor) qs.set('actor', params.actor)
+  if (params.onBehalfOf) qs.set('onBehalfOf', params.onBehalfOf)
   if (params.search?.trim()) qs.set('search', params.search.trim())
   if (params.from) qs.set('from', dhakaDayStart(params.from))
   if (params.to) qs.set('to', dhakaDayEnd(params.to))
@@ -106,6 +113,7 @@ export async function getAuditLogMeta(): Promise<AuditLogFilterMeta> {
 
 export const AUDIT_CATEGORY_LABELS: Record<AuditCategory, string> = {
   auth: 'Sign-in & security',
+  access: 'Staff & roles',
   user: 'Users',
   lawyer: 'Lawyers',
   case: 'Cases',
@@ -118,7 +126,8 @@ export const AUDIT_CATEGORY_LABELS: Record<AuditCategory, string> = {
 }
 
 export const AUDIT_ROLE_LABELS: Record<AuditActorRole, string> = {
-  admin: 'Admin',
+  admin: 'Super Admin',
+  staff: 'Staff',
   lawyer: 'Lawyer',
   client: 'Client',
   anonymous: 'Visitor',
@@ -127,6 +136,7 @@ export const AUDIT_ROLE_LABELS: Record<AuditActorRole, string> = {
 
 export const AUDIT_ROLE_STYLES: Record<AuditActorRole, string> = {
   admin: 'bg-secondary/15 text-secondary',
+  staff: 'bg-secondary/10 text-on-surface',
   lawyer: 'bg-primary/10 text-on-surface',
   client: 'bg-surface-container-high text-on-surface-variant',
   anonymous: 'bg-surface-container text-on-surface-variant',

@@ -1,0 +1,437 @@
+{
+  "GET /api/cases/my-cases :: admin": {
+    "status": 403,
+    "message": "Unauthorized"
+  },
+  "GET /api/cases/my-cases :: lawyerA": {
+    "status": 403,
+    "message": "Unauthorized"
+  },
+  "GET /api/cases/my-cases :: lawyerB": {
+    "status": 403,
+    "message": "Unauthorized"
+  },
+  "GET /api/cases/my-cases :: clientA": {
+    "status": 200
+  },
+  "GET /api/cases/my-cases :: clientB": {
+    "status": 200
+  },
+  "GET /api/cases/:CA :: admin": {
+    "status": 200
+  },
+  "GET /api/cases/:CA :: lawyerA": {
+    "status": 200
+  },
+  "GET /api/cases/:CA :: lawyerB": {
+    "status": 403,
+    "message": "Access denied"
+  },
+  "GET /api/cases/:CA :: clientA": {
+    "status": 200
+  },
+  "GET /api/cases/:CA :: clientB": {
+    "status": 403,
+    "message": "Access denied"
+  },
+  "GET /api/cases/:missing :: admin": {
+    "status": 404,
+    "message": "Case not found"
+  },
+  "GET /api/cases/:missing :: lawyerA": {
+    "status": 404,
+    "message": "Case not found"
+  },
+  "GET /api/cases/:missing :: lawyerB": {
+    "status": 404,
+    "message": "Case not found"
+  },
+  "GET /api/cases/:missing :: clientA": {
+    "status": 404,
+    "message": "Case not found"
+  },
+  "GET /api/cases/:missing :: clientB": {
+    "status": 404,
+    "message": "Case not found"
+  },
+  "GET /api/consultations/my-consultations :: admin": {
+    "status": 403,
+    "message": "Unauthorized"
+  },
+  "GET /api/consultations/my-consultations :: lawyerA": {
+    "status": 403,
+    "message": "Unauthorized"
+  },
+  "GET /api/consultations/my-consultations :: lawyerB": {
+    "status": 403,
+    "message": "Unauthorized"
+  },
+  "GET /api/consultations/my-consultations :: clientA": {
+    "status": 200
+  },
+  "GET /api/consultations/my-consultations :: clientB": {
+    "status": 200
+  },
+  "GET /api/consultations/notifications :: admin": {
+    "status": 200
+  },
+  "GET /api/consultations/notifications :: lawyerA": {
+    "status": 200
+  },
+  "GET /api/consultations/notifications :: lawyerB": {
+    "status": 200
+  },
+  "GET /api/consultations/notifications :: clientA": {
+    "status": 200
+  },
+  "GET /api/consultations/notifications :: clientB": {
+    "status": 200
+  },
+  "GET /api/lawyers/me/availability (removed) :: admin": {
+    "status": 400,
+    "message": "Invalid lawyer ID"
+  },
+  "GET /api/lawyers/me/availability (removed) :: lawyerA": {
+    "status": 400,
+    "message": "Invalid lawyer ID"
+  },
+  "GET /api/lawyers/me/availability (removed) :: clientA": {
+    "status": 400,
+    "message": "Invalid lawyer ID"
+  },
+  "PUT /api/lawyers/me/availability (removed) :: admin": {
+    "status": 404
+  },
+  "PUT /api/lawyers/me/availability (removed) :: lawyerA": {
+    "status": 404
+  },
+  "PUT /api/lawyers/me/availability (removed) :: clientA": {
+    "status": 404
+  },
+  "GET /api/lawyers/me/profile (removed) :: admin": {
+    "status": 404
+  },
+  "GET /api/lawyers/me/profile (removed) :: lawyerA": {
+    "status": 404
+  },
+  "GET /api/lawyers/me/profile (removed) :: clientA": {
+    "status": 404
+  },
+  "PUT /api/lawyers/me/profile (removed) :: admin": {
+    "status": 404
+  },
+  "PUT /api/lawyers/me/profile (removed) :: lawyerA": {
+    "status": 404
+  },
+  "PUT /api/lawyers/me/profile (removed) :: clientA": {
+    "status": 404
+  },
+  "POST /api/lawyers/me/profile/image (removed) :: admin": {
+    "status": 404
+  },
+  "POST /api/lawyers/me/profile/image (removed) :: lawyerA": {
+    "status": 404
+  },
+  "POST /api/lawyers/me/profile/image (removed) :: clientA": {
+    "status": 404
+  },
+  "GET /api/admin/stats :: admin": {
+    "status": 200
+  },
+  "GET /api/admin/stats :: lawyerA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/admin/stats :: lawyerB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/admin/stats :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/admin/stats :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/blogs/admin/all :: admin": {
+    "status": 200
+  },
+  "GET /api/blogs/admin/all :: lawyerA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/blogs/admin/all :: lawyerB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/blogs/admin/all :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/blogs/admin/all :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "GET /api/blogs (public, signed-in) :: admin": {
+    "status": 200
+  },
+  "GET /api/blogs (public, signed-in) :: lawyerA": {
+    "status": 200
+  },
+  "GET /api/blogs (public, signed-in) :: clientA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {status} :: admin": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {status} :: lawyerA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {status} :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:CA {status} :: clientA": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:CA {status} :: clientB": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:CA {title, description} :: admin": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {title, description} :: lawyerA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {finance + confidential} :: admin": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {finance + confidential} :: lawyerA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {finance + confidential} :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:CA {deletePaymentId} :: admin": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA {deletePaymentId} :: lawyerA": {
+    "status": 403,
+    "message": "Only admins can delete payment entries"
+  },
+  "PATCH /api/cases/:CA {deletePaymentId} :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:CA {deletePaymentId} :: clientA": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:CA {deletePaymentId} :: clientB": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "PATCH /api/cases/:archived {status} :: admin": {
+    "status": 409,
+    "message": "Restore the case to edit it"
+  },
+  "PATCH /api/cases/:archived {status} :: lawyerA": {
+    "status": 409,
+    "message": "Restore the case to edit it"
+  },
+  "PATCH /api/cases/:archived {status} :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer or admin can update this case"
+  },
+  "POST /api/cases (for lawyerA) :: admin": {
+    "status": 201
+  },
+  "POST /api/cases (for lawyerA) :: lawyerA": {
+    "status": 201
+  },
+  "POST /api/cases (for lawyerA) :: lawyerB": {
+    "status": 201
+  },
+  "POST /api/cases (for lawyerA) :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "POST /api/cases (for lawyerA) :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "POST /api/cases (admin, client account as lawyerId) :: admin": {
+    "status": 404,
+    "message": "Lawyer not found"
+  },
+  "PATCH /api/cases/:CA/toggle-featured :: admin": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA/toggle-featured :: lawyerA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA/toggle-featured :: lawyerB": {
+    "status": 403,
+    "message": "Access denied"
+  },
+  "PATCH /api/cases/:CA/toggle-featured :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/toggle-featured :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/archive :: admin": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/archive :: lawyerA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA/archive :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer can archive this case"
+  },
+  "PATCH /api/cases/:CA/archive :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/archive :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/restore (archived by lawyerA) :: admin": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/restore (archived by lawyerA) :: lawyerA": {
+    "status": 200
+  },
+  "PATCH /api/cases/:CA/restore (archived by lawyerA) :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer can restore this case"
+  },
+  "PATCH /api/cases/:CA/restore (archived by lawyerA) :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/restore (archived by lawyerA) :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PATCH /api/cases/:CA/restore (archived by admin) :: lawyerA": {
+    "status": 403,
+    "message": "This case was archived by an administrator. Ask an admin to restore it.",
+    "code": "ADMIN_RESTORE_ONLY"
+  },
+  "PATCH /api/cases/:CA/restore (archived by admin) :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer can restore this case"
+  },
+  "DELETE /api/cases/:CA (archived) :: admin": {
+    "status": 200
+  },
+  "DELETE /api/cases/:CA (archived) :: lawyerA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "DELETE /api/cases/:CA (archived) :: lawyerB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "DELETE /api/cases/:CA (archived) :: clientA": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "DELETE /api/cases/:CA (archived) :: clientB": {
+    "status": 403,
+    "message": "Insufficient permissions"
+  },
+  "PUT /api/consultations/:id/confirm :: admin": {
+    "status": 403,
+    "message": "Only the assigned lawyer can confirm this consultation"
+  },
+  "PUT /api/consultations/:id/confirm :: lawyerA": {
+    "status": 200
+  },
+  "PUT /api/consultations/:id/confirm :: lawyerB": {
+    "status": 403,
+    "message": "Only the assigned lawyer can confirm this consultation"
+  },
+  "PUT /api/consultations/:id/confirm :: clientA": {
+    "status": 403,
+    "message": "Only the assigned lawyer can confirm this consultation"
+  },
+  "PUT /api/consultations/:id/confirm :: clientB": {
+    "status": 403,
+    "message": "Only the assigned lawyer can confirm this consultation"
+  },
+  "POST /api/consultations/:id/cancel :: admin": {
+    "status": 403,
+    "message": "You do not have permission to cancel this consultation"
+  },
+  "POST /api/consultations/:id/cancel :: lawyerA": {
+    "status": 200
+  },
+  "POST /api/consultations/:id/cancel :: lawyerB": {
+    "status": 403,
+    "message": "You do not have permission to cancel this consultation"
+  },
+  "POST /api/consultations/:id/cancel :: clientA": {
+    "status": 200
+  },
+  "POST /api/consultations/:id/cancel :: clientB": {
+    "status": 403,
+    "message": "You do not have permission to cancel this consultation"
+  },
+  "PUT /api/consultations/:id/status {cancelled} :: admin": {
+    "status": 403,
+    "message": "Only the lawyer can update consultation status"
+  },
+  "PUT /api/consultations/:id/status {cancelled} :: lawyerA": {
+    "status": 200
+  },
+  "PUT /api/consultations/:id/status {cancelled} :: lawyerB": {
+    "status": 403,
+    "message": "Only the lawyer can update consultation status"
+  },
+  "PUT /api/consultations/:id/status {cancelled} :: clientA": {
+    "status": 403,
+    "message": "Only the lawyer can update consultation status"
+  },
+  "PUT /api/consultations/:id/status {cancelled} :: clientB": {
+    "status": 403,
+    "message": "Only the lawyer can update consultation status"
+  },
+  "PUT /api/consultations/:id/status {completed, future} :: lawyerA": {
+    "status": 400,
+    "message": "A consultation cannot be marked completed before its scheduled time"
+  },
+  "PUT /api/consultations/:id/status {completed, future} :: lawyerB": {
+    "status": 403,
+    "message": "Only the lawyer can update consultation status"
+  },
+  "POST /api/consultations/book :: admin": {
+    "status": 403,
+    "message": "Only clients can book consultations"
+  },
+  "POST /api/consultations/book :: lawyerA": {
+    "status": 403,
+    "message": "Only clients can book consultations"
+  },
+  "POST /api/consultations/book :: lawyerB": {
+    "status": 403,
+    "message": "Only clients can book consultations"
+  },
+  "POST /api/consultations/book :: clientA": {
+    "status": 201
+  },
+  "POST /api/consultations/book :: clientB": {
+    "status": 201
+  }
+}

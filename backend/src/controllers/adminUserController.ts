@@ -6,10 +6,9 @@ import Consultation from '../models/Consultation';
 import { ACTIVE_STATUSES, businessNow } from '../utils/schedule';
 import { revokeAllSessions } from '../utils/session';
 import { recordAudit } from '../utils/audit';
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import { blockAccount, blockReasonFrom, blockState, unblockAccount } from '../utils/accountBlock';
+import { can, forbidden } from '../access/policy';
+import type { Access, AuthedRequest as AuthRequest } from '../access/types';
 
 export const getAllClientsAdmin = async (req: AuthRequest, res: Response) => {
   try {
@@ -41,7 +40,6 @@ export const getAllClientsAdmin = async (req: AuthRequest, res: Response) => {
 
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
-const MAX_REASON_LENGTH = 500;
 
 // Public profile fields only: never the password, token hashes or codes
 const USER_LIST_FIELDS = 'name email phone role isVerified isBlocked blockedAt createdAt profileImageUrl';
@@ -74,16 +72,20 @@ const invalidId = (res: Response) => res.status(400).json({ status: 400, message
 const notFound = (res: Response) => res.status(404).json({ status: 404, message: 'User not found' });
 const adminRefused = (res: Response, action: string) =>
   res.status(403).json({ status: 403, message: `Admin accounts cannot be ${action} from here.` });
+const targetRefused = (res: Response) =>
+  res.status(403).json({ status: 403, code: 'FORBIDDEN', message: "You don't have permission to manage this account." });
+
+// clients.* opens these routes; other targets need more. Staff accounts are
+// managed by the super-admin only (Team page), lawyers by lawyers.* holders.
+const canActOnTarget = (access: Access, targetRole: string, mode: 'view' | 'manage') => {
+  if (access.isSuperAdmin) return true;
+  if (targetRole === 'client') return true;
+  if (targetRole === 'lawyer') return can(access, mode === 'view' ? 'lawyers.view' : 'lawyers.manage');
+  return false;
+};
 // A removed lawyer stays blocked until restored from Lawyer Management
 const removedLawyerRefused = (res: Response, name: string) =>
   res.status(409).json({ status: 409, message: `${name} was removed from the firm. Restore them from Lawyer Management first.` });
-
-const blockState = (user: { _id: unknown; isBlocked?: boolean; blockedAt?: Date; blockedReason?: string }) => ({
-  _id: user._id,
-  isBlocked: Boolean(user.isBlocked),
-  blockedAt: user.blockedAt ?? null,
-  blockedReason: user.blockedReason ?? null,
-});
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
@@ -141,6 +143,7 @@ export const getUserDetailsAdmin = async (req: AuthRequest, res: Response) => {
 
     const user = await User.findById(userId).select(USER_DETAIL_FIELDS).lean();
     if (!user) return notFound(res);
+    if (!canActOnTarget(req.access!, user.role, 'view')) return notFound(res);
 
     const objectId = new mongoose.Types.ObjectId(userId);
     const isLawyer = user.role === 'lawyer';
@@ -152,14 +155,16 @@ export const getUserDetailsAdmin = async (req: AuthRequest, res: Response) => {
       : { $or: [{ clientId: objectId }, { clientEmail: user.email }] };
     const consultationFilter = isLawyer ? { lawyerId: objectId } : { clientId: objectId };
 
+    // The lists need their own firm permissions; clients.view alone shows the account
+    const access = req.access!;
     const [cases, consultations] = await Promise.all([
-      Case.find(caseFilter)
+      !can(access, 'cases.view') ? [] : Case.find(caseFilter)
         .select('caseNumber title status type isArchived lawyerId clientName clientEmail createdAt')
         .populate('lawyerId', 'name email')
         .sort({ createdAt: -1 })
         .limit(200)
         .lean(),
-      Consultation.find(consultationFilter)
+      !can(access, 'appointments.view') ? [] : Consultation.find(consultationFilter)
         .select('date time status subject consultationType meetingMode lawyerId clientId lawyerConfirmed createdAt')
         .populate('lawyerId', 'name email')
         .populate('clientId', 'name email')
@@ -204,6 +209,7 @@ export const updateUserAdmin = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(userId).select('role email');
     if (!user) return notFound(res);
     if (user.role === 'admin') return adminRefused(res, 'edited');
+    if (!canActOnTarget(req.access!, user.role, 'manage')) return targetRefused(res);
     if (user.role !== 'client') {
       // Lawyer edits go through Lawyer Management, which keeps LawyerProfile in sync
       return res.status(400).json({ status: 400, message: 'Edit lawyers from Lawyer Management.' });
@@ -236,6 +242,10 @@ export const updateUserAdmin = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ status: 400, message: 'Please enter a valid email address.' });
       }
       if (email !== user.email) {
+        // The login email plus "forgot password" is the account: super-admin only
+        if (!req.access?.isSuperAdmin) {
+          return forbidden(res, "Only the super-admin can change a login email.", 'FIELD_FORBIDDEN', { fields: ['email'] });
+        }
         const taken = await User.exists({ email, _id: { $ne: user._id } });
         if (taken) {
           return res.status(409).json({ status: 409, message: 'Another account already uses this email address.' });
@@ -299,25 +309,12 @@ export const blockUserAdmin = async (req: AuthRequest, res: Response) => {
     const target = await User.findById(userId).select('role name isBlocked deletedAt').lean();
     if (!target) return notFound(res);
     if (target.role === 'admin') return adminRefused(res, 'blocked');
+    if (!canActOnTarget(req.access!, target.role, 'manage')) return targetRefused(res);
     if (target.deletedAt) return removedLawyerRefused(res, target.name);
 
-    const rawReason = (req.body as { reason?: unknown } | undefined)?.reason;
-    const reason = typeof rawReason === 'string' ? rawReason.trim().slice(0, MAX_REASON_LENGTH) : '';
-
-    // tokenVersion moves so every access token already issued stops working at once
-    const updated = await User.findByIdAndUpdate(
-      userId,
-      reason
-        ? { $set: { isBlocked: true, blockedAt: new Date(), blockedReason: reason }, $inc: { tokenVersion: 1 } }
-        : { $set: { isBlocked: true, blockedAt: new Date() }, $unset: { blockedReason: 1 }, $inc: { tokenVersion: 1 } },
-      { returnDocument: 'after' }
-    )
-      .select('isBlocked blockedAt blockedReason')
-      .lean();
-
+    const reason = blockReasonFrom(req.body);
+    const updated = await blockAccount(userId, reason);
     if (!updated) return notFound(res);
-
-    await revokeAllSessions(userId);
 
     recordAudit(req, {
       action: target.isBlocked ? 'user.block_updated' : 'user.blocked',
@@ -351,15 +348,10 @@ export const unblockUserAdmin = async (req: AuthRequest, res: Response) => {
     const target = await User.findById(userId).select('role name isBlocked deletedAt').lean();
     if (!target) return notFound(res);
     if (target.role === 'admin') return adminRefused(res, 'unblocked');
+    if (!canActOnTarget(req.access!, target.role, 'manage')) return targetRefused(res);
     if (target.deletedAt) return removedLawyerRefused(res, target.name);
 
-    const updated = await User.findByIdAndUpdate(
-      userId,
-      { $set: { isBlocked: false }, $unset: { blockedAt: 1, blockedReason: 1 } },
-      { returnDocument: 'after' }
-    )
-      .select('isBlocked blockedAt blockedReason')
-      .lean();
+    const updated = await unblockAccount(userId);
 
     if (!updated) return notFound(res);
 
@@ -399,6 +391,7 @@ export const deleteUserAdmin = async (req: AuthRequest, res: Response) => {
     const target = await User.findById(userId).select('role name email').lean();
     if (!target) return notFound(res);
     if (target.role === 'admin') return adminRefused(res, 'deleted');
+    if (!canActOnTarget(req.access!, target.role, 'manage')) return targetRefused(res);
     if (target.role !== 'client') {
       return res.status(400).json({
         status: 400,

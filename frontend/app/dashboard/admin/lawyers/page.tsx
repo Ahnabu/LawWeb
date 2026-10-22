@@ -5,8 +5,9 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Plus, X, ShieldCheck, ShieldOff, Pencil, User,
   GripVertical, ChevronUp, ChevronDown, Loader2,
-  Ban, LockOpen, Archive, CalendarX, UserX, RotateCcw, AlertTriangle,
+  Ban, LockOpen, Archive, CalendarX, UserX, RotateCcw, AlertTriangle, UsersRound,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors,
@@ -17,6 +18,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { confirmDialog } from "../../../../components/ConfirmDialog";
+import { useAccess } from "../../../../components/useAccess";
+import { summarizePermissions } from "../../../../lib/delegation";
 import {
   addAdminLawyer, blockAdminUser, deleteAdminLawyer, getAdminLawyerDetails, getAdminLawyers,
   getLawyerDeletionImpact, reorderAdminLawyers, restoreAdminLawyer, toggleLawyerVerification, unblockAdminUser,
@@ -69,6 +72,12 @@ type LawyerView = "current" | "removed";
 type BusyAction = "verify" | "block" | "delete" | "restore";
 
 export default function AdminLawyersPage() {
+  // Roles with lawyers.view only get a read-only list (the API refuses the rest).
+  // Blocking goes through the users endpoints, which also need clients.manage.
+  const access = useAccess();
+  const canManage = access.can("lawyers.manage");
+  const canBlock = canManage && access.can("clients.manage");
+
   const [view, setView] = useState<LawyerView>("current");
   const [lawyers, setLawyers] = useState<AdminLawyer[]>([]);
   // Removed (soft-deleted) lawyers, loaded when the Removed tab opens
@@ -320,17 +329,21 @@ export default function AdminLawyersPage() {
             Lawyer Management
           </h3>
           <p className="text-sm text-on-surface-variant">
-            Add, edit and order lawyer accounts. Lawyers are added by admin only.
+            {canManage
+              ? "Add, edit and order lawyer accounts. Lawyers are added by admin only."
+              : "Lawyer accounts in their public order."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setFormMode({ type: "add" })}
-          className="btn btn-primary"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Add Lawyer
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => setFormMode({ type: "add" })}
+            className="btn btn-primary"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add Lawyer
+          </button>
+        )}
       </header>
 
       {/* Current / Removed tabs */}
@@ -392,6 +405,7 @@ export default function AdminLawyersPage() {
                 <RemovedLawyerRow
                   key={lawyer._id}
                   lawyer={lawyer}
+                  canManage={canManage}
                   busyAction={busy?.id === lawyer._id ? busy.action : null}
                   onView={() => void openDetails(lawyer._id)}
                   onRestore={() => void restoreLawyer(lawyer)}
@@ -410,8 +424,9 @@ export default function AdminLawyersPage() {
           <div className="notice notice-info text-on-surface-variant">
             <p>
               <span id="lawyer-order-heading" className="font-semibold text-on-surface">This order is the order on the public site</span>{" "}
-              (home page, Our Lawyers and the booking form). Drag a row by its handle, or use the arrow buttons.
-              With a keyboard, focus the handle, press Space, move with the arrow keys and press Space again.
+              (home page, Our Lawyers and the booking form).{" "}
+              {canManage &&
+                "Drag a row by its handle, or use the arrow buttons. With a keyboard, focus the handle, press Space, move with the arrow keys and press Space again. "}
               Unverified and blocked lawyers keep their place but are not shown publicly.
             </p>
           </div>
@@ -438,6 +453,8 @@ export default function AdminLawyersPage() {
                     isFirst={index === 0}
                     isLast={index === lawyers.length - 1}
                     reorderDisabled={isSavingOrder || lawyers.length < 2}
+                    canManage={canManage}
+                    canBlock={canBlock}
                     busyAction={busy?.id === lawyer._id ? busy.action : null}
                     onMove={(offset) => moveLawyer(lawyer._id, offset)}
                     onView={() => void openDetails(lawyer._id)}
@@ -519,6 +536,27 @@ export default function AdminLawyersPage() {
                   </dl>
                 </div>
 
+                {/* Assistants (managed on the Team page or by the lawyer's My Team) */}
+                {detailsLawyer.assistants && detailsLawyer.assistants.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-on-surface">Assistants</h4>
+                    <ul className="divide-y divide-outline-variant border-y border-outline-variant">
+                      {detailsLawyer.assistants.map((assistant) => (
+                        <li key={assistant.staffId} className="py-2 text-sm">
+                          {access.isSuperAdmin ? (
+                            <Link href={`/dashboard/admin/team/${assistant.staffId}`} className="text-link font-medium">
+                              {assistant.name}
+                            </Link>
+                          ) : (
+                            <span className="font-medium text-on-surface">{assistant.name}</span>
+                          )}
+                          <span className="block text-xs text-on-surface-variant">{summarizePermissions(assistant.permissions)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Timestamps */}
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-on-surface">Account Info</h4>
@@ -529,7 +567,7 @@ export default function AdminLawyersPage() {
                 </div>
 
                 {/* Quick actions from modal (a removed lawyer can only be restored) */}
-                {detailsLawyer.deletedAt ? (
+                {!canManage ? null : detailsLawyer.deletedAt ? (
                   <button
                     type="button"
                     disabled={busy?.id === detailsLawyer._id}
@@ -562,15 +600,17 @@ export default function AdminLawyersPage() {
                     {detailsLawyer.isVerified ? <ShieldOff className="h-4 w-4" aria-hidden="true" /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
                     {busy?.id === detailsLawyer._id && busy.action === "verify" ? "Saving…" : detailsLawyer.isVerified ? "Unverify" : "Verify"}
                   </button>
-                  <button
-                    type="button"
-                    disabled={busy?.id === detailsLawyer._id}
-                    onClick={() => void toggleBlock(detailsLawyer)}
-                    className="btn btn-secondary"
-                  >
-                    {detailsLawyer.isBlocked ? <LockOpen className="h-4 w-4" aria-hidden="true" /> : <Ban className="h-4 w-4" aria-hidden="true" />}
-                    {busy?.id === detailsLawyer._id && busy.action === "block" ? "Saving…" : detailsLawyer.isBlocked ? "Unblock" : "Block"}
-                  </button>
+                  {canBlock && (
+                    <button
+                      type="button"
+                      disabled={busy?.id === detailsLawyer._id}
+                      onClick={() => void toggleBlock(detailsLawyer)}
+                      className="btn btn-secondary"
+                    >
+                      {detailsLawyer.isBlocked ? <LockOpen className="h-4 w-4" aria-hidden="true" /> : <Ban className="h-4 w-4" aria-hidden="true" />}
+                      {busy?.id === detailsLawyer._id && busy.action === "block" ? "Saving…" : detailsLawyer.isBlocked ? "Unblock" : "Block"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={busy?.id === detailsLawyer._id}
@@ -609,6 +649,9 @@ interface SortableLawyerRowProps {
   isFirst: boolean;
   isLast: boolean;
   reorderDisabled: boolean;
+  // Without lawyers.manage the row is read-only (no order controls or actions)
+  canManage: boolean;
+  canBlock: boolean;
   busyAction: BusyAction | null;
   onMove: (offset: -1 | 1) => void;
   onView: () => void;
@@ -619,12 +662,12 @@ interface SortableLawyerRowProps {
 }
 
 function SortableLawyerRow({
-  lawyer, position, isFirst, isLast, reorderDisabled, busyAction,
+  lawyer, position, isFirst, isLast, reorderDisabled, canManage, canBlock, busyAction,
   onMove, onView, onEdit, onToggleVerification, onToggleBlock, onDelete,
 }: SortableLawyerRowProps) {
   const {
     attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging,
-  } = useSortable({ id: lawyer._id, disabled: reorderDisabled });
+  } = useSortable({ id: lawyer._id, disabled: reorderDisabled || !canManage });
 
   const isBusy = busyAction !== null;
   const iconAction = "btn btn-ghost btn-icon";
@@ -638,6 +681,11 @@ function SortableLawyerRow({
     >
       <div className="flex gap-3">
         {/* Order controls */}
+        {!canManage ? (
+          <span className="w-8 shrink-0 pt-2 text-center text-xs font-semibold tabular-nums text-on-surface-variant">
+            #{position}
+          </span>
+        ) : (
         <div className="flex shrink-0 flex-col items-center gap-0.5">
           <button
             type="button"
@@ -677,6 +725,7 @@ function SortableLawyerRow({
             <ChevronDown className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -702,6 +751,8 @@ function SortableLawyerRow({
                 className="btn btn-secondary btn-sm mr-1.5">
                 Details
               </button>
+              {canManage && (
+              <>
               <button type="button" title="Edit lawyer" onClick={onEdit}
                 className={iconAction}>
                 <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -717,6 +768,7 @@ function SortableLawyerRow({
                 {busyAction === "verify" ? spinner : lawyer.isVerified ? <ShieldOff className="h-4 w-4" aria-hidden="true" /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
                 <span className="sr-only">{busyAction === "verify" ? "Saving…" : lawyer.isVerified ? "Unverify" : "Verify"}</span>
               </button>
+              {canBlock && (
               <button
                 type="button"
                 title={lawyer.isBlocked ? "Unblock account" : "Block account"}
@@ -727,6 +779,7 @@ function SortableLawyerRow({
                 {busyAction === "block" ? spinner : lawyer.isBlocked ? <LockOpen className="h-4 w-4" aria-hidden="true" /> : <Ban className="h-4 w-4" aria-hidden="true" />}
                 <span className="sr-only">{busyAction === "block" ? "Saving…" : lawyer.isBlocked ? "Unblock" : "Block"}</span>
               </button>
+              )}
               <button
                 type="button"
                 title="Remove lawyer from the firm"
@@ -738,6 +791,8 @@ function SortableLawyerRow({
                 {busyAction === "delete" ? spinner : <UserX className="h-4 w-4" aria-hidden="true" />}
                 {busyAction === "delete" && <span className="sr-only">Checking…</span>}
               </button>
+              </>
+              )}
             </div>
           </div>
         </div>
@@ -749,9 +804,10 @@ function SortableLawyerRow({
 // ── Removed lawyer row ────────────────────────────────────────────────────────
 
 function RemovedLawyerRow({
-  lawyer, busyAction, onView, onRestore, onFinishRemoval,
+  lawyer, canManage, busyAction, onView, onRestore, onFinishRemoval,
 }: {
   lawyer: AdminLawyer;
+  canManage: boolean;
   busyAction: BusyAction | null;
   onView: () => void;
   onRestore: () => void;
@@ -785,18 +841,20 @@ function RemovedLawyerRow({
             className="btn btn-ghost btn-sm">
             Details
           </button>
-          {lawyer.deletionPending && (
+          {canManage && lawyer.deletionPending && (
             <button type="button" disabled={busyAction !== null} onClick={onFinishRemoval}
               className="btn btn-secondary btn-sm">
               <Archive className="h-3.5 w-3.5 text-error" aria-hidden="true" />
               {busyAction === "delete" ? "Working…" : "Finish clean-up"}
             </button>
           )}
-          <button type="button" disabled={busyAction !== null} onClick={onRestore}
-            className="btn btn-secondary btn-sm">
-            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-            {busyAction === "restore" ? "Restoring…" : "Restore"}
-          </button>
+          {canManage && (
+            <button type="button" disabled={busyAction !== null} onClick={onRestore}
+              className="btn btn-secondary btn-sm">
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              {busyAction === "restore" ? "Restoring…" : "Restore"}
+            </button>
+          )}
         </div>
       </div>
     </li>
@@ -862,6 +920,14 @@ function DeletionImpactDetails({ impact }: { impact: LawyerDeletionImpact }) {
         )}
       </ImpactItem>
 
+      {Boolean(impact.assistantCount) && (
+        <ImpactItem icon={<UsersRound className="h-4 w-4" />} tone="warn">
+          <p className="font-semibold text-on-surface">
+            {plural(impact.assistantCount ?? 0, "assistant")} will lose access until the lawyer is restored.
+          </p>
+        </ImpactItem>
+      )}
+
       <ImpactItem icon={<User className="h-4 w-4" />} tone="muted">
         <p>
           The login is disabled and the lawyer is signed out everywhere. The public profile
@@ -896,6 +962,9 @@ function LawyerFormModal({
   onSaved: (saved: AdminLawyer, mode: "add" | "edit") => void;
 }) {
   const isEdit = Boolean(lawyer);
+  // Changing a login email is super-admin only (the backend refuses it too)
+  const { isSuperAdmin } = useAccess();
+  const emailLocked = isEdit && !isSuperAdmin;
   const initial = useMemo<LawyerFormValues>(() => (lawyer ? {
     name: lawyer.name ?? "",
     email: lawyer.email ?? "",
@@ -978,7 +1047,7 @@ function LawyerFormModal({
   const field = (
     key: keyof LawyerFormValues,
     label: string,
-    opts: { type?: string; placeholder?: string; required?: boolean; wide?: boolean; lang?: string; autoComplete?: string } = {},
+    opts: { type?: string; placeholder?: string; required?: boolean; wide?: boolean; lang?: string; autoComplete?: string; disabled?: boolean; hint?: string } = {},
   ) => (
     <label className={`block ${opts.wide ? "sm:col-span-2" : ""}`}>
       <span className="label">{label} {opts.required && <span className="text-error">*</span>}</span>
@@ -991,7 +1060,9 @@ function LawyerFormModal({
         aria-invalid={Boolean(errors[key])}
         className={fieldClass(key)}
         placeholder={opts.placeholder}
+        disabled={opts.disabled}
       />
+      {opts.hint && <span className="mt-1 block text-xs text-on-surface-variant">{opts.hint}</span>}
       {errors[key] && <span className="error-text block">{errors[key]}</span>}
     </label>
   );
@@ -1018,7 +1089,10 @@ function LawyerFormModal({
 
         <div className="grid gap-4 sm:grid-cols-2">
           {field("name", "Full Name", { required: true, wide: true, placeholder: "Lawyer's full name" })}
-          {field("email", "Email Address", { type: "email", required: true, wide: true, placeholder: "lawyer@islamassociates.com" })}
+          {field("email", "Email Address", {
+            type: "email", required: true, wide: true, placeholder: "lawyer@islamassociates.com",
+            disabled: emailLocked, hint: emailLocked ? "Only the super-admin can change a login email." : undefined,
+          })}
           {field("phone", "Phone Number", { type: "tel", required: true, placeholder: "+8801XXXXXXXXX" })}
           {field("barId", "Bar ID", { required: true, placeholder: "BC-XXXX" })}
           {field("specialization", "Specialization", { wide: true, placeholder: "e.g. Immigration & Corporate Law" })}

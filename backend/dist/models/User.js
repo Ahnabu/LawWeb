@@ -43,7 +43,8 @@ const UserSchema = new mongoose_1.Schema({
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, select: false }, // Hidden by default
-    role: { type: String, enum: ['admin', 'lawyer', 'client'], default: 'client' },
+    role: { type: String, enum: ['admin', 'lawyer', 'client', 'staff'], default: 'client' },
+    staffRoleId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Role', default: null, index: true },
     barId: { type: String, sparse: true },
     phone: { type: String },
     specialization: { type: String },

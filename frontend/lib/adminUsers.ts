@@ -11,7 +11,7 @@ export interface ManagedUser {
   name: string
   email: string
   phone?: string
-  role: 'admin' | 'lawyer' | 'client'
+  role: 'admin' | 'lawyer' | 'client' | 'staff'
   isVerified: boolean
   isBlocked?: boolean
   blockedAt?: string | null

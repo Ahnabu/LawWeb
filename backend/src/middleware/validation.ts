@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CONTENT_PAGE_KEYS } from '../config/contentSchemas';
+import { LAWYER_SCOPED, type Permission } from '../access/permissions';
 
 // Shared by register, reset and change password. bcrypt ignores bytes past 72.
 export const passwordSchema = z.string()
@@ -106,11 +107,16 @@ export const auditLogQueryFields = z.object({
   action: optionalQueryText(80),
   actorRole: z.preprocess(
     (v) => (v === '' || v === 'all' ? undefined : v),
-    z.enum(['admin', 'lawyer', 'client', 'anonymous', 'system']).optional()
+    z.enum(['admin', 'lawyer', 'client', 'staff', 'anonymous', 'system']).optional()
   ),
   actor: z.preprocess(
     (v) => (v === '' ? undefined : v),
     z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid actor ID').optional()
+  ),
+  // The lawyer a staff member acted for
+  onBehalfOf: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid lawyer ID').optional()
   ),
   search: optionalQueryText(100),
   from: optionalQueryDate,
@@ -118,6 +124,68 @@ export const auditLogQueryFields = z.object({
 });
 
 export const auditLogListSchema = z.object({ query: auditLogQueryFields });
+
+// ── Roles and staff (super-admin) ─────────────────────────────────────────────
+// Permission keys are checked against the catalog in the controller, so the
+// response can list exactly which keys are unknown.
+const roleFields = {
+  name: z.string().trim().min(2, 'Role name must be at least 2 characters').max(60, 'Role name must be at most 60 characters'),
+  description: z.string().trim().max(300, 'Description must be at most 300 characters').optional(),
+  permissions: z.array(z.string().max(60)).max(100),
+};
+
+export const createRoleSchema = z.object({ body: z.object(roleFields) });
+
+export const updateRoleSchema = z.object({ body: z.object(roleFields).partial() });
+
+const objectId = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid ID');
+const staffPhone = z
+  .string()
+  .trim()
+  .max(30, 'Phone number too long')
+  .regex(/^\+?[\d\s\-()]*$/, 'Enter a valid phone number');
+
+export const createStaffSchema = z.object({
+  body: z.object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+    email: emailField,
+    phone: staffPhone.optional(),
+    staffRoleId: objectId.nullable().optional(),
+  }),
+});
+
+export const updateStaffSchema = z.object({
+  body: z.object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long').optional(),
+    phone: staffPhone.optional(),
+    staffRoleId: objectId.nullable().optional(),
+  }),
+});
+
+// ── Lawyer assistants (delegations) ───────────────────────────────────────────
+// Only lawyer-scoped keys can be delegated; firm-only or unknown keys are a 400.
+const delegationPermissions = z
+  .array(z.string().max(60))
+  .min(1, 'Choose at least one permission')
+  .max(LAWYER_SCOPED.size)
+  .refine((perms) => perms.every((p) => LAWYER_SCOPED.has(p as Permission)), 'Only permissions for a lawyer\'s own work can be given to an assistant')
+  .transform((perms) => [...new Set(perms)]);
+
+export const inviteAssistantSchema = z.object({
+  body: z.object({
+    email: emailField,
+    // Required by the controller only when the email is new to the firm
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long').optional().or(z.literal('')),
+    phone: staffPhone.optional(),
+    permissions: delegationPermissions,
+  }),
+});
+
+export const updateDelegationSchema = z.object({ body: z.object({ permissions: delegationPermissions }) });
+
+export const grantDelegationSchema = z.object({
+  body: z.object({ lawyerId: objectId, permissions: delegationPermissions }),
+});
 
 export const formatZodIssues =(error: z.ZodError) =>
   error.issues.map((issue) => ({

@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 // Append-only record of state-changing actions (sign-ins, admin edits, bookings,
 // CMS publishes...). Written through utils/audit.ts, read by admins only.
-export const AUDIT_ACTOR_ROLES = ['admin', 'lawyer', 'client', 'anonymous', 'system'] as const;
+export const AUDIT_ACTOR_ROLES = ['admin', 'lawyer', 'client', 'staff', 'anonymous', 'system'] as const;
 export type AuditActorRole = (typeof AUDIT_ACTOR_ROLES)[number];
 
 export const AUDIT_CATEGORIES = [
@@ -15,6 +15,8 @@ export const AUDIT_CATEGORIES = [
   'content',
   'contact',
   'profile',
+  // Roles, staff accounts and lawyer delegations
+  'access',
   'system',
 ] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
@@ -38,6 +40,9 @@ export interface IAuditLog extends Document {
   // Small and non-sensitive: changed field names, old/new status. Never
   // passwords, tokens or verification codes.
   metadata?: Record<string, unknown>;
+  // The lawyer a staff member acted for (RBAC Phase 3); null otherwise
+  onBehalfOf?: mongoose.Types.ObjectId | null;
+  onBehalfOfName?: string;
   ip?: string;
   userAgent?: string;
   createdAt: Date;
@@ -56,6 +61,8 @@ const AuditLogSchema: Schema = new Schema(
     targetLabel: { type: String, trim: true, maxlength: 200 },
     summary: { type: String, required: true, trim: true, maxlength: 500 },
     metadata: { type: Schema.Types.Mixed },
+    onBehalfOf: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    onBehalfOfName: { type: String, trim: true, maxlength: 200 },
     ip: { type: String, trim: true, maxlength: 100 },
     userAgent: { type: String, trim: true, maxlength: 300 },
   },
@@ -68,5 +75,7 @@ AuditLogSchema.index({ createdAt: -1 }, { expireAfterSeconds: AUDIT_RETENTION_DA
 AuditLogSchema.index({ actor: 1, createdAt: -1 });
 AuditLogSchema.index({ category: 1, createdAt: -1 });
 AuditLogSchema.index({ action: 1, createdAt: -1 });
+// A lawyer's "Team activity" and the admin "On behalf of" filter
+AuditLogSchema.index({ onBehalfOf: 1, createdAt: -1 });
 
 export default mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);

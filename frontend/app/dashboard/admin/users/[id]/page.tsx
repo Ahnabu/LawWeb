@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { formatDate, getUserDetails, updateUser, type UserDetailsResponse } from "../../../../../lib/adminUsers";
 import { BlockUserDialog } from "../_components/BlockUserDialog";
+import { useAccess } from "../../../../../components/useAccess";
 import { RecentActivity } from "../_components/RecentActivity";
 import { UserAvatar, UserStatusBadge, confirmAndDelete, confirmAndUnblock, performBlock } from "../_components/userActions";
 
@@ -54,6 +55,7 @@ const inputClass = "field";
 export default function AdminUserDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const access = useAccess();
 
   const [details, setDetails] = useState<UserDetailsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,7 +120,9 @@ export default function AdminUserDetailsPage() {
   const { user, cases, consultations, stats } = details;
   const isAdmin = user.role === "admin";
   const isLawyer = user.role === "lawyer";
-  const canManage = !isAdmin;
+  // Admin and staff accounts are managed elsewhere; lawyers also need lawyers.manage
+  const canManage =
+    !isAdmin && user.role !== "staff" && access.can("clients.manage") && (!isLawyer || access.can("lawyers.manage"));
   const backHref = isLawyer ? "/dashboard/admin/lawyers" : "/dashboard/admin/users";
 
   const startEdit = () => {
@@ -310,7 +314,11 @@ export default function AdminUserDetailsPage() {
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   className={inputClass}
                   required
+                  disabled={!access.isSuperAdmin}
                 />
+                {!access.isSuperAdmin && (
+                  <span className="mt-1 block text-xs text-on-surface-variant">Only the super-admin can change a login email.</span>
+                )}
               </label>
               <label className="block">
                 <span className="label">Phone</span>

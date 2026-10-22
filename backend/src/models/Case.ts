@@ -63,6 +63,7 @@ export interface IPayment {
 }
 
 export type CaseArchiveReason = 'manual' | 'lawyer-deleted';
+export type CaseArchiveOrigin = 'lawyer' | 'firm';
 
 // Copy of the assigned lawyer kept on the case when that lawyer account is deleted
 export interface IFormerLawyer {
@@ -113,6 +114,9 @@ export interface ICase extends Document {
   archivedAt?: Date;
   archivedBy?: mongoose.Types.ObjectId;
   archiveReason?: CaseArchiveReason;
+  // Which side archived it: the lawyer's workspace (lawyer or assistant) or the
+  // firm (admin pages). Decides who may restore; null on cases archived before RBAC Phase 3.
+  archiveOrigin?: CaseArchiveOrigin | null;
   archiveNote?: string;
   formerLawyer?: IFormerLawyer;
   createdAt: Date;
@@ -226,6 +230,7 @@ const CaseSchema: Schema = new Schema(
     archivedAt: { type: Date, default: null },
     archivedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     archiveReason: { type: String, enum: ['manual', 'lawyer-deleted'], default: null },
+    archiveOrigin: { type: String, enum: ['lawyer', 'firm'], default: null },
     archiveNote: { type: String, trim: true },
     formerLawyer: {
       type: new Schema(

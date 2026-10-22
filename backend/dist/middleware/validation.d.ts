@@ -107,10 +107,12 @@ export declare const auditLogQueryFields: z.ZodObject<{
         admin: "admin";
         lawyer: "lawyer";
         client: "client";
+        staff: "staff";
         anonymous: "anonymous";
         system: "system";
     }>>>;
     actor: z.ZodPreprocess<z.ZodOptional<z.ZodString>>;
+    onBehalfOf: z.ZodPreprocess<z.ZodOptional<z.ZodString>>;
     search: z.ZodPreprocess<z.ZodOptional<z.ZodString>>;
     from: z.ZodPreprocess<z.ZodOptional<z.ZodCoercedDate<unknown>>>;
     to: z.ZodPreprocess<z.ZodOptional<z.ZodCoercedDate<unknown>>>;
@@ -125,13 +127,63 @@ export declare const auditLogListSchema: z.ZodObject<{
             admin: "admin";
             lawyer: "lawyer";
             client: "client";
+            staff: "staff";
             anonymous: "anonymous";
             system: "system";
         }>>>;
         actor: z.ZodPreprocess<z.ZodOptional<z.ZodString>>;
+        onBehalfOf: z.ZodPreprocess<z.ZodOptional<z.ZodString>>;
         search: z.ZodPreprocess<z.ZodOptional<z.ZodString>>;
         from: z.ZodPreprocess<z.ZodOptional<z.ZodCoercedDate<unknown>>>;
         to: z.ZodPreprocess<z.ZodOptional<z.ZodCoercedDate<unknown>>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const createRoleSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        permissions: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateRoleSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodOptional<z.ZodString>;
+        description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        permissions: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const createStaffSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodString;
+        email: z.ZodString;
+        phone: z.ZodOptional<z.ZodString>;
+        staffRoleId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateStaffSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodOptional<z.ZodString>;
+        phone: z.ZodOptional<z.ZodString>;
+        staffRoleId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const inviteAssistantSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        email: z.ZodString;
+        name: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+        phone: z.ZodOptional<z.ZodString>;
+        permissions: z.ZodPipe<z.ZodArray<z.ZodString>, z.ZodTransform<string[], string[]>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateDelegationSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        permissions: z.ZodPipe<z.ZodArray<z.ZodString>, z.ZodTransform<string[], string[]>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const grantDelegationSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        lawyerId: z.ZodString;
+        permissions: z.ZodPipe<z.ZodArray<z.ZodString>, z.ZodTransform<string[], string[]>>;
     }, z.core.$strip>;
 }, z.core.$strip>;
 export declare const formatZodIssues: (error: z.ZodError) => {

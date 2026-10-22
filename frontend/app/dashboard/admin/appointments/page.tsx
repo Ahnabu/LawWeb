@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../../../lib/http";
 import { Pagination } from "../../../../components/Pagination";
+import { useAccess } from "../../../../components/useAccess";
 
 interface ConsultationItem {
   _id: string;
@@ -46,6 +47,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AdminAppointmentsPage() {
+  const access = useAccess();
+  const canManage = access.can("appointments.manage");
   const [consultations, setConsultations] = useState<ConsultationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -258,6 +261,7 @@ export default function AdminAppointmentsPage() {
                         )}
 
                         {/* Status update actions */}
+                        {canManage && (
                         <div>
                           <p className="mb-2 text-sm font-semibold text-on-surface">
                             Update Status
@@ -281,6 +285,7 @@ export default function AdminAppointmentsPage() {
                             )}
                           </div>
                         </div>
+                        )}
                       </div>
                     )}
                   </li>

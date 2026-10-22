@@ -5,7 +5,7 @@ import { parsePagination, toCountMap } from '../utils/pagination';
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// GET /api/admin/audit-logs?page=&limit=&category=&action=&actorRole=&actor=&search=&from=&to=
+// GET /api/admin/audit-logs?page=&limit=&category=&action=&actorRole=&actor=&onBehalfOf=&search=&from=&to=
 // Newest first. `actor` (a user id) gives one user's trail, as on the user detail page.
 export const listAuditLogsAdmin = async (req: Request, res: Response) => {
   try {
@@ -21,6 +21,7 @@ export const listAuditLogsAdmin = async (req: Request, res: Response) => {
     if (q.action) filter.action = q.action;
     if (q.actorRole) filter.actorRole = q.actorRole;
     if (q.actor) filter.actor = q.actor;
+    if (q.onBehalfOf) filter.onBehalfOf = q.onBehalfOf;
     if (q.from || q.to) {
       filter.createdAt = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
     }
@@ -30,6 +31,7 @@ export const listAuditLogsAdmin = async (req: Request, res: Response) => {
         { summary: pattern },
         { actorName: pattern },
         { actorEmail: pattern },
+        { onBehalfOfName: pattern },
         { targetLabel: pattern },
         { action: pattern },
         { ip: pattern },

@@ -10,31 +10,52 @@ import {
   PanelLeftClose,
   LayoutDashboard,
   FileText,
-  Users,
   Briefcase,
   Calendar,
   Settings,
   Home,
-  Scale,
   Sun,
   Moon,
-  Newspaper,
-  MessageSquare,
-  History,
+  UsersRound,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
-import { SidebarItem } from "../types/dashboard";
+import { SidebarItem, type DashboardRole } from "../types/dashboard";
+import { SETTINGS_NAV_ITEM, adminNavFor } from "./adminNav";
+import {
+  parseStaffWorkspacePath,
+  staffWorkspaceBase,
+  workspaceHomeFor,
+  workspacePageFor,
+  workspaceSidebarItems,
+} from "./lawyer-workspace/workspacePages";
+import { canAny } from "../lib/access";
+import type { AuthUser } from "../lib/auth";
+
+type NavItem = SidebarItem & { exact?: boolean };
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  role: "client" | "lawyer" | "admin";
+  role: DashboardRole;
 }
 
 const getSidebarItems = (
-  role: "client" | "lawyer" | "admin",
+  role: DashboardRole,
+  user: AuthUser | null,
 ): SidebarItem[] => {
+  // Staff see the same sidebar in every area: their home, the admin pages
+  // their role opens, then Settings
+  if (user?.role === "staff") {
+    return [
+      { href: "/dashboard/staff", label: "Home", icon: <Home className="h-4.5 w-4.5" /> },
+      ...adminNavFor(user),
+      SETTINGS_NAV_ITEM,
+    ];
+  }
+  // Admin pages are filtered by access (the super-admin sees all, plus Team and Roles)
+  if (role === "admin") return [...adminNavFor(user), SETTINGS_NAV_ITEM];
+
   const baseItems: Record<string, SidebarItem[]> = {
     client: [
       {
@@ -89,57 +110,10 @@ const getSidebarItems = (
         label: "Profile",
         icon: <Settings className="h-4.5 w-4.5" />,
       },
-    ],
-    admin: [
       {
-        href: "/dashboard/admin",
-        label: "Dashboard",
-        icon: <LayoutDashboard className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/appointments",
-        label: "Appointments",
-        icon: <Calendar className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/messages",
-        label: "Messages",
-        icon: <MessageSquare className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/cases",
-        label: "Cases",
-        icon: <Briefcase className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/lawyers",
-        label: "Lawyers",
-        icon: <Scale className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/users",
-        label: "Users",
-        icon: <Users className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/blogs",
-        label: "Blogs",
-        icon: <Newspaper className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/content",
-        label: "Content",
-        icon: <FileText className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/audit-logs",
-        label: "Audit Logs",
-        icon: <History className="h-4.5 w-4.5" />,
-      },
-      {
-        href: "/dashboard/admin/settings",
-        label: "Settings",
-        icon: <Settings className="h-4.5 w-4.5" />,
+        href: "/dashboard/lawyer/team",
+        label: "My Team",
+        icon: <UsersRound className="h-4.5 w-4.5" />,
       },
     ],
   };
@@ -153,7 +127,24 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const sidebarItems = getSidebarItems(role);
+  const sidebarItems = getSidebarItems(role, user);
+
+  // Inside a lawyer's workspace an assistant gets that lawyer's pages first,
+  // with a switcher when they work for several lawyers
+  const workspace = user?.role === "staff" ? parseStaffWorkspacePath(pathname || "") : null;
+  const delegations = user?.access?.delegations ?? [];
+  const activeDelegation = workspace ? delegations.find((d) => d.lawyerId === workspace.lawyerId) : undefined;
+  const workspaceItems: NavItem[] = activeDelegation ? workspaceSidebarItems(user, activeDelegation.lawyerId) : [];
+
+  // Same page for the other lawyer when they allow it (a case list, not one case), else their first page
+  const switchLawyer = (lawyerId: string) => {
+    const page = workspace ? workspacePageFor(workspace.subPath) : undefined;
+    const next = page && canAny(user, page.anyOf, lawyerId)
+      ? `${staffWorkspaceBase(lawyerId)}${page.path}`
+      : workspaceHomeFor(user, lawyerId);
+    closeSidebarOnMobile();
+    router.push(next);
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -228,12 +219,34 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto p-3">
-            {sidebarItems.map((item) => {
+            {activeDelegation && (
+              <div className="mb-2 space-y-1 border-b border-outline-variant pb-3">
+                <label htmlFor="working-for" className="block px-1 text-xs text-on-surface-variant">
+                  Working for
+                </label>
+                {delegations.length > 1 ? (
+                  <select
+                    id="working-for"
+                    value={activeDelegation.lawyerId}
+                    onChange={(e) => switchLawyer(e.target.value)}
+                    className="field field-sm font-semibold"
+                  >
+                    {delegations.map((d) => (
+                      <option key={d.lawyerId} value={d.lawyerId}>{d.lawyerName}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p id="working-for" className="px-1 text-sm font-semibold text-on-surface">{activeDelegation.lawyerName}</p>
+                )}
+              </div>
+            )}
+            {[...workspaceItems, ...(workspaceItems.length ? [null] : []), ...sidebarItems].map((item: NavItem | null) => {
+              if (!item) return <div key="divider" role="separator" className="my-2 border-t border-outline-variant" />;
               // Sub-pages (e.g. /dashboard/admin/content/about) keep their section active;
               // the role home (/dashboard/admin) only matches exactly
               const isActive =
                 pathname === item.href ||
-                (item.href.split("/").length > 3 && pathname.startsWith(`${item.href}/`));
+                (!item.exact && item.href.split("/").length > 3 && pathname.startsWith(`${item.href}/`));
               return (
                 <Link
                   key={item.href}

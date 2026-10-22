@@ -2,6 +2,8 @@ import { Request } from 'express';
 import mongoose from 'mongoose';
 import AuditLog, { AuditActorRole, AuditCategory } from '../models/AuditLog';
 import User from '../models/User';
+import { refId } from '../access/policy';
+import type { ActingFor, AuthedRequest } from '../access/types';
 
 // Who did it. Defaults to req.user; pass explicitly where req.user is not set
 // yet (login, register, logout, password reset) or `null` for an anonymous actor.
@@ -50,7 +52,7 @@ const sanitize = (value: unknown, depth = 0): unknown => {
 };
 
 const toRole = (role: unknown, hasId: boolean): AuditActorRole => {
-  if (role === 'admin' || role === 'lawyer' || role === 'client' || role === 'system') return role;
+  if (role === 'admin' || role === 'lawyer' || role === 'client' || role === 'staff' || role === 'system') return role;
   return hasId ? 'client' : 'anonymous';
 };
 
@@ -68,8 +70,26 @@ export const changedFields = (
     return JSON.stringify(prev ?? null) !== JSON.stringify(next ?? null);
   });
 
+// Single-record handlers (a case, a booking) call this once they know whose
+// record it is, so a staff member's action is logged as on behalf of that lawyer.
+// The name is filled in from the delegation, or looked up when the entry is written.
+export const markActingFor = (req: AuthedRequest, lawyerId: unknown) => {
+  if (req.access?.kind !== 'staff') return;
+  const id = refId(lawyerId);
+  if (!id) return;
+  const populatedName = typeof lawyerId === 'object' && lawyerId && 'name' in lawyerId ? (lawyerId as { name?: string }).name : undefined;
+  const name = populatedName ?? req.access.delegatedLawyers?.find((l) => l.id === id)?.name;
+  req.actingFor = { id, ...(name ? { name } : {}) };
+};
+
 const write = async (req: Request | null, entry: AuditEntry) => {
   const reqUser = (req as (Request & { user?: AuditActor }) | null)?.user;
+  const actingFor = (req as AuthedRequest | null)?.actingFor as ActingFor | undefined;
+  const onBehalfOf = actingFor && mongoose.isValidObjectId(actingFor.id) ? actingFor.id : null;
+  let onBehalfOfName = actingFor?.name;
+  if (onBehalfOf && !onBehalfOfName) {
+    onBehalfOfName = (await User.findById(onBehalfOf).select('name').lean())?.name;
+  }
   const given = entry.actor === undefined ? reqUser : entry.actor;
   const actorId = given?._id && mongoose.isValidObjectId(String(given._id)) ? String(given._id) : null;
 
@@ -93,6 +113,7 @@ const write = async (req: Request | null, entry: AuditEntry) => {
     targetLabel: clip(entry.targetLabel, 200),
     summary: clip(entry.summary, 500) ?? entry.action,
     metadata: entry.metadata ? (sanitize(entry.metadata) as Record<string, unknown>) : undefined,
+    ...(onBehalfOf ? { onBehalfOf, onBehalfOfName: clip(onBehalfOfName, 200) } : {}),
     // req.ip honours the "trust proxy" setting from server.ts (X-Forwarded-For)
     ip: clip(req?.ip, 100),
     userAgent: clip(req?.headers?.['user-agent'], 300),
