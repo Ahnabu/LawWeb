@@ -12,6 +12,7 @@ export const AUDIT_CATEGORIES = [
   'case',
   'consultation',
   'blog',
+  'gallery',
   'content',
   'contact',
   'profile',

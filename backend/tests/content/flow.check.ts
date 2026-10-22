@@ -36,7 +36,7 @@ const heroTitle = (en: string) => ({ strings: { 'about.heroTitle': { en, bn: 'рж
   await ContentRevision.syncIndexes();
 
   let r = await call(c.listContentPages, {});
-  expect('list: all 8 pages returned before any doc exists', r.json.data.length === 8 && r.json.data.every((p: any) => p.version === 0));
+  expect('list: all 9 pages returned before any doc exists', r.json.data.length === 9 && r.json.data.every((p: any) => p.version === 0));
   expect('list: draft included, published omitted', 'draft' in r.json.data[0] && !('published' in r.json.data[0]));
 
   r = await call(c.getContentPageAdmin, { pageKey: 'about' });

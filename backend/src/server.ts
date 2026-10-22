@@ -19,6 +19,7 @@ import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blogs";
 import contentRoutes from "./routes/content";
 import contactRoutes from "./routes/contact";
+import galleryRoutes from "./routes/gallery";
 import accessRoutes from "./routes/access";
 import workspaceRoutes from "./routes/workspace";
 import { requireTrustedOrigin, sanitizeInput } from "./middleware/security";
@@ -254,6 +255,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/content", contentRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/gallery", galleryRoutes);
 app.use("/api/access", accessRoutes);
 app.use("/api/workspace/:lawyerId", workspaceRoutes);
 

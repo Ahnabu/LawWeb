@@ -15,6 +15,8 @@ describe('getRouteLocale', () => {
     expect(getRouteLocale('/bn/')).toBe('bn')
     expect(getRouteLocale('/bn/practice-areas')).toBe('bn')
     expect(getRouteLocale('/bn/blogs/some-post')).toBe('bn')
+    expect(getRouteLocale('/gallery')).toBe('en')
+    expect(getRouteLocale('/bn/gallery')).toBe('bn')
   })
 
   it('returns null for single-language routes', () => {
@@ -32,6 +34,7 @@ describe('localizePath', () => {
     expect(localizePath('/bn', 'en')).toBe('/')
     expect(localizePath('/bn/about', 'bn')).toBe('/bn/about')
     expect(localizePath('/about', 'en')).toBe('/about')
+    expect(localizePath('/gallery', 'bn')).toBe('/bn/gallery')
   })
 
   it('keeps the query and hash', () => {

@@ -48,6 +48,13 @@ import {
   deleteContactMessageAdmin,
 } from '../controllers/contactController';
 import { listAuditLogsAdmin, getAuditLogMetaAdmin } from '../controllers/auditLogController';
+import {
+  listGalleryAdmin,
+  createGalleryImageAdmin,
+  updateGalleryImageAdmin,
+  reorderGalleryAdmin,
+  deleteGalleryImageAdmin,
+} from '../controllers/galleryController';
 import { listRolesAdmin, createRoleAdmin, updateRoleAdmin, deleteRoleAdmin } from '../controllers/roleController';
 import {
   listStaffAdmin,
@@ -75,8 +82,12 @@ import {
   updateStaffSchema,
   grantDelegationSchema,
   updateDelegationSchema,
+  galleryImageIdSchema,
+  updateGalleryImageSchema,
+  reorderGallerySchema,
 } from '../middleware/validation';
-import { uploadContentImage } from '../config/multer.config';
+import multer from 'multer';
+import { uploadContentImage, uploadGalleryImage } from '../config/multer.config';
 import { recordAudit } from '../utils/audit';
 
 const router = express.Router();
@@ -154,6 +165,32 @@ router.delete('/messages/:messageId', messagesManage, deleteContactMessageAdmin)
 const auditView = requirePermission('audit.view');
 router.get('/audit-logs/meta', auditView, getAuditLogMetaAdmin);
 router.get('/audit-logs', auditView, validateRequest(auditLogListSchema), listAuditLogsAdmin);
+
+// ── Photo gallery ─────────────────────────────────────────────────────────────
+const galleryManage = requirePermission('gallery.manage');
+// The upload creates the image. Multer/Cloudinary errors become a 400 with a
+// message the admin page can show, instead of the generic 500.
+const galleryUpload: express.RequestHandler = (req, res, next) => {
+  uploadGalleryImage.single('image')(req, res, (err: unknown) => {
+    if (!err) return next();
+    const httpCode = (err as { http_code?: number })?.http_code;
+    if (err instanceof multer.MulterError) {
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'The image must be 8 MB or smaller' : err.message;
+      return res.status(400).json({ status: 400, message });
+    }
+    if (err instanceof Error && (err.message === 'Only image files are allowed' || httpCode === 400)) {
+      return res.status(400).json({ status: 400, message: err.message });
+    }
+    console.error('Gallery upload error:', err);
+    res.status(502).json({ status: 502, message: 'The image could not be uploaded. Please try again.' });
+  });
+};
+router.get('/gallery', galleryManage, listGalleryAdmin);
+router.post('/gallery', galleryManage, galleryUpload, createGalleryImageAdmin);
+// Static path before /:imageId
+router.put('/gallery/order', galleryManage, validateRequest(reorderGallerySchema), reorderGalleryAdmin);
+router.patch('/gallery/:imageId', galleryManage, validateRequest(updateGalleryImageSchema), updateGalleryImageAdmin);
+router.delete('/gallery/:imageId', galleryManage, validateRequest(galleryImageIdSchema), deleteGalleryImageAdmin);
 
 // ── Content (CMS) ─────────────────────────────────────────────────────────────
 const contentEdit = requirePermission('content.edit');

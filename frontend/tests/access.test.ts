@@ -75,6 +75,9 @@ describe('admin area', () => {
 
   it('opens pages by permission; Team, Roles and unknown pages are super-admin only', () => {
     expect(canOpenAdminArea(editor, '/dashboard/admin/blogs')).toBe(true)
+    expect(canOpenAdminArea(editor, '/dashboard/admin/gallery')).toBe(false)
+    expect(canOpenAdminArea(user('staff', ['gallery.manage']), '/dashboard/admin/gallery')).toBe(true)
+    expect(hasAdminAreaAccess(user('staff', ['gallery.manage']))).toBe(true)
     expect(canOpenAdminArea(editor, '/dashboard/admin/users')).toBe(false)
     expect(canOpenAdminArea(editor, '/dashboard/admin/team')).toBe(false)
     expect(canOpenAdminArea(editor, '/dashboard/admin/unknown')).toBe(false)

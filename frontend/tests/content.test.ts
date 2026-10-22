@@ -91,7 +91,7 @@ describe('list items', () => {
 })
 
 describe('SEO defaults', () => {
-  it.each(['home', 'about', 'practiceAreas', 'trackCase', 'blogs'])('seo.%s has a title and description in EN and BN', (page) => {
+  it.each(['home', 'about', 'practiceAreas', 'practiceAreasAll', 'trackCase', 'blogs'])('seo.%s has a title and description in EN and BN', (page) => {
     for (const locale of ['en', 'bn'] as const) {
       expect(lookupTranslation(locale, `seo.${page}.title`)).toBeTruthy()
       expect(lookupTranslation(locale, `seo.${page}.description`)).toBeTruthy()

@@ -15,6 +15,7 @@ export const CONTENT_PAGE_KEYS = [
   'track-case',
   'blogs',
   'contact',
+  'gallery',
 ] as const
 
 export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number]

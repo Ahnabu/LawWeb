@@ -24,6 +24,7 @@ export const CONTENT_PAGE_KEYS = [
   'track-case',
   'blogs',
   'contact',
+  'gallery',
 ] as const;
 
 export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number];
@@ -197,6 +198,7 @@ export const contentPageSchemas: Record<ContentPageKey, z.ZodType<Record<string,
   'track-case': stringsOnlySchema,
   blogs: stringsOnlySchema,
   contact: stringsOnlySchema,
+  gallery: stringsOnlySchema,
 };
 
 export const isContentPageKey = (value: string): value is ContentPageKey =>

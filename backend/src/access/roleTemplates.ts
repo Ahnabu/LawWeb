@@ -11,8 +11,8 @@ export interface RoleTemplate {
 export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
   {
     name: 'Content Editor',
-    description: 'Writes and publishes blogs and site content.',
-    permissions: ['blogs.manage', 'content.publish'],
+    description: 'Writes and publishes blogs, site content and the photo gallery.',
+    permissions: ['blogs.manage', 'gallery.manage', 'content.publish'],
   },
   {
     name: 'Receptionist',
