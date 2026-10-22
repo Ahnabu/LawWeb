@@ -14,6 +14,9 @@ import { useContentList, useSiteSettings } from '../../components/contentHooks'
 import { homeStats, practiceAreas, successStories } from '../../lib/data'
 import { API_BASE_URL } from '../../lib/api'
 
+// How many practice area cards the home page shows before "See more"
+const HOME_PRACTICE_AREA_LIMIT = 8
+
 export default function HomePage() {
   const { t, localePath } = useLanguage()
   const [lawyers, setLawyers] = useState<PublicLawyer[]>([])
@@ -92,20 +95,22 @@ export default function HomePage() {
       {/* Practice Areas */}
       <section className="bg-surface px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-2xl">
-              <p className="kicker">{t('common.practiceSectionLabel')}</p>
-              <h2 className="mt-2 text-heading">{t('common.practiceHeading')}</h2>
-              <p className="mt-3 text-base leading-7 text-on-surface-variant">{t('common.practiceDetail')}</p>
-            </div>
-            <Link href={localePath('/practice-areas')} className="text-link shrink-0 text-sm">
-              {t('common.viewAll')}
-            </Link>
+          <div className="mb-8 max-w-2xl sm:mb-10">
+            <p className="kicker">{t('common.practiceSectionLabel')}</p>
+            <h2 className="mt-2 text-heading">{t('common.practiceHeading')}</h2>
+            <p className="mt-3 text-base leading-7 text-on-surface-variant">{t('common.practiceDetail')}</p>
           </div>
+          {/* A teaser of up to 8 cards (two full rows at 4 columns, four at 2);
+              the full write-ups live on the Practice Areas page */}
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {areas.map((area) => (
+            {areas.slice(0, HOME_PRACTICE_AREA_LIMIT).map((area) => (
               <PracticeAreaCard key={area.id} title={area.title} description={area.description} />
             ))}
+          </div>
+          <div className="mt-8 flex justify-center sm:mt-10">
+            <Link href={localePath('/practice-areas')} className="btn btn-secondary">
+              {t('common.viewAll')}
+            </Link>
           </div>
         </div>
       </section>

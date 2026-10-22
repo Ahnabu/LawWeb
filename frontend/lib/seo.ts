@@ -11,15 +11,17 @@ import { richTextToPlain } from './richText'
 // them like any other text and an empty CMS falls back to i18n.ts. The language
 // comes from the route (/about → English, /bn/about → Bangla).
 
-export type SeoPageKey = 'home' | 'about' | 'practiceAreas' | 'trackCase' | 'blogs' | 'contact'
+export type SeoPageKey = 'home' | 'about' | 'practiceAreas' | 'practiceAreasAll' | 'trackCase' | 'blogs' | 'contact' | 'gallery'
 
 export const SEO_PAGE_PATHS: Record<SeoPageKey, string> = {
   home: '/',
   about: '/about',
   practiceAreas: '/practice-areas',
+  practiceAreasAll: '/practice-areas/all',
   trackCase: '/track-case',
   blogs: '/blogs',
   contact: '/contact',
+  gallery: '/gallery',
 }
 
 // Single-language public pages (no /bn URL). Their SEO text is code-only

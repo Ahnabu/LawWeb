@@ -10,6 +10,7 @@ const translationBundle = {
       lawyers: "Our Lawyers",
       practiceAreas: "Practice Areas",
       blogs: "Blog",
+      gallery: "Gallery",
       caseTracker: "Case Tracker",
       appointment: "Appointment",
       contact: "Contact",
@@ -39,7 +40,7 @@ const translationBundle = {
       practiceHeading: "Areas of Legal Focus",
       practiceDetail:
         "Trusted counsel for every stage of your legal matter, from corporate transactions to immigration proceedings.",
-      viewAll: "See All Practice Areas →",
+      viewAll: "See More Practice Areas →",
       viewAllLawyers: "View All Lawyers →",
       teamSectionLabel: "Meet Our Legal Team",
       teamHeading: "Our Lawyers",
@@ -91,6 +92,9 @@ const translationBundle = {
       practicePageSubtitle:
         "Explore our comprehensive legal services across immigration, criminal, civil and corporate law.",
       allPracticeAreasTitle: "All Practice Areas",
+      practiceAccordionHint: "Select a practice area to read the full details.",
+      practiceSeeMore: "See More",
+      practiceDetailsTitle: "Practice Areas in Detail",
       lawyersPageTitle: "Our Legal Team",
       lawyersPageSubtitle:
         "Search talented lawyers by name or specialty and find an experienced advocate for your case.",
@@ -464,6 +468,50 @@ const translationBundle = {
       sendError: "We couldn't send your message. Please try again or call us.",
       privacyNote: "Please don't include confidential details. A lawyer will discuss them with you directly.",
     },
+    // ── Welcome popup (components/PromoPopup.tsx) ──────────────────────────
+    // q1…q12 rotate in the popup's slider. Editable in the CMS under
+    // Navigation & Footer → Welcome popup. {n} / {total} are filled in.
+    popup: {
+      title: "How can we help you?",
+      q1: "Need a Divorce?",
+      q2: "Planning to Move Abroad?",
+      q3: "Facing an Immigration Issue?",
+      q4: "Want to Study Overseas?",
+      q5: "Need Help with a Visa Application?",
+      q6: "Dealing with an International Family Dispute?",
+      q7: "Have a Property Dispute Back Home?",
+      q8: "Need Help Claiming Your Inheritance?",
+      q9: "Getting Married Abroad?",
+      q10: "Need Legal Documents from Bangladesh?",
+      q11: "Facing a Cross-Border Legal Issue?",
+      q12: "Looking for Legal Guidance You Can Trust?",
+      text: "Our lawyers in Bangladesh and abroad can help. Book a consultation today.",
+      book: "Book a Consultation",
+      contact: "Contact Us",
+      whatsapp: "WhatsApp",
+      close: "Close",
+      previous: "Previous question",
+      next: "Next question",
+      goTo: "Show question {n} of {total}",
+      questionsLabel: "Legal questions we can help with",
+    },
+    // ── Photo gallery (app/gallery) ────────────────────────────────────────
+    // The photos and their titles come from the admin Gallery page; this is
+    // the page around them. Editable in the CMS under Gallery.
+    gallery: {
+      label: "Gallery",
+      title: "Moments from Our Practice",
+      subtitle: "A look at our chambers, our people and the events we take part in.",
+      empty: "Photos will appear here soon.",
+      loadError: "We couldn't load the gallery. Please try again later.",
+      retry: "Try again",
+      untitled: "Gallery photo",
+      open: "View larger",
+      close: "Close",
+      previous: "Previous photo",
+      next: "Next photo",
+      counter: "{n} of {total}",
+    },
     seo: {
       home: {
         title: "Law Firm in Dhaka, Bangladesh | Islam & Associates",
@@ -476,6 +524,10 @@ const translationBundle = {
       practiceAreas: {
         title: "Practice Areas | Islam & Associates",
         description: "Corporate, civil, criminal, family, immigration, property, tax and banking law services from an experienced Dhaka law firm. See how we can help.",
+      },
+      practiceAreasAll: {
+        title: "Practice Areas in Detail | Islam & Associates",
+        description: "Full details of every practice area at Islam & Associates, from corporate and civil to criminal, family and immigration law.",
       },
       trackCase: {
         title: "Track Your Case | Islam & Associates",
@@ -497,6 +549,10 @@ const translationBundle = {
         title: "Book a Legal Consultation | Islam & Associates",
         description: "Book a consultation with a lawyer at Islam & Associates in Dhaka. Choose a lawyer and a time, or message us on WhatsApp for a quick reply.",
       },
+      gallery: {
+        title: "Photo Gallery | Islam & Associates",
+        description: "Photos from Islam & Associates: our chambers in Dhaka, our lawyers and the events we take part in.",
+      },
     },
   },
   bn: {
@@ -506,6 +562,7 @@ const translationBundle = {
       lawyers: "আমাদের আইনজীবী",
       practiceAreas: "অভিজ্ঞতা",
       blogs: "ব্লগ",
+      gallery: "গ্যালারি",
       caseTracker: "কেস ট্র্যাকার",
       appointment: "অ্যাপয়েন্টমেন্ট",
       contact: "যোগাযোগ",
@@ -535,7 +592,7 @@ const translationBundle = {
       practiceSectionLabel: "অভিজ্ঞতা",
       practiceHeading: "আইনি ফোকাস এলাকা",
       practiceDetail: "আইনি বিষয়ের প্রতিটি পর্যায়ে নির্ভরযোগ্য পরামর্শ।",
-      viewAll: "সমস্ত অভিজ্ঞতা দেখুন →",
+      viewAll: "আরও অভিজ্ঞতা এলাকা দেখুন →",
       viewAllLawyers: "সমস্ত আইনজীবী দেখুন →",
       teamSectionLabel: "আমাদের আইনগত দল",
       teamHeading: "আমাদের টিম",
@@ -587,6 +644,9 @@ const translationBundle = {
       practicePageSubtitle:
         "ইমিগ্রেশন, ফৌজদারী, দেওয়ানী ও কর্পোরেট আইনের মাধ্যমে আমাদের ব্যাপক আইনি সেবা অন্বেষণ করুন।",
       allPracticeAreasTitle: "সমস্ত অভিজ্ঞতা এলাকা",
+      practiceAccordionHint: "বিস্তারিত পড়তে একটি অভিজ্ঞতা এলাকা নির্বাচন করুন।",
+      practiceSeeMore: "আরও দেখুন",
+      practiceDetailsTitle: "অভিজ্ঞতা এলাকার বিস্তারিত",
       lawyersPageTitle: "আমাদের আইনগত দল",
       lawyersPageSubtitle:
         "নাম বা বিশেষত্ব দ্বারা দক্ষ আইনজীবী অনুসন্ধান করুন এবং একটি অভিজ্ঞ প্রতিরক্ষা পান।",
@@ -956,6 +1016,46 @@ const translationBundle = {
       sendError: "আপনার বার্তা পাঠানো যায়নি। আবার চেষ্টা করুন অথবা আমাদের ফোন করুন।",
       privacyNote: "অনুগ্রহ করে গোপনীয় তথ্য লিখবেন না। একজন আইনজীবী সরাসরি আপনার সাথে আলোচনা করবেন।",
     },
+    // ── Welcome popup (components/PromoPopup.tsx) ──────────────────────────
+    popup: {
+      title: "আমরা কীভাবে সাহায্য করতে পারি?",
+      q1: "ডিভোর্স নিতে চান?",
+      q2: "বিদেশে যাওয়ার পরিকল্পনা করছেন?",
+      q3: "ইমিগ্রেশন নিয়ে সমস্যায় পড়েছেন?",
+      q4: "বিদেশে পড়াশোনা করতে চান?",
+      q5: "ভিসা আবেদনে সাহায্য প্রয়োজন?",
+      q6: "আন্তর্জাতিক পারিবারিক বিরোধে জড়িয়েছেন?",
+      q7: "দেশে সম্পত্তি নিয়ে বিরোধ চলছে?",
+      q8: "উত্তরাধিকার দাবি করতে সাহায্য প্রয়োজন?",
+      q9: "বিদেশে বিয়ে করছেন?",
+      q10: "বাংলাদেশ থেকে আইনি কাগজপত্র প্রয়োজন?",
+      q11: "আন্তঃসীমান্ত আইনি সমস্যায় পড়েছেন?",
+      q12: "ভরসা করার মতো আইনি পরামর্শ খুঁজছেন?",
+      text: "বাংলাদেশ ও বিদেশে আমাদের আইনজীবীরা আপনাকে সাহায্য করতে পারেন। আজই একটি পরামর্শ বুক করুন।",
+      book: "পরামর্শ বুক করুন",
+      contact: "যোগাযোগ করুন",
+      whatsapp: "হোয়াটসঅ্যাপ",
+      close: "বন্ধ করুন",
+      previous: "আগের প্রশ্ন",
+      next: "পরের প্রশ্ন",
+      goTo: "{total}টির মধ্যে {n} নম্বর প্রশ্ন দেখুন",
+      questionsLabel: "যেসব আইনি বিষয়ে আমরা সাহায্য করি",
+    },
+    // ── Photo gallery (app/gallery) ────────────────────────────────────────
+    gallery: {
+      label: "গ্যালারি",
+      title: "আমাদের কাজের কিছু মুহূর্ত",
+      subtitle: "আমাদের চেম্বার, আমাদের মানুষ এবং যেসব অনুষ্ঠানে আমরা অংশ নিই তার কিছু ঝলক।",
+      empty: "শিগগিরই এখানে ছবি যোগ করা হবে।",
+      loadError: "গ্যালারি লোড করা যায়নি। পরে আবার চেষ্টা করুন।",
+      retry: "আবার চেষ্টা করুন",
+      untitled: "গ্যালারির ছবি",
+      open: "বড় করে দেখুন",
+      close: "বন্ধ করুন",
+      previous: "আগের ছবি",
+      next: "পরের ছবি",
+      counter: "{total}টির মধ্যে {n}",
+    },
     seo: {
       home: {
         title: "ঢাকা, বাংলাদেশের আইন প্রতিষ্ঠান | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
@@ -968,6 +1068,10 @@ const translationBundle = {
       practiceAreas: {
         title: "আইনি সেবার ক্ষেত্র | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
         description: "ঢাকার একটি অভিজ্ঞ আইন প্রতিষ্ঠান থেকে কর্পোরেট, দেওয়ানি, ফৌজদারি, পারিবারিক, অভিবাসন, সম্পত্তি, কর ও ব্যাংকিং আইন বিষয়ক সেবা। আমরা কীভাবে সাহায্য করতে পারি জানুন।",
+      },
+      practiceAreasAll: {
+        title: "আইনি সেবার ক্ষেত্রের বিস্তারিত | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসের প্রতিটি আইনি সেবার ক্ষেত্রের বিস্তারিত: কর্পোরেট, দেওয়ানি, ফৌজদারি, পারিবারিক ও অভিবাসন আইন।",
       },
       trackCase: {
         title: "মামলার অবস্থা জানুন | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
@@ -988,6 +1092,10 @@ const translationBundle = {
       appointment: {
         title: "আইনি পরামর্শ বুক করুন | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
         description: "ঢাকার ইসলাম অ্যান্ড অ্যাসোসিয়েটসের একজন আইনজীবীর সাথে পরামর্শ বুক করুন। আইনজীবী ও সময় বেছে নিন, অথবা দ্রুত উত্তরের জন্য হোয়াটসঅ্যাপে লিখুন।",
+      },
+      gallery: {
+        title: "ছবির গ্যালারি | ইসলাম অ্যান্ড অ্যাসোসিয়েটস",
+        description: "ইসলাম অ্যান্ড অ্যাসোসিয়েটসের ছবি: ঢাকায় আমাদের চেম্বার, আমাদের আইনজীবী এবং যেসব অনুষ্ঠানে আমরা অংশ নিই।",
       },
     },
   },

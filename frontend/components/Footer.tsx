@@ -57,6 +57,7 @@ const quickLinks = [
   { labelKey: 'nav.home', href: '/' },
   { labelKey: 'nav.about', href: '/about' },
   { labelKey: 'nav.lawyers', href: '/lawyers' },
+  { labelKey: 'nav.gallery', href: '/gallery' },
   { labelKey: 'nav.appointment', href: '/appointment' },
   { labelKey: 'nav.caseTracker', href: '/track-case' },
   { labelKey: 'nav.contact', href: '/contact' },
@@ -74,7 +75,8 @@ export function Footer() {
           <p className="font-display text-lg font-bold text-heading">{t('site.firmName')}</p>
           {/* <p className="max-w-sm">{t('site.address')}</p> */}
           <p>
-            {t('site.phoneLabel')}: {settings.phoneDisplay} | {t('site.faxLabel')}: {settings.fax}
+            {t('site.phoneLabel')}: {settings.phoneDisplay}
+            {/* Fax hidden at client's request: | {t('site.faxLabel')}: {settings.fax} */}
           </p>
           {settings.email && (
             <p>

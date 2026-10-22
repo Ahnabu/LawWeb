@@ -7,6 +7,7 @@ import { ThemeProvider } from '../components/ThemeProvider'
 import { AuthProvider } from '../components/AuthProvider'
 import { SonnerToaster } from '../components/SonnerToaster'
 import { ConfirmDialogHost } from '../components/ConfirmDialog'
+import { PromoPopup } from '../components/PromoPopup'
 import { JsonLd } from '../components/JsonLd'
 import { getPublishedContent } from '../lib/content'
 import { getPageMetadata } from '../lib/seo'
@@ -49,7 +50,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ThemeProvider>
           <AuthProvider>
             <ContentProvider content={content}>
-              <LanguageProvider>{children}</LanguageProvider>
+              <LanguageProvider>
+                {children}
+                {/* Welcome popup; public pages only (lib/promoPopup.ts) */}
+                <PromoPopup />
+              </LanguageProvider>
             </ContentProvider>
           </AuthProvider>
           <SonnerToaster />

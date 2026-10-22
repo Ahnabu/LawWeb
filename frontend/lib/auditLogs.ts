@@ -12,6 +12,7 @@ export type AuditCategory =
   | 'case'
   | 'consultation'
   | 'blog'
+  | 'gallery'
   | 'content'
   | 'contact'
   | 'profile'
@@ -119,6 +120,7 @@ export const AUDIT_CATEGORY_LABELS: Record<AuditCategory, string> = {
   case: 'Cases',
   consultation: 'Appointments',
   blog: 'Blog',
+  gallery: 'Photo gallery',
   content: 'Website content',
   contact: 'Contact messages',
   profile: 'Profiles',

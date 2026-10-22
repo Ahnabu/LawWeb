@@ -87,8 +87,8 @@ const localizedField = (name: string, label: string, maxLength = SHORT_TEXT, mul
 
 // Browser tab title and search result snippet: English on the plain URL,
 // Bangla on the /bn URL
-const seoSection = (page: string): ContentSection => ({
-  title: 'Search engines (SEO)',
+const seoSection = (page: string, title = 'Search engines (SEO)'): ContentSection => ({
+  title,
   description:
     'The browser tab title and the snippet shown in Google results and link previews. Put what people search for first and the firm name last. Keep titles under about 60 characters and descriptions between about 120 and 160. The Bangla text is used on the Bangla (/bn) page.',
   texts: [text(`seo.${page}.title`, 'Page title'), text(`seo.${page}.description`, 'Meta description', true)],
@@ -133,6 +133,7 @@ export const contentRegistry: ContentPageDef[] = [
           text('nav.lawyers', 'Lawyers'),
           text('nav.practiceAreas', 'Practice areas'),
           text('nav.blogs', 'Blog'),
+          text('nav.gallery', 'Gallery'),
           text('nav.appointment', 'Appointment'),
           text('nav.contact', 'Contact'),
           text('common.login', 'Login button'),
@@ -164,6 +165,19 @@ export const contentRegistry: ContentPageDef[] = [
           text('common.fastResponse', 'Response label'),
           text('common.fastResponseValue', 'Response value'),
           text('common.bookConsultation', 'Button label'),
+        ],
+      },
+      {
+        title: 'Welcome popup',
+        description:
+          'Pops up a few seconds after a visitor arrives on a public page, with the questions below rotating. Shown again 5 minutes after it is closed, at most 3 times per visit.',
+        texts: [
+          text('popup.title', 'Heading'),
+          ...Array.from({ length: 12 }, (_, i) => text(`popup.q${i + 1}`, `Question ${i + 1}`)),
+          text('popup.text', 'Supporting text', true),
+          text('popup.book', 'Booking button'),
+          text('popup.contact', 'Contact button'),
+          text('popup.whatsapp', 'WhatsApp button'),
         ],
       },
     ],
@@ -204,12 +218,13 @@ export const contentRegistry: ContentPageDef[] = [
       },
       {
         title: 'Practice areas section',
-        description: 'The practice areas themselves are edited on the Practice Areas page.',
+        description:
+          'The first 8 practice areas are shown here as cards, followed by a button to the Practice Areas page. The areas themselves are edited on the Practice Areas page.',
         texts: [
           text('common.practiceSectionLabel', 'Eyebrow'),
           text('common.practiceHeading', 'Heading'),
           text('common.practiceDetail', 'Intro text', true),
-          text('common.viewAll', 'Link label'),
+          text('common.viewAll', 'Button label'),
         ],
       },
       {
@@ -348,15 +363,25 @@ export const contentRegistry: ContentPageDef[] = [
   {
     key: 'practice-areas',
     title: 'Practice Areas',
-    description: 'The practice areas list, shown on the Practice Areas page, the home page and the footer.',
+    description:
+      'The practice areas list. The Practice Areas page shows the first 6 as cards (with the start of their details) and a "See more" button to the details page, where every area is an expandable section; the home page shows the first 8 as cards; the footer lists them all.',
     publicPath: '/practice-areas',
     sections: [
       {
         title: 'Page header',
         texts: [
-          text('common.practicePageTitle', 'Title'),
+          text('common.practicePageTitle', 'Eyebrow'),
+          text('common.allPracticeAreasTitle', 'Title'),
           text('common.practicePageSubtitle', 'Subtitle', true),
-          text('common.allPracticeAreasTitle', 'List heading'),
+          text('common.practiceSeeMore', '"See more" button'),
+        ],
+      },
+      {
+        title: 'Details page header',
+        description: 'The page at /practice-areas/all that lists every area with its full details.',
+        texts: [
+          text('common.practiceDetailsTitle', 'Title'),
+          text('common.practiceAccordionHint', 'Hint above the list'),
         ],
       },
       {
@@ -376,6 +401,7 @@ export const contentRegistry: ContentPageDef[] = [
         },
       },
       seoSection('practiceAreas'),
+      seoSection('practiceAreasAll', 'Search engines (SEO): details page'),
     ],
   },
   {
@@ -547,6 +573,37 @@ export const contentRegistry: ContentPageDef[] = [
         ],
       },
       seoSection('contact'),
+    ],
+  },
+  {
+    key: 'gallery',
+    title: 'Gallery',
+    description: 'Text on the Gallery page. The photos, their titles and descriptions are managed under Gallery.',
+    publicPath: '/gallery',
+    sections: [
+      {
+        title: 'Header',
+        texts: [
+          text('gallery.label', 'Eyebrow'),
+          text('gallery.title', 'Title'),
+          text('gallery.subtitle', 'Subtitle', true),
+        ],
+      },
+      {
+        title: 'Messages & photo viewer',
+        texts: [
+          text('gallery.empty', 'Empty state'),
+          text('gallery.loadError', 'Load error'),
+          text('gallery.retry', 'Retry button'),
+          text('gallery.untitled', 'Name for a photo without a title'),
+          text('gallery.open', 'Open photo label'),
+          text('gallery.close', 'Close button'),
+          text('gallery.previous', 'Previous button'),
+          text('gallery.next', 'Next button'),
+          text('gallery.counter', 'Position, e.g. "{n} of {total}"'),
+        ],
+      },
+      seoSection('gallery'),
     ],
   },
 ]

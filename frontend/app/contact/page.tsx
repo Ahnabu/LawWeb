@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Clock, Mail, MapPin, Phone, Printer } from 'lucide-react'
+import { ArrowRight, Clock, Mail, MapPin, Phone /* , Printer */ } from 'lucide-react'
 import { ContactForm } from '../../components/ContactForm'
 import { Footer, socialIcons, socialLabels } from '../../components/Footer'
 import { Navbar } from '../../components/Navbar'
@@ -136,6 +136,7 @@ export default function ContactPage() {
                       <p className="mt-1 whitespace-pre-line leading-6 text-on-surface-variant">{t('contact.hours')}</p>
                     </dd>
                   </div>
+                  {/* Fax hidden at client's request.
                   {settings.fax && (
                     <div className="flex gap-4">
                       <dt className="mt-0.5 text-gold-ink">
@@ -146,7 +147,7 @@ export default function ContactPage() {
                         <span className="text-on-surface-variant">{t('site.faxLabel')}:</span> {settings.fax}
                       </dd>
                     </div>
-                  )}
+                  )} */}
                 </dl>
 
                 {settings.socials.length > 0 && (

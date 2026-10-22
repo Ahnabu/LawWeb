@@ -99,13 +99,14 @@ export function Navbar() {
           </span>
         </Link>
 
-        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+        {/* Tighter links between lg and xl so seven links and the firm name fit at 1024px */}
+        <nav aria-label="Main" className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={localePath(link.href)}
               aria-current={isCurrent(link.href) ? "page" : undefined}
-              className="nav-link"
+              className="nav-link px-2 xl:px-3"
             >
               {t(link.labelKey) ?? link.fallback}
             </Link>

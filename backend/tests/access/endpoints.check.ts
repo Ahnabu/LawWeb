@@ -31,6 +31,7 @@ import AuditLog from '../../src/models/AuditLog';
 import User from '../../src/models/User';
 import Role from '../../src/models/Role';
 import ContentPage from '../../src/models/ContentPage';
+import GalleryImage from '../../src/models/GalleryImage';
 import { ROLE_TEMPLATES } from '../../src/access/roleTemplates';
 import { loadAccess } from '../../src/access/loadAccess';
 import Case from '../../src/models/Case';
@@ -426,6 +427,22 @@ const futureWeekday = (offset: number) => {
   await staffRow('GET /api/blogs/admin/all', { superAdmin: 200, staffEditor: 200, staffReception: 403, staffAccountant: 403, staffNone: 403 },
     (a) => as(a, 'GET', '/api/blogs/admin/all'));
 
+  // Photo gallery (gallery.manage; the Content Editor template includes it)
+  const galleryImage = await GalleryImage.create({ imageUrl: 'https://res.example/lawweb/gallery/a.jpg', title: { en: 'Office', bn: '' } });
+  await staffRow('GET /api/admin/gallery', { superAdmin: 200, staffEditor: 200, staffReception: 403, staffAccountant: 403, staffNone: 403 },
+    (a) => as(a, 'GET', '/api/admin/gallery'),
+    { staffEditor: (j) => j.data.length === 1 && j.meta.total === 1 });
+  await staffRow('PATCH /api/admin/gallery/:id', { superAdmin: 200, staffEditor: 200, staffReception: 403, staffAccountant: 403, staffNone: 403 },
+    (a) => as(a, 'PATCH', `/api/admin/gallery/${galleryImage._id}`, { title: { en: `Office (${a})` } }));
+  await staffRow('PUT /api/admin/gallery/order', { superAdmin: 200, staffEditor: 200, staffReception: 403, staffAccountant: 403, staffNone: 403 },
+    (a) => as(a, 'PUT', '/api/admin/gallery/order', { order: [String(galleryImage._id)] }));
+  await staffRow('DELETE /api/admin/gallery/:id (missing)', { superAdmin: 404, staffEditor: 404, staffReception: 403, staffAccountant: 403, staffNone: 403 },
+    (a) => as(a, 'DELETE', `/api/admin/gallery/${new mongoose.Types.ObjectId()}`));
+  for (const actor of ['lawyerA', 'clientA'] as const) {
+    const r = await request(actor, 'GET', '/api/admin/gallery');
+    expect(`P2 GET /api/admin/gallery :: ${actor} -> ${r.status}`, r.status === 403);
+  }
+
   const seedDraft = () => ContentPage.updateOne(
     { key: 'about' },
     { $set: { draft: { strings: { 'about.heroTitle': { en: 'Draft', bn: 'Draft' } } }, hasUnpublishedChanges: true } },
@@ -488,7 +505,7 @@ const futureWeekday = (offset: number) => {
 
   await staffRow('GET /api/access/catalog', { superAdmin: 200, staffEditor: 200, staffReception: 200, staffAccountant: 200, staffNone: 200 },
     (a) => as(a, 'GET', '/api/access/catalog'),
-    { staffNone: (j) => j.data.permissions.length === 24 && j.data.templates.length === 4 && j.data.delegable.includes('cases.view') && !j.data.delegable.includes('audit.view') });
+    { staffNone: (j) => j.data.permissions.length === 25 && j.data.templates.length === 4 && j.data.delegable.includes('cases.view') && !j.data.delegable.includes('audit.view') });
   const catalogClient = await request('clientA', 'GET', '/api/access/catalog');
   expect(`P2 GET /api/access/catalog :: client -> ${catalogClient.status}`, catalogClient.status === 403);
   const catalogLawyer = await request('lawyerA', 'GET', '/api/access/catalog');

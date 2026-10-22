@@ -187,6 +187,40 @@ export const grantDelegationSchema = z.object({
   body: z.object({ lawyerId: objectId, permissions: delegationPermissions }),
 });
 
+// ── Photo gallery (admin) ─────────────────────────────────────────────────────
+// Images are created by the upload (POST /api/admin/gallery, multipart); these
+// cover editing their text, publishing and ordering.
+const galleryText = (max: number, label: string) =>
+  z.object({
+    en: z.string().trim().max(max, `${label} (English) must be at most ${max} characters`).optional(),
+    bn: z.string().trim().max(max, `${label} (Bangla) must be at most ${max} characters`).optional(),
+  });
+
+const galleryImageParams = z.object({ imageId: objectId });
+
+export const galleryImageIdSchema = z.object({ params: galleryImageParams });
+
+export const updateGalleryImageSchema = z.object({
+  params: galleryImageParams,
+  body: z
+    .object({
+      title: galleryText(120, 'Title').optional(),
+      description: galleryText(600, 'Description').optional(),
+      isPublished: z.boolean().optional(),
+    })
+    .refine((b) => b.title !== undefined || b.description !== undefined || b.isPublished !== undefined, 'Nothing to update'),
+});
+
+export const reorderGallerySchema = z.object({
+  body: z.object({
+    order: z
+      .array(objectId)
+      .min(1, 'order must list at least one image')
+      .max(1000)
+      .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
+  }),
+});
+
 export const formatZodIssues =(error: z.ZodError) =>
   error.issues.map((issue) => ({
     field: issue.path.join('.'),

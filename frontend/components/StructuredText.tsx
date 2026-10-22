@@ -66,6 +66,17 @@ export function parseStructuredText(value: string): Block[] {
   return blocks
 }
 
+/** Plain-text teaser of a write-up (its tagline and paragraphs) for cards; the card clamps the length */
+export function structuredTextExcerpt(value: string, maxLength = 400): string {
+  const blocks = parseStructuredText(value)
+  const prose = blocks.flatMap((block) => (block.kind === 'lead' || block.kind === 'paragraph' ? [block.text] : []))
+  // A write-up that is only a list reads as its service names
+  const text = prose.length
+    ? prose.join(' ')
+    : blocks.flatMap((block) => (block.kind === 'list' ? block.items.map((item) => item.title) : [])).join(', ')
+  return text.length > maxLength ? `${text.slice(0, maxLength).trimEnd()}…` : text
+}
+
 export function StructuredText({ value, className = '' }: { value: string; className?: string }) {
   const blocks = parseStructuredText(value)
   if (blocks.length === 0) return null

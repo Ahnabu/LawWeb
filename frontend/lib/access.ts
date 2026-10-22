@@ -56,6 +56,7 @@ export const ADMIN_AREA_PERMS: Record<string, readonly string[] | null> = {
   '/dashboard/admin/lawyers': ['lawyers.view'],
   '/dashboard/admin/users': ['clients.view'],
   '/dashboard/admin/blogs': ['blogs.manage'],
+  '/dashboard/admin/gallery': ['gallery.manage'],
   '/dashboard/admin/content': ['content.edit'],
   '/dashboard/admin/audit-logs': ['audit.view'],
   '/dashboard/admin/team': null,
