@@ -7,9 +7,11 @@ import { ThemeProvider } from '../components/ThemeProvider'
 import { AuthProvider } from '../components/AuthProvider'
 import { SonnerToaster } from '../components/SonnerToaster'
 import { ConfirmDialogHost } from '../components/ConfirmDialog'
+import { JsonLd } from '../components/JsonLd'
 import { getPublishedContent } from '../lib/content'
 import { getPageMetadata } from '../lib/seo'
 import { getSiteUrl } from '../lib/locale'
+import { legalServiceJsonLd } from '../lib/structuredData'
 
 // Home page SEO text as the default for pages without their own. Canonical and
 // hreflang tags are set per page (see lib/seo.ts), never here.
@@ -43,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <JsonLd data={legalServiceJsonLd(content)} />
         <ThemeProvider>
           <AuthProvider>
             <ContentProvider content={content}>

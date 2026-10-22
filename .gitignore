@@ -18,6 +18,7 @@ backend_cookies.txt
 *env.lawweb*
 *.lawweb
 !.env.example
+.agents
 
 DEPLOYMENT_GUIDE.md
 REGISTRATION_GUIDE.md
@@ -36,3 +37,4 @@ agents/
 docs/
 # OS files
 .DS_Store
+*.tsbuildinfo

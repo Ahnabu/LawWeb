@@ -85,13 +85,12 @@ const localizedField = (name: string, label: string, maxLength = SHORT_TEXT, mul
   multiline,
 })
 
-// Browser tab title and search result snippet. Metadata is rendered on the
-// server, which can't see the visitor's language, so only English is used
-// until the /bn routes phase; Bangla is stored for then.
+// Browser tab title and search result snippet: English on the plain URL,
+// Bangla on the /bn URL
 const seoSection = (page: string): ContentSection => ({
   title: 'Search engines (SEO)',
   description:
-    'The browser tab title and the snippet shown in Google results. Keep titles under about 60 characters and descriptions under about 160. Only English is shown for now; Bangla will be used once Bangla page addresses launch.',
+    'The browser tab title and the snippet shown in Google results and link previews. Put what people search for first and the firm name last. Keep titles under about 60 characters and descriptions between about 120 and 160. The Bangla text is used on the Bangla (/bn) page.',
   texts: [text(`seo.${page}.title`, 'Page title'), text(`seo.${page}.description`, 'Meta description', true)],
 })
 

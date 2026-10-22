@@ -11,7 +11,7 @@ import {
   type ResolvedItem,
   type SiteSettingsOverride,
 } from "../lib/content";
-import { siteConfig, telUrl, whatsappUrl } from "../lib/siteConfig";
+import { resolveSiteSettings, telUrl, whatsappUrl } from "../lib/siteConfig";
 
 // Published list for this page if one exists (it replaces the default as a
 // whole, even when empty), otherwise the code default from lib/data.ts.
@@ -37,20 +37,12 @@ export function useSiteSettings() {
   const { content } = useContent();
 
   return useMemo(() => {
-    const settings = (content.site?.settings ?? {}) as SiteSettingsOverride;
-    const phone = settings.phone || siteConfig.phone;
-    const whatsappNumber = settings.whatsappNumber || siteConfig.whatsappNumber;
+    const settings = resolveSiteSettings(content.site?.settings as SiteSettingsOverride | undefined);
 
     return {
-      phone,
-      // A new phone without a display format shows as entered, not the old number
-      phoneDisplay: settings.phoneDisplay || settings.phone || siteConfig.phoneDisplay,
-      fax: settings.fax || siteConfig.fax,
-      email: settings.email || siteConfig.email,
-      whatsappNumber,
-      socials: settings.socials ?? siteConfig.socials,
-      whatsappHref: (message?: string) => whatsappUrl(message, whatsappNumber),
-      telHref: () => telUrl(phone),
+      ...settings,
+      whatsappHref: (message?: string) => whatsappUrl(message, settings.whatsappNumber),
+      telHref: () => telUrl(settings.phone),
     };
   }, [content]);
 }
