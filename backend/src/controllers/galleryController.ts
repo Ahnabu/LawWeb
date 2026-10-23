@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import GalleryImage, { GALLERY_MAX_IMAGES, type IGalleryText } from '../models/GalleryImage';
 import { cloudinary } from '../config/multer.config';
 import { recordAudit } from '../utils/audit';
+import { normalizeRichText } from '../utils/richText';
 
 // Photo gallery: the public list, and the admin area (gallery.manage).
 // Request shapes are checked by the zod schemas in middleware/validation.ts.
@@ -11,7 +12,7 @@ type UploadedFile = Express.Multer.File & { path?: string; filename?: string };
 type AuthedReq = Request & { user?: { _id?: unknown } };
 
 const GALLERY_FOLDER = 'lawweb/gallery/';
-const PUBLIC_FIELDS = '_id imageUrl title description sortOrder';
+const PUBLIC_FIELDS = '_id imageUrl title description sortOrder createdAt';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const isValidId = (id: unknown): id is string => typeof id === 'string' && mongoose.isValidObjectId(id);
@@ -146,7 +147,13 @@ export const updateGalleryImageAdmin = async (req: Request, res: Response) => {
       for (const lang of ['en', 'bn'] as const) {
         const next = (value as Record<string, unknown>)[lang];
         if (typeof next !== 'string') continue;
-        const clean = next.trim();
+        let clean = next.trim();
+        if (field === 'description' && clean) {
+          const norm = normalizeRichText(clean, `Description (${lang})`, 5000);
+          if (norm.ok) {
+            clean = norm.value;
+          }
+        }
         if (clean !== (image[field]?.[lang] ?? '')) {
           image.set(`${field}.${lang}`, clean);
           changed.push(`${field}.${lang}`);
