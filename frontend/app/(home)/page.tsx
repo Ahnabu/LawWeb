@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Footer } from '../../components/Footer'
 import { Navbar } from '../../components/Navbar'
 import { WhatsAppCta } from '../../components/WhatsAppCta'
+import { ClientServicesSection, GenerationsStrip, PrincipalIntro } from '../../components/AboutSections'
 import { LawyerPublicCard, type PublicLawyer } from '../../components/LawyerPublicCard'
 import { SuccessStoryCard } from '../../components/SuccessStoryCard'
 import { PracticeAreaCard } from '../../components/PracticeAreaCard'
@@ -156,6 +157,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* From the About page: principal, four generations, foreign clients / diaspora */}
+      <PrincipalIntro className="border-t border-outline-variant" />
+      <GenerationsStrip className="border-y border-outline-variant bg-surface-container" />
+      <ClientServicesSection />
 
       {/* Why Choose Us + closing call to action, in one navy band */}
       <section className="page-hero px-4 py-16 sm:px-6 sm:py-20 lg:px-8">

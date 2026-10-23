@@ -66,6 +66,16 @@ const localized = (max: number = SHORT_TEXT) =>
     bnFor,
   });
 
+// Optional list item text (e.g. a note only some items have): may be empty or left out
+const optionalLocalized = (max: number = SHORT_TEXT) =>
+  z
+    .object({
+      en: z.string().trim().max(max).default(''),
+      bn: z.string().trim().max(max).default(''),
+      bnFor,
+    })
+    .default({ en: '', bn: '' });
+
 const slug = z
   .string()
   .trim()
@@ -86,6 +96,25 @@ const imageUrl = z
   .max(500)
   .url('Invalid image URL')
   .regex(/^https:\/\/[^\s"'()\\]+$/i, 'Image URL must start with https://');
+
+// Photo inside a list item: an uploaded https URL, or a site path for the
+// photos bundled with the site (/about/gen-1.webp), which the editor copies
+// from the defaults. "//host" is rejected: it would load from another site.
+const listImage = z
+  .string()
+  .trim()
+  .max(500)
+  .regex(/^(https:\/\/[^\s"'()\\]+|\/(?!\/)[\w\-./]+)$/i, 'Image must be an uploaded image');
+
+// External link shown as an <a href>: http(s) only (.url() alone accepts javascript:)
+const linkUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .url('Invalid URL')
+  .regex(/^https?:\/\//i, 'URL must start with http:// or https://');
+
+const titledItem = z.object({ title: localized(), text: localized(LONG_TEXT) });
 
 const siteSchema = z
   .object({
@@ -150,18 +179,69 @@ const homeSchema = z
 const aboutSchema = z
   .object({
     strings: strings.optional(),
-    certifications: z.array(localized()).max(20).optional(),
-    timeline: z
+    // Principal of the firm (top of the page)
+    principalPhoto: imageUrl.optional(),
+    principalStats: z
+      .array(z.object({ value: localized(60), label: localized(60) }))
+      .max(6)
+      .optional(),
+    principalHighlights: z.array(titledItem).max(12).optional(),
+    // Four-generation table; achievements are one per line
+    generations: z
       .array(
         z.object({
-          year: localized(60),
+          era: localized(),
+          name: localized(),
+          relation: localized(),
+          note: optionalLocalized(LONG_TEXT),
+          achievements: localized(LONG_TEXT),
+          photo: listImage.or(z.literal('')).default(''),
+        })
+      )
+      .max(10)
+      .optional(),
+    principalCareer: z.array(titledItem).max(12).optional(),
+    // Fact boxes beside the investment intro (e.g. "Work permit" / "Digital from 1 Oct 2025")
+    foreignClients: z
+      .array(z.object({ title: localized(60), text: localized() }))
+      .max(6)
+      .optional(),
+    diaspora: z.array(localized()).max(12).optional(),
+    cyberPractice: z.array(titledItem).max(12).optional(),
+    media: z
+      .array(
+        z.object({
+          outlet: localized(),
+          date: optionalLocalized(60),
           title: localized(),
-          description: localized(LONG_TEXT),
+          url: linkUrl.or(z.literal('')).default(''),
         })
       )
       .max(20)
       .optional(),
-    credentials: z.array(localized()).max(20).optional(),
+    books: z
+      .array(
+        z.object({
+          title: localized(),
+          subtitle: optionalLocalized(),
+          url: linkUrl,
+          cover: listImage.or(z.literal('')).default(''),
+        })
+      )
+      .max(6)
+      .optional(),
+    scholarLinks: z
+      .array(z.object({ label: localized(), description: optionalLocalized(), url: linkUrl }))
+      .max(10)
+      .optional(),
+    // Firm overview (bottom of the page)
+    certifications: z.array(localized()).max(20).optional(),
+    // Legacy: the old founding timeline and principal credentials, replaced
+    // by generations and principalHighlights. Still accepted so drafts and
+    // revisions saved before the redesign can be published or restored; the
+    // editor drops them on the next save and the site no longer reads them.
+    timeline: z.array(z.unknown()).max(20).optional(),
+    credentials: z.array(z.unknown()).max(20).optional(),
     values: z
       .array(z.object({ title: localized(), description: localized(LONG_TEXT) }))
       .max(10)

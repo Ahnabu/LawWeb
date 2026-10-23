@@ -1,12 +1,20 @@
-import type { ContentPageKey } from './content'
+import type { ContentPageKey, DefaultItem } from './content'
 import {
   aboutCertifications,
+  cyberPractice,
+  diasporaServices,
+  foreignClientFacts,
+  generations,
   homeStats,
+  mediaCoverage,
   missionValues,
   practiceAreas,
-  principalCredentials,
+  principalBooks,
+  principalCareer,
+  principalHighlights,
+  principalStats,
+  scholarLinks,
   successStories,
-  timelineItems,
 } from './data'
 
 // ── CMS admin editor registry ─────────────────────────────────────────────────
@@ -25,16 +33,21 @@ export interface TextField {
   key: string
   label: string
   multiline?: boolean
+  hint?: string
 }
 
 // One field of a list item. `localized` = { en, bn }; `plain` = one string
-// for both languages; `slug` = URL-safe id (practice areas).
+// for both languages; `slug` = URL-safe id (practice areas); `url` = http(s)
+// link; `image` = one uploaded photo URL.
 export interface ListItemField {
   name: string
   label: string
-  type: 'localized' | 'plain' | 'slug'
+  type: 'localized' | 'plain' | 'slug' | 'url' | 'image'
   multiline?: boolean
   maxLength: number
+  // May be left empty (localized, url, image)
+  optional?: boolean
+  hint?: string
 }
 
 // A repeatable list, stored under `data[name]`. When `fields` is omitted the
@@ -46,7 +59,7 @@ export interface ListDef {
   max: number
   maxLength?: number
   fields?: ListItemField[]
-  defaults: readonly Record<string, string>[]
+  defaults: readonly DefaultItem[]
 }
 
 // An uploaded image URL, stored under `data[name]` (one for both languages)
@@ -54,6 +67,8 @@ export interface ImageField {
   name: string
   label: string
   hint?: string
+  // Upright photo (a portrait) instead of a wide banner
+  portrait?: boolean
 }
 
 export interface ContentSection {
@@ -77,6 +92,10 @@ export interface ContentPageDef {
 
 const text = (key: string, label: string, multiline = false): TextField => ({ key, label, multiline })
 
+// Text the page renders with **bold** and [tag] markup (see InlineText on the About page)
+const FORMAT_HINT = 'Wrap words in **double asterisks** to make them bold, or in [square brackets] to show them as a dark tag.'
+const formattedText = (key: string, label: string): TextField => ({ key, label, multiline: true, hint: FORMAT_HINT })
+
 const localizedField = (name: string, label: string, maxLength = SHORT_TEXT, multiline = false): ListItemField => ({
   name,
   label,
@@ -84,6 +103,11 @@ const localizedField = (name: string, label: string, maxLength = SHORT_TEXT, mul
   maxLength,
   multiline,
 })
+
+const URL_TEXT = 500
+
+// Title + description cards (credentials, services, practice desks)
+const titledFields = [localizedField('title', 'Title'), localizedField('text', 'Description', LONG_TEXT, true)]
 
 // Browser tab title and search result snippet: English on the plain URL,
 // Bangla on the /bn URL
@@ -254,6 +278,12 @@ export const contentRegistry: ContentPageDef[] = [
         },
       },
       {
+        title: 'From the About page',
+        description:
+          'Near the end of the home page: the principal, the four generations and the Investment Gateway / Matrimonial Law sections. Their content is edited on the About Us page; only these link labels belong here.',
+        texts: [text('home.principalLink', 'Principal: link to the About page'), text('home.generationsLink', 'Generations: link to the About page')],
+      },
+      {
         title: 'Why choose us',
         texts: [
           text('common.whyChooseSectionLabel', 'Eyebrow'),
@@ -281,16 +311,205 @@ export const contentRegistry: ContentPageDef[] = [
   {
     key: 'about',
     title: 'About Us',
-    description: 'Firm overview, certifications, founding timeline, principal profile and values.',
+    description:
+      'The principal of the firm, the four-generation table, the principal’s work for foreign clients and the diaspora, books and research links, then the firm overview and values.',
     publicPath: '/about',
     sections: [
       {
-        title: 'Hero',
+        title: 'Principal: introduction',
+        description: 'The top of the page: photo, name and biography of the principal.',
+        images: [
+          {
+            name: 'principalPhoto',
+            label: 'Portrait',
+            hint: 'An upright (portrait) photo, at least 800px wide. Leave empty to use the default portrait.',
+            portrait: true,
+          },
+        ],
         texts: [
           text('about.heroLabel', 'Eyebrow'),
-          text('about.heroTitle', 'Title'),
-          text('about.heroSubtitle', 'Subtitle', true),
+          text('about.principal.name', 'Name'),
+          text('about.principal.qualifications', 'Qualifications line'),
+          text('about.principal.status', 'Status badge'),
+          text('about.principal.headline', 'Headline'),
+          text('about.principal.specialty', 'Specialist areas', true),
+          text('about.principal.bio', 'Biography (leave a blank line between paragraphs)', true),
+          text('about.principal.bookCta', 'Booking button'),
+          text('about.principal.whatsappCta', 'WhatsApp button'),
         ],
+        list: {
+          name: 'principalStats',
+          label: 'Figures',
+          itemLabel: 'Figure',
+          max: 6,
+          fields: [localizedField('value', 'Value', 60), localizedField('label', 'Label', 60)],
+          defaults: principalStats,
+        },
+      },
+      {
+        title: 'Principal: qualifications',
+        texts: [text('about.highlights.title', 'Heading')],
+        list: {
+          name: 'principalHighlights',
+          label: 'Qualifications',
+          itemLabel: 'Qualification',
+          max: 12,
+          fields: titledFields,
+          defaults: principalHighlights,
+        },
+      },
+      {
+        title: 'Generations table',
+        description:
+          'One row per generation, oldest first, each with one photo. The generation number comes from the row order.',
+        texts: [
+          text('about.generations.label', 'Eyebrow'),
+          text('about.generations.title', 'Heading'),
+          text('about.generations.subtitle', 'Intro text', true),
+          text('about.generations.genShort', 'Generation badge (e.g. "Gen")'),
+          text('about.generations.colGeneration', 'Column: generation'),
+          text('about.generations.colPhoto', 'Column: photo'),
+          text('about.generations.colName', 'Column: name'),
+          text('about.generations.colAchievements', 'Column: achievements'),
+        ],
+        list: {
+          name: 'generations',
+          label: 'Generations',
+          itemLabel: 'Generation',
+          max: 10,
+          fields: [
+            localizedField('name', 'Name'),
+            localizedField('relation', 'Relationship (e.g. Father)'),
+            localizedField('era', 'Era (e.g. Pakistan period)'),
+            { ...localizedField('note', 'Family note', LONG_TEXT, true), optional: true },
+            {
+              ...localizedField('achievements', 'Achievements', LONG_TEXT, true),
+              hint: 'One achievement per line.',
+            },
+            { name: 'photo', label: 'Photo', type: 'image', maxLength: URL_TEXT, optional: true },
+          ],
+          defaults: generations,
+        },
+      },
+      {
+        title: 'Books',
+        description: 'The first book is featured with its cover; any others are listed below it.',
+        texts: [
+          text('about.books.title', 'Heading'),
+          text('about.books.featured', 'Featured label'),
+          text('about.books.buy', 'Buy button'),
+        ],
+        list: {
+          name: 'books',
+          label: 'Books',
+          itemLabel: 'Book',
+          max: 6,
+          fields: [
+            localizedField('title', 'Title'),
+            { ...localizedField('subtitle', 'Subtitle or note'), optional: true },
+            { name: 'url', label: 'Shop link (e.g. Amazon)', type: 'url', maxLength: URL_TEXT },
+            { name: 'cover', label: 'Cover photo', type: 'image', maxLength: URL_TEXT, optional: true },
+          ],
+          defaults: principalBooks,
+        },
+      },
+      {
+        title: 'Scholar profiles & articles',
+        texts: [text('about.research.title', 'Heading')],
+        list: {
+          name: 'scholarLinks',
+          label: 'Links',
+          itemLabel: 'Link',
+          max: 10,
+          fields: [
+            localizedField('label', 'Name (e.g. ResearchGate)'),
+            { ...localizedField('description', 'Description'), optional: true },
+            { name: 'url', label: 'Link', type: 'url', maxLength: URL_TEXT },
+          ],
+          defaults: scholarLinks,
+        },
+      },
+      {
+        title: 'For foreign clients (Investment Gateway)',
+        description: 'Left half of the two-column section: intro, small fact boxes and a dark note underneath.',
+        texts: [
+          text('about.foreign.label', 'Eyebrow'),
+          text('about.foreign.title', 'Heading'),
+          formattedText('about.foreign.text', 'Intro text'),
+          text('about.foreign.noteTitle', 'Dark note: title'),
+          text('about.foreign.noteText', 'Dark note: text', true),
+        ],
+        list: {
+          name: 'foreignClients',
+          label: 'Fact boxes',
+          itemLabel: 'Fact box',
+          max: 6,
+          fields: [localizedField('title', 'Title', 60), localizedField('text', 'Value')],
+          defaults: foreignClientFacts,
+        },
+      },
+      {
+        title: 'For the Bangladeshi diaspora (Matrimonial Law)',
+        description: 'Right half of the two-column section: intro, a ticked list and a closing note.',
+        texts: [
+          text('about.diaspora.label', 'Eyebrow'),
+          text('about.diaspora.title', 'Heading'),
+          formattedText('about.diaspora.text', 'Intro text'),
+          text('about.diaspora.note', 'Closing note', true),
+        ],
+        list: {
+          name: 'diaspora',
+          label: 'Ticked list',
+          itemLabel: 'Point',
+          max: 12,
+          maxLength: SHORT_TEXT,
+          defaults: diasporaServices,
+        },
+      },
+      {
+        title: 'Cyber law & espionage',
+        texts: [
+          text('about.cyber.label', 'Eyebrow'),
+          text('about.cyber.title', 'Heading'),
+          text('about.cyber.text', 'Intro text', true),
+        ],
+        list: {
+          name: 'cyberPractice',
+          label: 'Practice desks',
+          itemLabel: 'Desk',
+          max: 12,
+          fields: titledFields,
+          defaults: cyberPractice,
+        },
+      },
+      {
+        title: 'Principal: career & distinctions',
+        texts: [text('about.career.title', 'Heading')],
+        list: {
+          name: 'principalCareer',
+          label: 'Distinctions',
+          itemLabel: 'Distinction',
+          max: 12,
+          fields: titledFields,
+          defaults: principalCareer,
+        },
+      },
+      {
+        title: 'Media coverage',
+        texts: [text('about.media.title', 'Heading'), text('about.media.text', 'Intro text', true)],
+        list: {
+          name: 'media',
+          label: 'Coverage',
+          itemLabel: 'Item',
+          max: 20,
+          fields: [
+            localizedField('outlet', 'Outlet (e.g. BBC News)'),
+            { ...localizedField('date', 'Date or edition', 60), optional: true },
+            localizedField('title', 'Subject'),
+            { name: 'url', label: 'Link to the article', type: 'url', maxLength: URL_TEXT, optional: true },
+          ],
+          defaults: mediaCoverage,
+        },
       },
       {
         title: 'Overview & promise',
@@ -311,38 +530,6 @@ export const contentRegistry: ContentPageDef[] = [
           max: 20,
           maxLength: SHORT_TEXT,
           defaults: aboutCertifications,
-        },
-      },
-      {
-        title: 'Founding timeline',
-        texts: [text('about.timelineTitle', 'Heading')],
-        list: {
-          name: 'timeline',
-          label: 'Timeline',
-          itemLabel: 'Milestone',
-          max: 20,
-          fields: [
-            localizedField('year', 'Year / period', 60),
-            localizedField('title', 'Title'),
-            localizedField('description', 'Description', LONG_TEXT, true),
-          ],
-          defaults: timelineItems,
-        },
-      },
-      {
-        title: 'Principal profile',
-        texts: [
-          text('about.principalTitle', 'Heading'),
-          text('about.principalName', 'Name & qualifications'),
-          text('about.principalText', 'Profile text', true),
-        ],
-        list: {
-          name: 'credentials',
-          label: 'Credentials',
-          itemLabel: 'Credential',
-          max: 20,
-          maxLength: SHORT_TEXT,
-          defaults: principalCredentials,
         },
       },
       {

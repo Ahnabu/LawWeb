@@ -12,7 +12,7 @@ import { lookupTranslation, translate } from '../lib/i18n'
 // Public-site resolution of CMS content (lib/content.ts)
 
 describe('resolveString lookup order', () => {
-  const key = 'about.heroTitle'
+  const key = 'about.principal.name'
   const defEn = translate('en', key)
   const defBn = translate('bn', key)
 

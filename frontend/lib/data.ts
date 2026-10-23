@@ -115,18 +115,101 @@ export const successStories = [
   },
 ]
 
-export const timelineItems = ['greatGrandfather', 'grandfather', 'father', 'founding', 'global'].map((id) => ({
+// ── About page ────────────────────────────────────────────────────────────────
+// Photos ship in public/about; links are plain URLs (same in both languages).
+
+const titledItems = (list: string, ids: string[]) =>
+  ids.map((id) => ({ id, titleKey: `about.${list}.${id}.title`, textKey: `about.${list}.${id}.text` }))
+
+export const principalStats = ['years', 'cases', 'countries', 'generations'].map((id) => ({
   id,
-  yearKey: `about.timeline.${id}.year`,
-  titleKey: `about.timeline.${id}.title`,
-  descriptionKey: `about.timeline.${id}.description`,
+  valueKey: `about.principal.stats.${id}.value`,
+  labelKey: `about.principal.stats.${id}.label`,
+}))
+
+export const principalHighlights = titledItems('highlights', ['academic', 'phd', 'training', 'practice', 'specialisms', 'languages'])
+
+// Optional fields are declared so every item (default or published) has them
+type GenerationDefault = {
+  id: string
+  eraKey: string
+  nameKey: string
+  relationKey: string
+  noteKey?: string
+  achievementsKey: string
+  photo: string
+}
+
+const generation = (id: string) => ({
+  id,
+  eraKey: `about.generations.items.${id}.era`,
+  nameKey: `about.generations.items.${id}.name`,
+  relationKey: `about.generations.items.${id}.relation`,
+  achievementsKey: `about.generations.items.${id}.achievements`,
+})
+
+export const generations: GenerationDefault[] = [
+  { ...generation('gen1'), photo: '/about/gen-1.webp' },
+  { ...generation('gen2'), photo: '/about/gen-2.webp' },
+  { ...generation('gen3'), noteKey: 'about.generations.items.gen3.note', photo: '/about/gen-3.webp' },
+  { ...generation('gen4'), photo: '/about/gen-4-chambers.webp' },
+]
+
+export const principalCareer = titledItems('career', ['founder', 'international', 'leadership', 'litigation', 'journalism', 'author'])
+
+export const foreignClientFacts = titledItems('foreign', ['rmg', 'workPermit', 'ratio'])
+
+export const diasporaServices = ['hague', 'enforcement', 'custody', 'protection'].map((id) => ({
+  id,
+  labelKey: `about.diaspora.items.${id}`,
+}))
+
+export const cyberPractice = titledItems('cyber', ['facebook', 'espionage', 'socialMedia', 'antiTerrorism'])
+
+type MediaDefault = { id: string; outletKey: string; dateKey?: string; titleKey: string; url?: string }
+
+const mediaItem = (id: string, dated = true): MediaDefault => ({
+  id,
+  outletKey: `about.media.items.${id}.outlet`,
+  ...(dated ? { dateKey: `about.media.items.${id}.date` } : {}),
+  titleKey: `about.media.items.${id}.title`,
+})
+
+export const mediaCoverage = [
+  mediaItem('bbcAsylum'),
+  mediaItem('bbcFalluja', false),
+  mediaItem('islamChannel', false),
+  mediaItem('rt', false),
+  mediaItem('dailyMail', false),
+  mediaItem('dailyExpress'),
+  mediaItem('guardian'),
+  mediaItem('belfastTelegraph', false),
+]
+
+export const principalBooks = [
+  {
+    id: 'originOfIslam',
+    titleKey: 'about.books.items.originOfIslam.title',
+    subtitleKey: 'about.books.items.originOfIslam.subtitle',
+    url: 'https://amzn.eu/d/08ZElgsc',
+    cover: '/about/book-origin-of-islam.webp',
+  },
+]
+
+export const scholarLinks = [
+  { id: 'academia', url: 'https://independent.academia.edu/MufassilEnglish' },
+  { id: 'researchGate', url: 'https://www.researchgate.net/profile/Mufassil-Islam' },
+  { id: 'dailyStar', url: 'https://archive.thedailystar.net/law/2008/07/04/campaign.htm' },
+].map(({ id, url }) => ({
+  id,
+  labelKey: `about.research.items.${id}.label`,
+  descriptionKey: `about.research.items.${id}.description`,
+  url,
 }))
 
 const aboutInstitutions = ['harvard', 'centralLaw', 'kensington', 'neilWeinrib', 'ashleyBean']
 
 export const aboutCertifications = aboutInstitutions.map((id) => ({ id, labelKey: `about.certifications.${id}` }))
-
-export const principalCredentials = aboutInstitutions.map((id) => ({ id, labelKey: `about.credentials.${id}` }))
 
 export const missionValues = ['integrity', 'expertise', 'clientSuccess'].map((id) => ({
   id,

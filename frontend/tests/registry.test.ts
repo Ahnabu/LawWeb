@@ -61,6 +61,14 @@ describe('registry mirrors the backend', () => {
     const area = { slug: 'a', title: { en: 'T', bn: '' }, description: { en: 'D', bn: '' }, details: { en: 'X', bn: '' } }
     expect(bad('practice-areas', { areas: [area, area] })).toBe(false)
     expect(bad('about', { certifications: [{ en: '', bn: 'ক' }] })).toBe(false)
+    const generation = (photo: string) => ({
+      era: { en: 'E' }, name: { en: 'N' }, relation: { en: 'R' }, achievements: { en: 'A' }, photo,
+    })
+    expect(bad('about', { generations: [generation('/about/gen-1.webp')] })).toBe(true)
+    expect(bad('about', { generations: [generation('//evil.example/x.jpg')] })).toBe(false)
+    expect(bad('about', { generations: [generation('javascript:alert(1)')] })).toBe(false)
+    expect(bad('about', { scholarLinks: [{ label: { en: 'L' }, url: 'javascript:alert(1)' }] })).toBe(false)
+    expect(bad('about', { principalPhoto: '/about/principal.webp' })).toBe(false)
   })
 })
 
@@ -99,11 +107,13 @@ describe('lists', () => {
         )
         expect(unresolved).toEqual([])
         const fromDefaults = list.defaults.map((item, i) => resolveDefaultItem(item, i, t))
-        // `id` is only a React key (defaults may have their own; stored items use the index)
-        const withoutId = ({ id: _id, ...rest }: Record<string, string>) => rest
+        // `id` is only a React key (defaults may have their own; stored items use the index).
+        // An optional field a default leaves out is stored empty; both render nothing.
+        const comparable = ({ id: _id, ...rest }: Record<string, string>) =>
+          Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== ''))
         const published = defaultListItems(list).map((item, i) => resolvePublishedItem(item, i, locale))
         // Bare { en, bn } lists render as `label`; the defaults' `labelKey` resolves to the same field
-        expect(published.map(withoutId)).toEqual(fromDefaults.map(withoutId))
+        expect(published.map(comparable)).toEqual(fromDefaults.map(comparable))
       }
     },
   )

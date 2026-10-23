@@ -6,21 +6,24 @@ import {
   defaultText,
   describeFieldPath,
   diffPageData,
+  emptyListItem,
   fingerprint,
   getListItems,
   isBanglaOutdated,
   itemBanglaState,
   textBanglaState,
+  type ListItemValue,
   type LocalizedValue,
 } from '../lib/adminContent'
 import { getPageDef, type ListDef } from '../lib/contentRegistry'
+import { generations } from '../lib/data'
 
 // Admin editor helpers (lib/adminContent.ts)
 
 const about = getPageDef('about')!
 const site = getPageDef('site')!
 const listOf = (name: string) => about.sections.map((s) => s.list).find((l) => l?.name === name) as ListDef
-const KEY = 'about.heroTitle'
+const KEY = 'about.principal.name'
 const def = defaultText(KEY)
 
 describe('fingerprint', () => {
@@ -72,6 +75,36 @@ describe('cleanPageData (sparse storage)', () => {
   it('removes empty contact settings', () => {
     expect(cleanPageData(site, { settings: { phone: ' ', email: ' a@b.co ' } })).toEqual({ settings: { email: 'a@b.co' } })
   })
+
+  it('trims photos and fills missing fields of list items', () => {
+    const cleaned = cleanPageData(about, {
+      generations: [{ name: { en: 'N', bn: '' }, photo: ' /about/gen-1.webp ' }],
+    })
+    const empty = { en: '', bn: '' }
+    expect(cleaned.generations).toEqual([
+      {
+        era: empty,
+        name: { en: 'N', bn: '' },
+        relation: empty,
+        note: empty,
+        achievements: empty,
+        photo: '/about/gen-1.webp',
+      },
+    ])
+  })
+})
+
+describe('list defaults with photos', () => {
+  it('copies default photos and leaves optional text without a default empty', () => {
+    const [first, , third] = defaultListItems(listOf('generations')) as Record<string, ListItemValue>[]
+    expect(first.note).toEqual({ en: '', bn: '' })
+    expect((third.note as LocalizedValue).en).not.toBe('')
+    expect(third.photo).toBe(generations[2].photo)
+  })
+
+  it('starts new items without a photo', () => {
+    expect(emptyListItem(listOf('generations'))).toMatchObject({ photo: '', note: { en: '', bn: '' } })
+  })
 })
 
 describe('Bangla status', () => {
@@ -107,7 +140,7 @@ describe('Bangla status', () => {
   })
 
   it('default lists carry fingerprints and count as complete', () => {
-    const items = defaultListItems(listOf('timeline')) as Record<string, LocalizedValue>[]
+    const items = defaultListItems(listOf('principalCareer')) as Record<string, LocalizedValue>[]
     expect(items.length).toBeGreaterThan(0)
     for (const item of items) {
       for (const value of Object.values(item)) expect(itemBanglaState(value)).toBe('ok')
@@ -129,7 +162,7 @@ describe('diffPageData', () => {
   it('lists changed texts and lists by label, ignoring fingerprints', () => {
     const a = { strings: { [KEY]: { en: 'Old' } }, certifications: [{ en: 'A', bn: 'ক', bnFor: 'aaaaaaaa' }] }
     const b = { strings: { [KEY]: { en: 'New' } }, certifications: [{ en: 'A', bn: 'ক', bnFor: 'bbbbbbbb' }] }
-    expect(diffPageData(about, a, b)).toEqual(['Hero › Title'])
+    expect(diffPageData(about, a, b)).toEqual(['Principal: introduction › Name'])
     expect(diffPageData(about, a, a)).toEqual([])
     expect(diffPageData(about, a, { ...a, certifications: [] })).toEqual(['Certifications & affiliations › Certifications'])
   })
@@ -144,8 +177,9 @@ describe('diffPageData', () => {
 
 describe('describeFieldPath', () => {
   it('turns server error paths into editor labels', () => {
-    expect(describeFieldPath(about, `strings.${KEY}.en`)).toBe('Title (English)')
-    expect(describeFieldPath(about, 'timeline.1.title.bn')).toBe('Timeline › Milestone 2 › Title (Bangla)')
+    expect(describeFieldPath(about, `strings.${KEY}.en`)).toBe('Name (English)')
+    expect(describeFieldPath(about, 'generations.1.name.bn')).toBe('Generations › Generation 2 › Name (Bangla)')
+    expect(describeFieldPath(about, 'generations.0.photo')).toBe('Generations › Generation 1 › Photo')
     expect(describeFieldPath(about, 'certifications.0.en')).toBe('Certifications › Certification 1 (English)')
   })
 })
