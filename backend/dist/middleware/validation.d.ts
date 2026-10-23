@@ -46,6 +46,7 @@ export declare const contentPageSchema: z.ZodObject<{
     params: z.ZodObject<{
         pageKey: z.ZodEnum<{
             global: "global";
+            gallery: "gallery";
             contact: "contact";
             site: "site";
             home: "home";
@@ -60,6 +61,7 @@ export declare const saveContentDraftSchema: z.ZodObject<{
     params: z.ZodObject<{
         pageKey: z.ZodEnum<{
             global: "global";
+            gallery: "gallery";
             contact: "contact";
             site: "site";
             home: "home";
@@ -77,6 +79,7 @@ export declare const contentRevisionSchema: z.ZodObject<{
     params: z.ZodObject<{
         pageKey: z.ZodEnum<{
             global: "global";
+            gallery: "gallery";
             contact: "contact";
             site: "site";
             home: "home";
@@ -184,6 +187,32 @@ export declare const grantDelegationSchema: z.ZodObject<{
     body: z.ZodObject<{
         lawyerId: z.ZodString;
         permissions: z.ZodPipe<z.ZodArray<z.ZodString>, z.ZodTransform<string[], string[]>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const galleryImageIdSchema: z.ZodObject<{
+    params: z.ZodObject<{
+        imageId: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateGalleryImageSchema: z.ZodObject<{
+    params: z.ZodObject<{
+        imageId: z.ZodString;
+    }, z.core.$strip>;
+    body: z.ZodObject<{
+        title: z.ZodOptional<z.ZodObject<{
+            en: z.ZodOptional<z.ZodString>;
+            bn: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        description: z.ZodOptional<z.ZodObject<{
+            en: z.ZodOptional<z.ZodString>;
+            bn: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        isPublished: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const reorderGallerySchema: z.ZodObject<{
+    body: z.ZodObject<{
+        order: z.ZodArray<z.ZodString>;
     }, z.core.$strip>;
 }, z.core.$strip>;
 export declare const formatZodIssues: (error: z.ZodError) => {

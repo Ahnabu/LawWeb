@@ -30,7 +30,8 @@ export function useContent() {
 // instead of the published content. The flag is kept for the browser tab so
 // they can click around the site; "Exit preview" clears it. Drafts are
 // fetched client-side from the admin API, so visitors never receive them.
-const PREVIEW_KEY = "lawweb-content-preview";
+const PREVIEW_KEY = "islamassociates-content-preview";
+const LEGACY_PREVIEW_KEY = "lawweb-content-preview";
 
 function readPreviewFlag(): boolean {
   try {
@@ -38,7 +39,10 @@ function readPreviewFlag(): boolean {
       window.sessionStorage.setItem(PREVIEW_KEY, "1");
       return true;
     }
-    return window.sessionStorage.getItem(PREVIEW_KEY) === "1";
+    return (
+      window.sessionStorage.getItem(PREVIEW_KEY) === "1" ||
+      window.sessionStorage.getItem(LEGACY_PREVIEW_KEY) === "1"
+    );
   } catch {
     return false;
   }

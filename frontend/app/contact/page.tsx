@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Clock, Mail, MapPin, Phone /* , Printer */ } from 'lucide-react'
+import { ArrowRight, Clock, Mail, Phone /* , Printer */ } from 'lucide-react'
 import { ContactForm } from '../../components/ContactForm'
 import { Footer, socialIcons, socialLabels } from '../../components/Footer'
 import { Navbar } from '../../components/Navbar'
@@ -24,7 +24,6 @@ interface ContactMethod {
 export default function ContactPage() {
   const { t, localePath } = useLanguage()
   const settings = useSiteSettings()
-  const address = t('site.address')
 
   const methods: ContactMethod[] = [
     {

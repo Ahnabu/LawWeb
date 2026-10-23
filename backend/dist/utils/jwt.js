@@ -13,8 +13,13 @@ exports.REFRESH_IDLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 exports.SESSION_ABSOLUTE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ALGORITHM = 'HS256';
 const signOptions = {
-    issuer: 'lawweb-backend',
-    audience: 'lawweb-client',
+    issuer: 'islam-associates-backend',
+    audience: 'islam-associates-client',
+};
+const verifyOptions = {
+    issuer: ['islam-associates-backend', 'lawweb-backend'],
+    audience: ['islam-associates-client', 'lawweb-client'],
+    algorithms: [ALGORITHM],
 };
 const basePayload = (user) => ({
     userId: user._id.toString(),
@@ -40,8 +45,8 @@ const generateRefreshToken = (user, jti, expiresAt, absoluteExpiresAt) => {
     });
 };
 exports.generateRefreshToken = generateRefreshToken;
-const verifyAccessToken = (token) => jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET, { ...signOptions, algorithms: [ALGORITHM] });
+const verifyAccessToken = (token) => jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET, verifyOptions);
 exports.verifyAccessToken = verifyAccessToken;
-const verifyRefreshToken = (token) => jsonwebtoken_1.default.verify(token, process.env.JWT_REFRESH_SECRET, { ...signOptions, algorithms: [ALGORITHM] });
+const verifyRefreshToken = (token) => jsonwebtoken_1.default.verify(token, process.env.JWT_REFRESH_SECRET, verifyOptions);
 exports.verifyRefreshToken = verifyRefreshToken;
 //# sourceMappingURL=jwt.js.map

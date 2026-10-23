@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRequest = exports.formatZodIssues = exports.grantDelegationSchema = exports.updateDelegationSchema = exports.inviteAssistantSchema = exports.updateStaffSchema = exports.createStaffSchema = exports.updateRoleSchema = exports.createRoleSchema = exports.auditLogListSchema = exports.auditLogQueryFields = exports.contactMessageSchema = exports.contentRevisionSchema = exports.saveContentDraftSchema = exports.contentPageSchema = exports.changePasswordSchema = exports.resetPasswordSchema = exports.verifyEmailSchema = exports.emailOnlySchema = exports.loginSchema = exports.registerSchema = exports.passwordSchema = void 0;
+exports.validateRequest = exports.formatZodIssues = exports.reorderGallerySchema = exports.updateGalleryImageSchema = exports.galleryImageIdSchema = exports.grantDelegationSchema = exports.updateDelegationSchema = exports.inviteAssistantSchema = exports.updateStaffSchema = exports.createStaffSchema = exports.updateRoleSchema = exports.createRoleSchema = exports.auditLogListSchema = exports.auditLogQueryFields = exports.contactMessageSchema = exports.contentRevisionSchema = exports.saveContentDraftSchema = exports.contentPageSchema = exports.changePasswordSchema = exports.resetPasswordSchema = exports.verifyEmailSchema = exports.emailOnlySchema = exports.loginSchema = exports.registerSchema = exports.passwordSchema = void 0;
 const zod_1 = require("zod");
 const contentSchemas_1 = require("../config/contentSchemas");
 const permissions_1 = require("../access/permissions");
@@ -148,6 +148,34 @@ exports.inviteAssistantSchema = zod_1.z.object({
 exports.updateDelegationSchema = zod_1.z.object({ body: zod_1.z.object({ permissions: delegationPermissions }) });
 exports.grantDelegationSchema = zod_1.z.object({
     body: zod_1.z.object({ lawyerId: objectId, permissions: delegationPermissions }),
+});
+// ── Photo gallery (admin) ─────────────────────────────────────────────────────
+// Images are created by the upload (POST /api/admin/gallery, multipart); these
+// cover editing their text, publishing and ordering.
+const galleryText = (max, label) => zod_1.z.object({
+    en: zod_1.z.string().trim().max(max, `${label} (English) must be at most ${max} characters`).optional(),
+    bn: zod_1.z.string().trim().max(max, `${label} (Bangla) must be at most ${max} characters`).optional(),
+});
+const galleryImageParams = zod_1.z.object({ imageId: objectId });
+exports.galleryImageIdSchema = zod_1.z.object({ params: galleryImageParams });
+exports.updateGalleryImageSchema = zod_1.z.object({
+    params: galleryImageParams,
+    body: zod_1.z
+        .object({
+        title: galleryText(120, 'Title').optional(),
+        description: galleryText(600, 'Description').optional(),
+        isPublished: zod_1.z.boolean().optional(),
+    })
+        .refine((b) => b.title !== undefined || b.description !== undefined || b.isPublished !== undefined, 'Nothing to update'),
+});
+exports.reorderGallerySchema = zod_1.z.object({
+    body: zod_1.z.object({
+        order: zod_1.z
+            .array(objectId)
+            .min(1, 'order must list at least one image')
+            .max(1000)
+            .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
+    }),
 });
 const formatZodIssues = (error) => error.issues.map((issue) => ({
     field: issue.path.join('.'),

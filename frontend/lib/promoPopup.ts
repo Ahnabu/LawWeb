@@ -17,9 +17,9 @@ export const POPUP_SLIDE_INTERVAL_REDUCED_MS = 8_000
 export const POPUP_QUESTION_KEYS = Array.from({ length: 12 }, (_, i) => `popup.q${i + 1}`)
 
 /** sessionStorage: { shows, nextAt } for this browser session */
-export const POPUP_SESSION_KEY = 'lawweb-popup'
+export const POPUP_SESSION_KEY = 'islamassociates-popup'
 /** localStorage: the question shown last, so the next visit starts elsewhere */
-export const POPUP_LAST_INDEX_KEY = 'lawweb-popup-last'
+export const POPUP_LAST_INDEX_KEY = 'islamassociates-popup-last'
 
 export interface PopupSessionState {
   /** How many times the popup has opened this session */

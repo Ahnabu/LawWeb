@@ -30,8 +30,14 @@ export const SESSION_ABSOLUTE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const ALGORITHM = 'HS256';
 const signOptions = {
-  issuer: 'lawweb-backend',
-  audience: 'lawweb-client',
+  issuer: 'islam-associates-backend',
+  audience: 'islam-associates-client',
+};
+
+const verifyOptions: jwt.VerifyOptions = {
+  issuer: ['islam-associates-backend', 'lawweb-backend'],
+  audience: ['islam-associates-client', 'lawweb-client'],
+  algorithms: [ALGORITHM],
 };
 
 const basePayload = (user: TokenSubject): TokenPayload => ({
@@ -62,7 +68,7 @@ export const generateRefreshToken = (user: TokenSubject, jti: string, expiresAt:
 };
 
 export const verifyAccessToken = (token: string): TokenPayload =>
-  jwt.verify(token, process.env.JWT_SECRET!, { ...signOptions, algorithms: [ALGORITHM] }) as TokenPayload;
+  jwt.verify(token, process.env.JWT_SECRET!, verifyOptions) as unknown as TokenPayload;
 
 export const verifyRefreshToken = (token: string): RefreshTokenPayload =>
-  jwt.verify(token, process.env.JWT_REFRESH_SECRET!, { ...signOptions, algorithms: [ALGORITHM] }) as RefreshTokenPayload;
+  jwt.verify(token, process.env.JWT_REFRESH_SECRET!, verifyOptions) as unknown as RefreshTokenPayload;

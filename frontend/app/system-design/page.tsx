@@ -649,7 +649,7 @@ export default function SystemDesignPage() {
                 <ul className="space-y-1.5 text-xs text-gray-600">
                   <li>→ 500×500 face-fill crop</li>
                   <li>→ 5MB upload limit</li>
-                  <li>→ lawweb/profiles/ folder</li>
+                  <li>→ uploads/profiles/ folder</li>
                   <li>→ Old image auto-deleted</li>
                   <li>→ Returns only imageUrl</li>
                 </ul>

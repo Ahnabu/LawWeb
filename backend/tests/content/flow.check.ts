@@ -4,7 +4,7 @@ import * as c from '../../src/controllers/contentController';
 import ContentRevision from '../../src/models/ContentRevision';
 
 // Drops the database it runs against, so only a local throwaway DB is allowed.
-const URI = process.env.CMS_TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/lawweb_cms_test';
+const URI = process.env.CMS_TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/islam_associates_cms_test';
 if (!/^mongodb:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/\w*test\w*$/.test(URI)) {
   console.error(`Refusing to run: ${URI} is not a local *test* database.`);
   process.exit(1);

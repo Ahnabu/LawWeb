@@ -72,7 +72,12 @@ export function Footer() {
     <footer className="border-t border-outline-variant bg-surface-container px-4 pb-8 pt-12 shadow-[inset_0_1px_0_var(--highlight)] sm:px-6 sm:pt-14 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
         <div className="space-y-3 text-sm leading-6 text-on-surface-variant">
-          <p className="font-display text-lg font-bold text-heading">{t('site.firmName')}</p>
+          <div>
+            <p className="font-display text-lg font-bold text-heading">{t('site.firmName')}</p>
+            <p className="text-xs font-semibold tracking-wider text-secondary uppercase">
+              International Law Offices
+            </p>
+          </div>
           {/* <p className="max-w-sm">{t('site.address')}</p> */}
           <p>
             {t('site.phoneLabel')}: {settings.phoneDisplay}

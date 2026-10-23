@@ -193,7 +193,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
         <div className="flex h-full w-64 flex-col">
           {/* Logo + collapse button */}
           <div className="flex h-15 items-center justify-between border-b border-outline-variant px-3">
-            <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={closeSidebarOnMobile}>
+            <Link href="/" className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden" onClick={closeSidebarOnMobile}>
               <span className="relative inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-md border border-outline-variant bg-surface-raised">
                 <Image
                   src="/logo.jpg"
@@ -203,9 +203,14 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
                   className="h-full w-full object-cover"
                 />
               </span>
-              <span className="truncate font-display text-sm font-bold leading-tight text-heading">
-                Islam & Associates
-              </span>
+              <div className="flex flex-col min-w-0 overflow-hidden">
+                <span className="truncate font-display text-sm font-bold leading-tight text-heading">
+                  Islam & Associates
+                </span>
+                <span className="truncate text-[0.65rem] font-medium tracking-wider text-on-surface-variant uppercase">
+                  International
+                </span>
+              </div>
             </Link>
             <button
               type="button"

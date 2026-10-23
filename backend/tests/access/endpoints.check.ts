@@ -62,7 +62,7 @@ const startDb = async () => {
     return { uri, stop: async () => undefined };
   }
   const server = await MongoMemoryServer.create();
-  return { uri: server.getUri('lawweb_access_test'), stop: () => server.stop() };
+  return { uri: server.getUri('islam_associates_access_test'), stop: () => server.stop() };
 };
 
 const buildApp = () => {

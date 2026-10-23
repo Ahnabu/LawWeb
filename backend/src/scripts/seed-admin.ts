@@ -5,7 +5,7 @@ import User from '../models/User';
 
 // Creates (or promotes/resets) the admin account. Safe to run repeatedly.
 // Override the defaults with SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME.
-const email = (process.env.SEED_ADMIN_EMAIL || 'admin@lawweb.com').toLowerCase();
+const email = (process.env.SEED_ADMIN_EMAIL || 'admin@islamassociates.com').toLowerCase();
 const password = process.env.SEED_ADMIN_PASSWORD || 'Admin@12345';
 
 if (process.env.NODE_ENV === 'production' && !process.env.SEED_ADMIN_PASSWORD) {

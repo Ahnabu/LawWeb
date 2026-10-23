@@ -18,24 +18,41 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const absolute = (path: string) => `${site}${path === '/' ? '' : path}`
   const [blogs, lawyerIds] = await Promise.all([getPublishedBlogSummaries(), getPublicLawyerIds()])
 
-  const bilingual = Object.values(SEO_PAGE_PATHS).flatMap((path) => {
+  const now = new Date()
+
+  const bilingual: MetadataRoute.Sitemap = Object.values(SEO_PAGE_PATHS).flatMap((path) => {
     const languages = Object.fromEntries(
       Object.entries(languageAlternates(path)).map(([lang, href]) => [lang, absolute(href)]),
     )
     return (['en', 'bn'] as const).map((locale) => ({
       url: absolute(localizePath(path, locale)),
+      lastModified: now,
+      changeFrequency: path === '/' ? 'daily' : 'weekly',
+      priority: path === '/' ? 1.0 : 0.8,
       alternates: { languages },
     }))
   })
 
-  const singleUrl = [
-    ...Object.values(SINGLE_LANGUAGE_SEO_PATHS).map((path) => ({ url: absolute(path) })),
-    ...lawyerIds.map((id) => ({ url: absolute(`/lawyers/${encodeURIComponent(id)}`) })),
+  const singleUrl: MetadataRoute.Sitemap = [
+    ...Object.values(SINGLE_LANGUAGE_SEO_PATHS).map((path) => ({
+      url: absolute(path),
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+    ...lawyerIds.map((id) => ({
+      url: absolute(`/lawyers/${encodeURIComponent(id)}`),
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
     ...blogs.map((blog) => {
       const date = blog.publishedAt ?? blog.createdAt
       return {
         url: absolute(`/blogs/${encodeURIComponent(blog.slug)}`),
-        ...(date && { lastModified: new Date(date) }),
+        lastModified: date ? new Date(date) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
       }
     }),
   ]

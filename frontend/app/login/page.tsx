@@ -81,7 +81,7 @@ function LoginPageContent() {
           <span className="label">Email Address</span>
           <input
             type="email"
-            placeholder="admin@lawweb.com"
+            placeholder="admin@islamassociates.com"
             className="field"
             value={email}
             onChange={(event) => setEmail(event.target.value)}

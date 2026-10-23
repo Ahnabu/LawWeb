@@ -32,3 +32,6 @@ dist-ssr
 # Playwright
 /test-results
 /playwright-report
+
+# TypeScript build cache
+*.tsbuildinfo

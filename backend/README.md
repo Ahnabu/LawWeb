@@ -102,7 +102,7 @@ COOKIE_DOMAIN=
 
 # Email (Resend)
 RESEND_API_KEY=re_your_api_key
-RESEND_FROM_EMAIL=LawWeb <onboarding@resend.dev>
+RESEND_FROM_EMAIL=Islam & Associates International <onboarding@resend.dev>
 
 # Cloudinary Storage
 CLOUDINARY_CLOUD_NAME=your_cloud_name

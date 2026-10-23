@@ -37,7 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 if (p === '/bn' || p.indexOf('/bn/') === 0) document.documentElement.lang = 'bn';
               } catch (e) {}
               try {
-                const t = localStorage.getItem('lawweb-theme');
+                const t = localStorage.getItem('islamassociates-theme') || localStorage.getItem('lawweb-theme');
                 const d = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 if (t === 'dark' || (!t && d)) document.documentElement.classList.add('dark');
               } catch (e) {}

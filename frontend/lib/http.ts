@@ -16,13 +16,13 @@ import { API_BASE_URL } from './api'
 // an admin blocked this account: the server already cleared the cookies, so the
 // tab signs out locally and tells the user why (ACCOUNT_BLOCKED_EVENT).
 
-export const SESSION_EXPIRED_EVENT = 'lawweb:session-expired'
-export const ACCOUNT_BLOCKED_EVENT = 'lawweb:account-blocked'
+export const SESSION_EXPIRED_EVENT = 'islamassociates:session-expired'
+export const ACCOUNT_BLOCKED_EVENT = 'islamassociates:account-blocked'
 export const ACCOUNT_BLOCKED_CODE = 'ACCOUNT_BLOCKED'
 export const DEFAULT_BLOCKED_MESSAGE = 'Your account has been blocked. Contact the firm for help.'
 
 // Survives the redirect to /login so the login page can explain the sign-out
-const AUTH_NOTICE_KEY = 'lawweb:auth-notice'
+const AUTH_NOTICE_KEY = 'islamassociates:auth-notice'
 
 export type AuthMessage =
   | { type: 'refreshed'; expiresAt: number | null }
@@ -44,7 +44,7 @@ const NO_REFRESH_PATHS = new Set([
 
 // Refresh this long before the server-side expiry to absorb clock skew and latency
 const EXPIRY_MARGIN_MS = 30 * 1000
-const REFRESH_LOCK = 'lawweb-auth-refresh'
+const REFRESH_LOCK = 'islamassociates-auth-refresh'
 
 type RefreshOutcome = 'ok' | 'rejected' | 'blocked' | 'network-error'
 
@@ -53,7 +53,7 @@ let lastRefreshAt = 0
 let refreshInFlight: Promise<RefreshOutcome> | null = null
 
 const channel: BroadcastChannel | null =
-  typeof window !== 'undefined' && 'BroadcastChannel' in window ? new BroadcastChannel('lawweb-auth') : null
+  typeof window !== 'undefined' && 'BroadcastChannel' in window ? new BroadcastChannel('islamassociates-auth') : null
 
 channel?.addEventListener('message', (event: MessageEvent<AuthMessage>) => {
   if (event.data?.type === 'refreshed') {

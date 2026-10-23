@@ -82,7 +82,7 @@ export function Navbar() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:h-17 sm:px-6 lg:px-8">
         <Link
           href={localePath("/")}
-          className="flex min-w-0 items-center gap-2.5 sm:gap-3"
+          className="flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3"
         >
           <span className="relative inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-md border border-outline-variant bg-surface-raised sm:h-10 sm:w-10">
             <Image
@@ -94,9 +94,14 @@ export function Navbar() {
               priority
             />
           </span>
-          <span className="truncate font-display text-[0.95rem] font-bold text-heading sm:text-lg">
-            {t("site.firmName")}
-          </span>
+          <div className="flex min-w-0 flex-col justify-center">
+            <span className="truncate font-display text-[0.95rem] font-bold leading-tight text-heading sm:text-base lg:text-[0.95rem] xl:text-lg">
+              {t("site.firmName")}
+            </span>
+            <span className="hidden text-[0.625rem] font-semibold tracking-wider text-secondary uppercase sm:inline-block lg:hidden xl:inline-block">
+              International Law Offices
+            </span>
+          </div>
         </Link>
 
         {/* Tighter links between lg and xl so seven links and the firm name fit at 1024px */}

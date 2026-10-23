@@ -1,4 +1,4 @@
-# Deployment Guide: LawWeb Frontend & Backend
+# Deployment Guide: Islam & Associates International Frontend & Backend
 
 ## Issues Fixed from React to Next.js Migration
 
@@ -48,14 +48,14 @@ This document addresses the critical connectivity issues that occurred during th
 
 3. **Deploy**
    - Vercel will automatically build and deploy your Next.js application
-   - Your application will have a URL like `law-web-xxx.vercel.app`
+   - Your application will have a URL like `islam-associates-xxx.vercel.app`
 
 ### For Backend Deployment
 
 The backend can be deployed directly to **Vercel as a Serverless API** (recommended for an all-Vercel stack) or to cloud platforms like Render, Railway, or a VPS.
 
 #### Option A: Deploy Backend to Vercel (All-in-one Vercel)
-1. In Vercel, click **Add New...** → **Project** → select the `LawWeb` repository.
+1. In Vercel, click **Add New...** → **Project** → select the repository.
 2. Set **Root Directory** to `backend`.
 3. Set **Framework Preset** to `Other`.
 4. The backend already includes `backend/vercel.json` and `backend/api/index.ts` to route all endpoints into Express serverless functions.

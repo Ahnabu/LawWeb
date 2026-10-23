@@ -19,7 +19,8 @@ import { resolveString } from "../lib/content";
 import { getRouteLocale, localizePath } from "../lib/locale";
 import { useContent } from "./ContentProvider";
 
-const STORAGE_KEY = "lawweb-lang";
+const STORAGE_KEY = "islamassociates-lang";
+const LEGACY_STORAGE_KEY = "lawweb-lang";
 
 interface LanguageContextValue {
   locale: Locale;
@@ -61,7 +62,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY) as Locale | null;
+      const stored = (window.localStorage.getItem(STORAGE_KEY) ||
+        window.localStorage.getItem(LEGACY_STORAGE_KEY)) as Locale | null;
       if (stored && availableLocales.includes(stored)) {
         setStoredLocale(stored);
         return;
