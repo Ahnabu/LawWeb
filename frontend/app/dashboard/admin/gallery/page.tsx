@@ -16,6 +16,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { confirmDialog } from "../../../../components/ConfirmDialog";
+import { RichTextEditor } from "../../../../components/RichTextEditor";
+import { richTextToPlain } from "../../../../lib/richText";
 import { compressImage } from "../../../../lib/imageCompression";
 import {
   GALLERY_DESCRIPTION_MAX, GALLERY_TITLE_MAX,
@@ -469,7 +471,7 @@ function SortableGalleryRow({
                 </span>
               </div>
               {description ? (
-                <p className="line-clamp-2 text-sm text-on-surface-variant">{description}</p>
+                <p className="line-clamp-2 text-sm text-on-surface-variant">{richTextToPlain(description)}</p>
               ) : (
                 <p className="text-sm text-on-surface-variant">No description.</p>
               )}
@@ -585,7 +587,7 @@ function EditPhotoModal({ image, onClose, onSaved }: {
   );
 
   return (
-    <ModalShell title="Edit photo" onClose={() => { if (!isSubmitting) onClose(); }} maxWidth="max-w-2xl">
+    <ModalShell title="Edit photo" onClose={() => { if (!isSubmitting) onClose(); }} maxWidth="max-w-3xl">
       <form onSubmit={handleSubmit} noValidate>
         <div className="space-y-5 px-5 py-5 sm:px-6">
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-outline-variant bg-surface-container">
@@ -606,7 +608,7 @@ function EditPhotoModal({ image, onClose, onSaved }: {
           </div>
 
           <div className="notice notice-info text-on-surface-variant">
-            Leave the Bangla fields empty to show the English text on the Bangla page too.
+            Leave the Bangla fields empty to show the English text on the Bangla page too. You can format descriptions with headlines, paragraphs, and bullet points.
           </div>
 
           {formError && <p role="alert" className="notice notice-error">{formError}</p>}
@@ -624,18 +626,29 @@ function EditPhotoModal({ image, onClose, onSaved }: {
                 lang="bn" placeholder="যেমন: ঢাকায় আমাদের চেম্বার" autoComplete="off" />
               {counter(form.titleBn, GALLERY_TITLE_MAX)}
             </label>
-            <label className="block">
-              <span className="label">Description (English)</span>
-              <textarea value={form.descriptionEn} onChange={set("descriptionEn")} maxLength={GALLERY_DESCRIPTION_MAX} rows={4}
-                className="field resize-y" placeholder="Shown under the title and in the larger view" />
-              {counter(form.descriptionEn, GALLERY_DESCRIPTION_MAX)}
-            </label>
-            <label className="block">
-              <span className="label">Description (বাংলা)</span>
-              <textarea value={form.descriptionBn} onChange={set("descriptionBn")} maxLength={GALLERY_DESCRIPTION_MAX} rows={4}
-                className="field resize-y" lang="bn" />
-              {counter(form.descriptionBn, GALLERY_DESCRIPTION_MAX)}
-            </label>
+
+            <div className="space-y-1 sm:col-span-2">
+              <span className="label">Description (English) — paragraphs, headlines, bullet points</span>
+              <RichTextEditor
+                value={form.descriptionEn}
+                onChange={(val) => setForm((f) => ({ ...f, descriptionEn: val }))}
+                placeholder="Write description with paragraphs, bullet points, or headlines..."
+                maxLength={GALLERY_DESCRIPTION_MAX}
+                minHeightClass="min-h-36"
+              />
+            </div>
+
+            <div className="space-y-1 sm:col-span-2">
+              <span className="label">Description (বাংলা) — প্যারাগ্রাফ, শিরোনাম ও পয়েন্ট</span>
+              <RichTextEditor
+                value={form.descriptionBn}
+                onChange={(val) => setForm((f) => ({ ...f, descriptionBn: val }))}
+                placeholder="প্যারাগ্রাফ, শিরোনাম বা বুলেট পয়েন্টসহ বিবরণ লিখুন..."
+                lang="bn"
+                maxLength={GALLERY_DESCRIPTION_MAX}
+                minHeightClass="min-h-36"
+              />
+            </div>
           </div>
 
           <label className="flex cursor-pointer items-start gap-2 text-sm text-on-surface">

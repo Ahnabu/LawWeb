@@ -1,14 +1,23 @@
-// Integration check for the CMS controller against a throwaway local database.
+// Integration check for the CMS controller against an in-memory or throwaway local database.
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as c from '../../src/controllers/contentController';
 import ContentRevision from '../../src/models/ContentRevision';
 
-// Drops the database it runs against, so only a local throwaway DB is allowed.
-const URI = process.env.CMS_TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/islam_associates_cms_test';
-if (!/^mongodb:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/\w*test\w*$/.test(URI)) {
-  console.error(`Refusing to run: ${URI} is not a local *test* database.`);
-  process.exit(1);
-}
+// In-memory by default; CMS_TEST_MONGODB_URI (a local *test* DB) as a fallback
+const startDb = async () => {
+  const uri = process.env.CMS_TEST_MONGODB_URI;
+  if (uri) {
+    if (!/^mongodb:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/\w*test\w*$/.test(uri)) {
+      console.error(`Refusing to run: ${uri} is not a local *test* database.`);
+      process.exit(1);
+    }
+    return { uri, stop: async () => undefined };
+  }
+  const server = await MongoMemoryServer.create();
+  return { uri: server.getUri('islam_associates_cms_test'), stop: () => server.stop() };
+};
+
 const user = { _id: new mongoose.Types.ObjectId(), name: 'Test Admin' };
 
 let failures = 0;
@@ -31,7 +40,8 @@ const call = async (fn: any, params: Record<string, string>, body: any = {}) => 
 const heroTitle = (en: string) => ({ strings: { 'about.heroTitle': { en, bn: 'বাংলা' } } });
 
 (async () => {
-  await mongoose.connect(URI);
+  const db = await startDb();
+  await mongoose.connect(db.uri);
   await mongoose.connection.dropDatabase();
   await ContentRevision.syncIndexes();
 
@@ -107,8 +117,12 @@ const heroTitle = (en: string) => ({ strings: { 'about.heroTitle': { en, bn: '�
   const versions = (await ContentRevision.find({ pageKey: 'about' }).sort({ version: 1 })).map((x) => x.version);
   expect('prune: 20 revisions kept (v4..v23)', versions.length === 20 && versions[0] === 4 && versions[19] === 23, versions);
 
+  // Wait for background audit logs to finish writing
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
+  await db.stop();
   console.log(failures ? `\n${failures} FAILED` : '\nAll checks passed');
   process.exit(failures ? 1 : 0);
 })().catch(async (e) => {

@@ -205,7 +205,7 @@ export const updateGalleryImageSchema = z.object({
   body: z
     .object({
       title: galleryText(120, 'Title').optional(),
-      description: galleryText(600, 'Description').optional(),
+      description: galleryText(5000, 'Description').optional(),
       isPublished: z.boolean().optional(),
     })
     .refine((b) => b.title !== undefined || b.description !== undefined || b.isPublished !== undefined, 'Nothing to update'),

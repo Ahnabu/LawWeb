@@ -7,7 +7,7 @@ import type { Locale } from './i18n'
 // (backend routes/gallery.ts and the gallery routes in routes/admin.ts).
 
 export const GALLERY_TITLE_MAX = 120
-export const GALLERY_DESCRIPTION_MAX = 600
+export const GALLERY_DESCRIPTION_MAX = 5000
 
 export interface GalleryText {
   en: string
@@ -20,6 +20,7 @@ export interface GalleryImage {
   title: GalleryText
   description: GalleryText
   sortOrder: number
+  createdAt?: string
 }
 
 export interface AdminGalleryImage extends GalleryImage {

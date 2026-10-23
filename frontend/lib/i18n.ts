@@ -664,11 +664,16 @@ const translationBundle = {
       loadError: "We couldn't load the gallery. Please try again later.",
       retry: "Try again",
       untitled: "Gallery photo",
-      open: "View larger",
+      open: "View photo and details",
       close: "Close",
       previous: "Previous photo",
       next: "Next photo",
       counter: "{n} of {total}",
+      viewDetails: "View Details",
+      photoDetails: "Photo Information",
+      firmTag: "Islam & Associates International",
+      openFullPhoto: "Open original image",
+      descriptionLabel: "Description",
     },
     seo: {
       home: {
@@ -1369,6 +1374,11 @@ const translationBundle = {
       previous: "আগের ছবি",
       next: "পরের ছবি",
       counter: "{total}টির মধ্যে {n}",
+      viewDetails: "বিস্তারিত দেখুন",
+      photoDetails: "ছবির বিবরণ",
+      firmTag: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল",
+      openFullPhoto: "মূল ছবি খুলুন",
+      descriptionLabel: "বিবরণ",
     },
     seo: {
       home: {

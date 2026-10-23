@@ -31,6 +31,7 @@ export interface BlogSummary {
   slug: string
   publishedAt?: string
   createdAt?: string
+  coverImageUrl?: string
 }
 
 const BLOG_REVALIDATE_SECONDS = 300

@@ -5,7 +5,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 // Bangla value falls back to English on the public site.
 
 export const GALLERY_TITLE_MAX = 120;
-export const GALLERY_DESCRIPTION_MAX = 600;
+export const GALLERY_DESCRIPTION_MAX = 5000;
 // The admin page and the public page load the whole list, so it stays bounded
 export const GALLERY_MAX_IMAGES = 300;
 
