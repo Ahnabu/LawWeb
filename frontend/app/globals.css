@@ -57,6 +57,8 @@
 
   --color-surface: var(--clr-surface);
   --color-surface-raised: var(--clr-surface-raised);
+  --color-surface-container-lowest: var(--clr-surface-container-lowest);
+  --color-surface-container-low: var(--clr-surface-container-low);
   --color-surface-container: var(--clr-surface-container);
   --color-surface-container-high: var(--clr-surface-container-high);
   --color-surface-dim: var(--clr-surface-dim);
@@ -99,11 +101,13 @@
 
   --clr-surface: #f7f5f0;
   --clr-surface-raised: #fffdf9;
+  --clr-surface-container-lowest: #ffffff;
+  --clr-surface-container-low: #fcfbf8;
   --clr-surface-container: #f0ece3;
   --clr-surface-container-high: #e7e2d6;
   --clr-surface-dim: #dbd5c8;
-  --clr-on-surface: #1d1b17;
-  --clr-on-surface-variant: #5b574e;
+  --clr-on-surface: #111827;
+  --clr-on-surface-variant: #374151;
 
   --clr-outline: #c7bfaf;
   --clr-outline-variant: #e2dccf;
@@ -150,6 +154,8 @@
 
   --clr-surface: #0a1322;
   --clr-surface-raised: #111c2e;
+  --clr-surface-container-lowest: #060e19;
+  --clr-surface-container-low: #0a1322;
   --clr-surface-container: #0e1829;
   --clr-surface-container-high: #172439;
   --clr-surface-dim: #060d18;

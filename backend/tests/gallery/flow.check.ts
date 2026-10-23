@@ -106,7 +106,7 @@ const waitForAudit = async (action: string) => {
   // ── Update ───────────────────────────────────────────────────────────────
   r = await send(keeper, 'PATCH', `/api/admin/gallery/${b._id}`, { title: { en: '  Library  ' }, description: { en: 'Our law library', bn: 'আমাদের আইন গ্রন্থাগার' } });
   expect(`update: text -> ${r.status}`,
-    r.status === 200 && r.json.data.title.en === 'Library' && r.json.data.title.bn === '' && r.json.data.description.bn === 'আমাদের আইন গ্রন্থাগার', r.json);
+    r.status === 200 && r.json.data.title.en === 'Library' && r.json.data.title.bn === '' && r.json.data.description.bn === '<p>আমাদের আইন গ্রন্থাগার</p>', r.json);
   r = await send(keeper, 'PATCH', `/api/admin/gallery/${a._id}`, { title: { bn: 'নতুন' } });
   expect('update: a language left out keeps its value', r.status === 200 && r.json.data.title.en === 'Chamber' && r.json.data.title.bn === 'নতুন', r.json);
   r = await send(keeper, 'PATCH', `/api/admin/gallery/${b._id}`, { isPublished: true });
@@ -148,6 +148,7 @@ const waitForAudit = async (action: string) => {
 
   // ── Hidden images stay out of the public list ────────────────────────────
   await send(admin, 'PATCH', `/api/admin/gallery/${a._id}`, { isPublished: false });
+  await waitForAudit('gallery.image_hidden');
   r = await send(null, 'GET', '/api/gallery');
   expect('public: hiding removes it', r.json.data.length === 1 && String(r.json.data[0]._id) === String(b._id), r.json);
 
