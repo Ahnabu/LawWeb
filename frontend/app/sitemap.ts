@@ -62,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: date ? new Date(date) : now,
         changeFrequency: 'monthly' as const,
         priority: 0.7,
-        ...(blog.featuredImage ? { images: [blog.featuredImage] } : {}),
+        ...(blog.coverImageUrl ? { images: [blog.coverImageUrl] } : {}),
       }
     }),
   ]
