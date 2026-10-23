@@ -431,13 +431,14 @@ export const contentRegistry: ContentPageDef[] = [
       },
       {
         title: 'For foreign clients (Investment Gateway)',
-        description: 'Left half of the two-column section: intro, small fact boxes and a dark note underneath.',
+        description: 'Left half of the two-column section: intro and small fact boxes.',
         texts: [
           text('about.foreign.label', 'Eyebrow'),
           text('about.foreign.title', 'Heading'),
           formattedText('about.foreign.text', 'Intro text'),
-          text('about.foreign.noteTitle', 'Dark note: title'),
-          text('about.foreign.noteText', 'Dark note: text', true),
+          // Dark "Fee & timeline" note is hidden on the page (see AboutSections.tsx).
+          // text('about.foreign.noteTitle', 'Dark note: title'),
+          // text('about.foreign.noteText', 'Dark note: text', true),
         ],
         list: {
           name: 'foreignClients',
