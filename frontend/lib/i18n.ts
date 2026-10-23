@@ -298,11 +298,12 @@ const translationBundle = {
       followUs: "Follow us",
       whatsappMessage: "Hi, I need legal consultation regarding ...",
     },
+    home: {
+      principalLink: "Read the full profile",
+      generationsLink: "Our full heritage",
+    },
     about: {
       heroLabel: "About Islam & Associates",
-      heroTitle: "A Legacy of Legal Excellence in Bangladesh",
-      heroSubtitle:
-        "We believe in honest, sincere and fast remedies for our clients and believe in growth with our clients' successes.",
       overviewTitle: "Firm Overview",
       overviewText:
         "Islam & Associates is an elite law firm serving Dhaka and global clients with deep expertise across corporate, civil, criminal, immigration, and family law. Our commitment is to deliver transparent, ethical, and rapid legal solutions.",
@@ -317,44 +318,201 @@ const translationBundle = {
         neilWeinrib: "Neil Weinrib PC, USA",
         ashleyBean: "Ashley Bean & Co. Solicitors, England",
       },
-      timelineTitle: "Founding Timeline",
-      timeline: {
-        greatGrandfather: {
-          year: "1930s–40s",
-          title: "Advocate Mumtaz Uddin Ahmed",
-          description: "Great-grandfather laid the family legal foundation.",
-        },
-        grandfather: {
-          year: "1950s–60s",
-          title: "Advocate K M Sadequr Rahman",
-          description: "Grandfather expanded the firm’s civil and corporate practice.",
-        },
-        father: {
-          year: "1970s–80s",
-          title: "Advocate Nazrul Islam",
-          description: "Father established the firm’s courtroom excellence.",
-        },
-        founding: {
-          year: "1997",
-          title: "Mufassil MM Islam founded Islam & Associates",
-          description: "Modern law firm founded in Dhaka with international reach.",
-        },
-        global: {
-          year: "2000s–Present",
-          title: "Global expansion",
-          description: "Harvard training and international syndicate partnerships.",
+      principal: {
+        name: "Dr. Mufassil M M Islam",
+        qualifications: "LL.B (Hons) · LL.M · PhD (Law) · Principal of the Firm",
+        status: "Advocate, Bangladesh Bar Council · Currently practising",
+        headline: "Leading global expert on cyber laws and espionage cases",
+        specialty:
+          "Specialist in social media, cyber, secret services, anti-terrorism, immigration and corporate law.",
+        bio:
+          "Born in Dhaka on 10 October 1966, Dr. Mufassil Islam is the son of Advocate Professor Muhammad Nazrul Islam and the grandson of Advocate K M Sadequr Rahman, founder of the High Speed Group. He brings more than 27 years of trial and appellate advocacy and has conducted over 500 cases.\n\nAn Advocate of the Bangladesh Bar Council, he trained in cyber law at the Harvard Berkman Klein Center for Internet & Society and at BPP Law School, London, and has practised extensively in the UK, Ireland, the USA, Australia and Bangladesh.\n\nHe is internationally cited for landmark social media litigation, including a Belfast High Court action against Facebook covered by The Guardian Weekly, the BBC and the Daily Mail. He has faced ISIS-linked death threats for defending free expression, and advises on surveillance, data protection, privacy, online harassment and state secrecy.",
+        bookCta: "Book a consultation",
+        whatsappCta: "WhatsApp consultation",
+        stats: {
+          years: { value: "27+", label: "Years of practice" },
+          cases: { value: "500+", label: "Cases conducted" },
+          countries: { value: "80+", label: "Countries visited" },
+          generations: { value: "4", label: "Generations in law" },
         },
       },
-      principalTitle: "Principal Profile",
-      principalName: "Mufassil MM Islam — LL.B (Hons) & LL.M, Dhaka University",
-      principalText:
-        "Principal counsel with decades of litigation and international compliance experience. Trusted by local and global clients to navigate complex law with clarity.",
-      credentials: {
-        harvard: "Harvard University (Internet Law)",
-        centralLaw: "Central Law Training England",
-        kensington: "Kensington University USA",
-        neilWeinrib: "Neil Weinrib PC USA",
-        ashleyBean: "Ashley Bean & Co. Solicitors England",
+      highlights: {
+        title: "Qualifications at a glance",
+        academic: { title: "Dhaka University", text: "LL.B (Hons), 8th position, and LL.M, 5th position." },
+        phd: {
+          title: "PhD (Law)",
+          text: "Swiss School of Business and Research (SSBR), with primary research from Trinity College Dublin, Dublin University.",
+        },
+        training: {
+          title: "UK & US legal training",
+          text: "QLTT; BPP Law School, London; Central Law Training; Harvard Berkman Center (cyber law).",
+        },
+        practice: {
+          title: "Global practice",
+          text: "Belfast, London, Essex, New York, Atlanta, Fairfax (Virginia) and Sydney.",
+        },
+        specialisms: {
+          title: "Specialisms",
+          text: "Cyber law, espionage, social media, secret services, anti-terrorism, immigration and corporate law.",
+        },
+        languages: {
+          title: "Languages",
+          text: "English, Bengali, Sylheti, Hindi and Urdu, with some Arabic and Spanish.",
+        },
+      },
+      generations: {
+        label: "Our heritage",
+        title: "Four generations of law",
+        subtitle:
+          "A family of advocates, industrialists and scholars, from British India to a global practice today.",
+        genShort: "Gen",
+        colGeneration: "Generation",
+        colPhoto: "Photo",
+        colName: "Name & relationship",
+        colAchievements: "Achievements",
+        items: {
+          gen1: {
+            era: "British India / early Pakistan",
+            name: "Advocate Mumtaz Uddin Ahmed",
+            relation: "Great-grandfather",
+            achievements:
+              "Founding member, Dhaka Bar Association\nFrom an aristocratic zamindar family of Araihazar, Narayanganj\nPioneer of legal infrastructure in the Dhaka region\nLaid the foundation of the family's legal tradition",
+          },
+          gen2: {
+            era: "Pakistan period",
+            name: "Advocate K M Sadequr Rahman",
+            relation: "Maternal grandfather",
+            achievements:
+              "Prominent lawyer\nFounder of the High Speed Group, the largest shipping conglomerate in then East Pakistan (now Bangladesh)\nIndustrialist and legal luminary",
+          },
+          gen3: {
+            era: "Bangladesh, 1971 – present",
+            name: "Advocate Professor Muhammad Nazrul Islam",
+            relation: "Father",
+            note: "Son of Sufi saint Muhamad Sulaiman. Family connection: Chief Justice A K M Nurul Islam, granduncle of Dr. Mufassil Islam.",
+            achievements:
+              "Stood first in the LL.B examinations, Dhaka University\nLaw teacher, Central Law College, Dhaka\nAuthor of Reflections on the Law of Evidence (Kamrul Book House), the most prominent book on the law of evidence in Bangladesh\nLegal consultant, Codinna Partners International Law Offices, USA",
+          },
+          gen4: {
+            era: "Global · present",
+            name: "Dr. Mufassil M M Islam",
+            relation: "Principal of the firm",
+            achievements:
+              "Advocate, Bangladesh Bar Council\nLL.B (Hons), 8th position, and LL.M, 5th position, Dhaka University\nPhD, Swiss School of Business and Research (SSBR), with primary research from Trinity College Dublin, Dublin University\nQLTT; BPP Law School, London; Central Law Training; Harvard Berkman Center (cyber law)\nFounded Islam & Associates in 1997",
+          },
+        },
+      },
+      career: {
+        title: "Career & distinctions",
+        founder: {
+          title: "Founder & editor",
+          text: "Founder of the Dhaka University Moot Court Society and founding executive editor of Aain Porikroma, the first law journal in Bangladesh.",
+        },
+        international: {
+          title: "International career",
+          text: "Neil Weinrib PC (New York), Donald Travis Salter (Atlanta), Karu & Co (London), Equity Barristers Chambers (London), Srinivasan (London), Ashley Bean (Essex), Rahman & Co (London, where he won a Legal Aid franchise), Soods (London, as supervisor), SRIS PC (Fairfax, Virginia), Kazi & Associates (Sydney), KRW Law (Belfast, intern) and the Law Offices of Ron Katirei (New York).",
+        },
+        leadership: {
+          title: "Leadership",
+          text: "Chairman, Solid Shield Foundation, New York; Chairman, For Britain, Northern Ireland.",
+        },
+        litigation: {
+          title: "Landmark litigation",
+          text: "Belfast High Court action against Facebook on cross-border online harms, reported by The Guardian Weekly, the BBC and the Daily Mail.",
+        },
+        journalism: {
+          title: "Legal journalism",
+          text: "Articles in The Daily Star's Law and Our Rights pages, as a pioneer of legal journalism in Bangladesh.",
+        },
+        author: {
+          title: "Author",
+          text: "Origin of Islam Reconsidered: Beyond Tradition, Vol. I; Codex of a Murtad; Islame Fera; Prokrit Islamer Khoje.",
+        },
+      },
+      foreign: {
+        label: "For foreign clients — fast, compliant market entry",
+        title: "Bangladesh Investment Gateway",
+        text: "**BIDA / BEZA / BEPZA / BOI:** One Stop Service (OSS) via [bidaquickserv.org] – company registration, trade licence, IRC/ERC, factory set-up and environmental clearance.",
+        noteTitle: "Fee & timeline:",
+        noteText: "Tk 5,000 work permit fee, approval within 15 days if documents are compliant. Fully digital OSS – no physical submission.",
+        rmg: { title: "RMG sector", text: "2nd largest exporter advisory" },
+        workPermit: { title: "Work permit", text: "Digital from 1 Oct 2025" },
+        ratio: { title: "Ratio", text: "1:20 local / 1:5 foreign" },
+      },
+      diaspora: {
+        label: "For Bangladeshi diaspora worldwide",
+        title: "Multi-Jurisdictional Matrimonial Law",
+        text: "For Bangladeshi diaspora in the UK, USA, Canada and Australia navigating **cross-border divorce, child custody, maintenance and international child abduction**.",
+        note: "Confidential, culturally sensitive, principal-led – understanding both common law and the Bangladeshi Muslim Family Laws Ordinance.",
+        items: {
+          hague: "Hague Convention on Child Abduction – emergency return and defences",
+          enforcement: "Enforcement of foreign divorce decrees in Bangladesh and vice versa",
+          custody: "Cross-border custody – UK Children Act, US UCCJEA, Canada Divorce Act",
+          protection: "Forced marriage protection, FMPO, non-molestation orders",
+        },
+      },
+      cyber: {
+        label: "Cyber law, social media & espionage",
+        title: "Where digital rights meet national security",
+        text: "We represent journalists, activists, executives and states in high-stakes cyber disputes involving platform liability, doxxing, deepfake defamation, data breaches and espionage allegations.",
+        facebook: {
+          title: "Facebook litigation",
+          text: "Belfast High Court action on cross-border platform liability, covered by The Guardian Weekly and the BBC.",
+        },
+        espionage: {
+          title: "Espionage & secret services",
+          text: "State secrecy, official secrets, surveillance and whistleblower defence.",
+        },
+        socialMedia: {
+          title: "Social media law",
+          text: "Harassment, defamation, impersonation and takedown orders across Meta, X and TikTok.",
+        },
+        antiTerrorism: {
+          title: "Anti-terrorism advisory",
+          text: "Extremism risk, online radicalisation evidence and protective measures.",
+        },
+      },
+      media: {
+        title: "International media coverage",
+        text: "Dr. Islam's cases and commentary have been covered by the BBC, The Guardian, the Daily Mail, the Belfast Telegraph, RT and Islam Channel.",
+        items: {
+          bbcAsylum: { outlet: "BBC News", date: "23 August 2004", title: "Asylum and protection" },
+          bbcFalluja: { outlet: "BBC", title: "Falluja reports and analysis" },
+          islamChannel: { outlet: "Islam Channel", title: "Television appearances" },
+          rt: { outlet: "RT", title: "Expert commentary" },
+          dailyMail: { outlet: "Daily Mail", title: "UK press coverage" },
+          dailyExpress: { outlet: "Daily Express", date: "23 November 2015", title: "ISIS threats" },
+          guardian: { outlet: "Guardian Weekly", date: "15 October 2021, page 13", title: "Facebook lawsuit" },
+          belfastTelegraph: { outlet: "Belfast Telegraph", title: "Northern Ireland practice" },
+        },
+      },
+      books: {
+        title: "Books & research",
+        featured: "Featured book",
+        buy: "Buy on Amazon",
+        items: {
+          originOfIslam: {
+            title: "Origin of Islam Reconsidered: Beyond Tradition, Vol. I",
+            subtitle: "Also by the author: Codex of a Murtad, Islame Fera and Prokrit Islamer Khoje",
+          },
+        },
+      },
+      research: {
+        title: "Scholar profiles & articles",
+        items: {
+          academia: {
+            label: "Academia.edu",
+            description: "Papers and chapters, including Origins Reconsidered: Beyond Tradition, Vol. 1, Chapter 1 (2025).",
+          },
+          researchGate: {
+            label: "ResearchGate",
+            description: "Research and citations on cyber law and immigration.",
+          },
+          dailyStar: {
+            label: "The Daily Star: Law and Our Rights",
+            description: "Archived articles by Mufassil M M Islam.",
+          },
+        },
       },
       missionTitle: "Mission & Values",
       values: {
@@ -851,11 +1009,12 @@ const translationBundle = {
       followUs: "আমাদের অনুসরণ করুন",
       whatsappMessage: "হ্যালো, আমি ... বিষয়ে আইনি পরামর্শ চাই",
     },
+    home: {
+      principalLink: "সম্পূর্ণ প্রোফাইল পড়ুন",
+      generationsLink: "আমাদের পূর্ণ ঐতিহ্য",
+    },
     about: {
       heroLabel: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস সম্পর্কে",
-      heroTitle: "বাংলাদেশে আইনগত উৎকর্ষতার একটি উত্তরাধিকার",
-      heroSubtitle:
-        "আমরা আমাদের ক্লায়েন্টদের জন্য সৎ, আন্তরিক এবং দ্রুত প্রতিকার বিশ্বাস করি এবং আমাদের ক্লায়েন্টদের সাফল্যের সাথে বৃদ্ধি দেখতে চাই।",
       overviewTitle: "ফার্ম পরিচিতি",
       overviewText:
         "ইসলাম অ্যান্ড অ্যাসোসিয়েটস একটি বিশিষ্ট আইন সংস্থা যা কর্পোরেট, সিভিল, ক্রিমিনাল, ইমিগ্রেশন এবং পরিবার আইনের উচ্চ দক্ষতা সহ ঢাকায় এবং বৈশ্বিক ক্লায়েন্টদের সেবা দেয়। আমাদের অঙ্গীকার স্বচ্ছ, নৈতিক ও দ্রুত আইনি সমাধান প্রদান করা।",
@@ -870,44 +1029,199 @@ const translationBundle = {
         neilWeinrib: "নিল ওয়েনরিব পিসি, যুক্তরাষ্ট্র",
         ashleyBean: "অ্যাশলি বিন অ্যান্ড কোং সলিসিটরস, ইংল্যান্ড",
       },
-      timelineTitle: "প্রতিষ্ঠার সময়রেখা",
-      timeline: {
-        greatGrandfather: {
-          year: "১৯৩০–৪০-এর দশক",
-          title: "অ্যাডভোকেট মুমতাজ উদ্দিন আহমেদ",
-          description: "প্রপিতামহ পরিবারের আইনি ভিত্তি স্থাপন করেন।",
-        },
-        grandfather: {
-          year: "১৯৫০–৬০-এর দশক",
-          title: "অ্যাডভোকেট কে এম সাদেকুর রহমান",
-          description: "পিতামহ ফার্মের দেওয়ানি ও কর্পোরেট অনুশীলন সম্প্রসারণ করেন।",
-        },
-        father: {
-          year: "১৯৭০–৮০-এর দশক",
-          title: "অ্যাডভোকেট নজরুল ইসলাম",
-          description: "পিতা আদালতে ফার্মের উৎকর্ষতা প্রতিষ্ঠা করেন।",
-        },
-        founding: {
-          year: "১৯৯৭",
-          title: "মুফাস্সিল এমএম ইসলাম ইসলাম অ্যান্ড অ্যাসোসিয়েটস প্রতিষ্ঠা করেন",
-          description: "আন্তর্জাতিক পরিসরসহ ঢাকায় একটি আধুনিক আইন ফার্ম প্রতিষ্ঠিত হয়।",
-        },
-        global: {
-          year: "২০০০-এর দশক–বর্তমান",
-          title: "বৈশ্বিক সম্প্রসারণ",
-          description: "হার্ভার্ডে প্রশিক্ষণ ও আন্তর্জাতিক সিন্ডিকেট অংশীদারিত্ব।",
+      principal: {
+        name: "ড. মুফাস্সিল এম এম ইসলাম",
+        qualifications: "এলএল.বি (অনার্স) · এলএল.এম · পিএইচডি (আইন) · ফার্মের প্রধান",
+        status: "অ্যাডভোকেট, বাংলাদেশ বার কাউন্সিল · বর্তমানে প্র্যাকটিসরত",
+        headline: "সাইবার আইন ও গুপ্তচরবৃত্তি মামলায় বিশ্বের শীর্ষস্থানীয় বিশেষজ্ঞ",
+        specialty: "সোশ্যাল মিডিয়া, সাইবার, গোয়েন্দা সংস্থা, সন্ত্রাসবিরোধী, অভিবাসন ও কর্পোরেট আইন বিশেষজ্ঞ।",
+        bio:
+          "১৯৬৬ সালের ১০ অক্টোবর ঢাকায় জন্মগ্রহণকারী ড. মুফাস্সিল ইসলাম অ্যাডভোকেট অধ্যাপক মুহাম্মদ নজরুল ইসলামের পুত্র এবং হাই স্পিড গ্রুপের প্রতিষ্ঠাতা অ্যাডভোকেট কে এম সাদেকুর রহমানের নাতি। বিচারিক ও আপিল পর্যায়ে তাঁর ২৭ বছরেরও বেশি অভিজ্ঞতা রয়েছে এবং তিনি ৫০০টিরও বেশি মামলা পরিচালনা করেছেন।\n\nবাংলাদেশ বার কাউন্সিলের অ্যাডভোকেট হিসেবে তিনি হার্ভার্ড বার্কম্যান ক্লেইন সেন্টার ফর ইন্টারনেট অ্যান্ড সোসাইটি এবং লন্ডনের বিপিপি ল স্কুলে সাইবার আইনের প্রশিক্ষণ নিয়েছেন। যুক্তরাজ্য, আয়ারল্যান্ড, যুক্তরাষ্ট্র, অস্ট্রেলিয়া ও বাংলাদেশে তাঁর বিস্তৃত প্র্যাকটিস রয়েছে।\n\nফেসবুকের বিরুদ্ধে বেলফাস্ট হাইকোর্টের মামলাসহ সামাজিক যোগাযোগমাধ্যম সংক্রান্ত যুগান্তকারী মামলার জন্য তিনি আন্তর্জাতিকভাবে উদ্ধৃত; দ্য গার্ডিয়ান উইকলি, বিবিসি ও ডেইলি মেইল এসব মামলার খবর প্রকাশ করেছে। মত প্রকাশের স্বাধীনতা রক্ষার কারণে তিনি আইএসআইএস-সংশ্লিষ্ট হত্যার হুমকির সম্মুখীন হয়েছেন। তিনি নজরদারি, ডেটা সুরক্ষা, গোপনীয়তা, অনলাইন হয়রানি ও রাষ্ট্রীয় গোপনীয়তা বিষয়ে পরামর্শ দেন।",
+        bookCta: "পরামর্শের সময় নিন",
+        whatsappCta: "হোয়াটসঅ্যাপে পরামর্শ",
+        stats: {
+          years: { value: "২৭+", label: "বছরের প্র্যাকটিস" },
+          cases: { value: "৫০০+", label: "পরিচালিত মামলা" },
+          countries: { value: "৮০+", label: "দেশ ভ্রমণ" },
+          generations: { value: "৪", label: "প্রজন্ম ধরে আইন পেশায়" },
         },
       },
-      principalTitle: "প্রধান আইনজীবীর প্রোফাইল",
-      principalName: "মুফাস্সিল এমএম ইসলাম — এলএল.বি (অনার্স) ও এলএল.এম, ঢাকা বিশ্ববিদ্যালয়",
-      principalText:
-        "মামলা পরিচালনা ও আন্তর্জাতিক কমপ্লায়েন্সে কয়েক দশকের অভিজ্ঞতাসম্পন্ন প্রধান আইনজীবী। জটিল আইনি বিষয়ে স্পষ্ট দিকনির্দেশনার জন্য দেশি ও বিদেশি ক্লায়েন্টদের আস্থাভাজন।",
-      credentials: {
-        harvard: "হার্ভার্ড বিশ্ববিদ্যালয় (ইন্টারনেট আইন)",
-        centralLaw: "সেন্ট্রাল ল ট্রেনিং ইংল্যান্ড",
-        kensington: "কেনসিংটন বিশ্ববিদ্যালয় যুক্তরাষ্ট্র",
-        neilWeinrib: "নিল ওয়েনরিব পিসি যুক্তরাষ্ট্র",
-        ashleyBean: "অ্যাশলি বিন অ্যান্ড কোং সলিসিটরস ইংল্যান্ড",
+      highlights: {
+        title: "এক নজরে যোগ্যতা",
+        academic: { title: "ঢাকা বিশ্ববিদ্যালয়", text: "এলএল.বি (অনার্স) পরীক্ষায় ৮ম এবং এলএল.এম পরীক্ষায় ৫ম স্থান।" },
+        phd: {
+          title: "পিএইচডি (আইন)",
+          text: "সুইস স্কুল অফ বিজনেস অ্যান্ড রিসার্চ (SSBR); প্রাথমিক গবেষণা ট্রিনিটি কলেজ ডাবলিন, ডাবলিন বিশ্ববিদ্যালয় থেকে।",
+        },
+        training: {
+          title: "যুক্তরাজ্য ও যুক্তরাষ্ট্রে আইনি প্রশিক্ষণ",
+          text: "QLTT; বিপিপি ল স্কুল, লন্ডন; সেন্ট্রাল ল ট্রেনিং; হার্ভার্ড বার্কম্যান সেন্টার (সাইবার আইন)।",
+        },
+        practice: {
+          title: "বৈশ্বিক প্র্যাকটিস",
+          text: "বেলফাস্ট, লন্ডন, এসেক্স, নিউ ইয়র্ক, আটলান্টা, ফেয়ারফ্যাক্স (ভার্জিনিয়া) ও সিডনি।",
+        },
+        specialisms: {
+          title: "বিশেষজ্ঞতা",
+          text: "সাইবার আইন, গুপ্তচরবৃত্তি, সোশ্যাল মিডিয়া, গোয়েন্দা সংস্থা, সন্ত্রাসবিরোধী, অভিবাসন ও কর্পোরেট আইন।",
+        },
+        languages: {
+          title: "ভাষা",
+          text: "ইংরেজি, বাংলা, সিলেটি, হিন্দি ও উর্দু; সেই সঙ্গে কিছুটা আরবি ও স্প্যানিশ।",
+        },
+      },
+      generations: {
+        label: "আমাদের ঐতিহ্য",
+        title: "আইনের চার প্রজন্ম",
+        subtitle: "আইনজীবী, শিল্পপতি ও পণ্ডিতদের একটি পরিবার — ব্রিটিশ ভারত থেকে আজকের বৈশ্বিক প্র্যাকটিস পর্যন্ত।",
+        genShort: "প্রজন্ম",
+        colGeneration: "প্রজন্ম",
+        colPhoto: "ছবি",
+        colName: "নাম ও সম্পর্ক",
+        colAchievements: "অর্জন",
+        items: {
+          gen1: {
+            era: "ব্রিটিশ ভারত / প্রাথমিক পাকিস্তান আমল",
+            name: "অ্যাডভোকেট মুমতাজ উদ্দিন আহমেদ",
+            relation: "প্রপিতামহ",
+            achievements:
+              "ঢাকা বার অ্যাসোসিয়েশনের প্রতিষ্ঠাতা সদস্য\nনারায়ণগঞ্জের আড়াইহাজারের অভিজাত জমিদার পরিবারের সন্তান\nঢাকা অঞ্চলে আইনি অবকাঠামো গড়ার পথিকৃৎ\nপরিবারের আইনি ঐতিহ্যের ভিত্তি স্থাপন করেন",
+          },
+          gen2: {
+            era: "পাকিস্তান আমল",
+            name: "অ্যাডভোকেট কে এম সাদেকুর রহমান",
+            relation: "মাতামহ (নানা)",
+            achievements:
+              "বিশিষ্ট আইনজীবী\nহাই স্পিড গ্রুপের প্রতিষ্ঠাতা — তৎকালীন পূর্ব পাকিস্তানের (বর্তমান বাংলাদেশ) বৃহত্তম শিপিং কনগ্লোমারেট\nশিল্পপতি ও আইনজগতের উজ্জ্বল ব্যক্তিত্ব",
+          },
+          gen3: {
+            era: "বাংলাদেশ, ১৯৭১ – বর্তমান",
+            name: "অ্যাডভোকেট অধ্যাপক মুহাম্মদ নজরুল ইসলাম",
+            relation: "পিতা",
+            note: "সুফি সাধক মুহাম্মদ সুলাইমানের পুত্র। পারিবারিক সম্পর্ক: প্রধান বিচারপতি এ কে এম নুরুল ইসলাম, সম্পর্কে ড. মুফাস্সিল ইসলামের দাদা।",
+            achievements:
+              "ঢাকা বিশ্ববিদ্যালয়ের এলএল.বি পরীক্ষায় প্রথম স্থান\nসেন্ট্রাল ল কলেজ, ঢাকার আইনের শিক্ষক\nReflections on the Law of Evidence (কামরুল বুক হাউস) গ্রন্থের লেখক — বাংলাদেশে সাক্ষ্য আইনের সবচেয়ে প্রসিদ্ধ বই\nআইন পরামর্শক, কোডিনা পার্টনার্স ইন্টারন্যাশনাল ল অফিসেস, যুক্তরাষ্ট্র",
+          },
+          gen4: {
+            era: "বৈশ্বিক · বর্তমান",
+            name: "ড. মুফাস্সিল এম এম ইসলাম",
+            relation: "ফার্মের প্রধান",
+            achievements:
+              "অ্যাডভোকেট, বাংলাদেশ বার কাউন্সিল\nঢাকা বিশ্ববিদ্যালয়ে এলএল.বি (অনার্স) পরীক্ষায় ৮ম এবং এলএল.এম পরীক্ষায় ৫ম স্থান\nপিএইচডি, সুইস স্কুল অফ বিজনেস অ্যান্ড রিসার্চ (SSBR); প্রাথমিক গবেষণা ট্রিনিটি কলেজ ডাবলিন, ডাবলিন বিশ্ববিদ্যালয় থেকে\nQLTT; বিপিপি ল স্কুল, লন্ডন; সেন্ট্রাল ল ট্রেনিং; হার্ভার্ড বার্কম্যান সেন্টার (সাইবার আইন)\n১৯৯৭ সালে ইসলাম অ্যান্ড অ্যাসোসিয়েটস প্রতিষ্ঠা করেন",
+          },
+        },
+      },
+      career: {
+        title: "কর্মজীবন ও কৃতিত্ব",
+        founder: {
+          title: "প্রতিষ্ঠাতা ও সম্পাদক",
+          text: "ঢাকা বিশ্ববিদ্যালয় মুট কোর্ট সোসাইটির প্রতিষ্ঠাতা এবং বাংলাদেশের প্রথম আইন সাময়িকী 'আইন পরিক্রমা'-র প্রতিষ্ঠাতা নির্বাহী সম্পাদক।",
+        },
+        international: {
+          title: "আন্তর্জাতিক কর্মজীবন",
+          text: "নিল ওয়েনরিব পিসি (নিউ ইয়র্ক), ডোনাল্ড ট্রাভিস সল্টার (আটলান্টা), কারু অ্যান্ড কোং (লন্ডন), ইকুইটি ব্যারিস্টারস চেম্বারস (লন্ডন), শ্রীনিবাসন (লন্ডন), অ্যাশলি বিন (এসেক্স), রহমান অ্যান্ড কোং (লন্ডন; লিগ্যাল এইড ফ্র্যাঞ্চাইজি অর্জন), সুডস (লন্ডন; সুপারভাইজার), এসআরআইএস পিসি (ফেয়ারফ্যাক্স, ভার্জিনিয়া), কাজী অ্যান্ড অ্যাসোসিয়েটস (সিডনি), কেআরডব্লিউ ল (বেলফাস্ট; ইন্টার্ন) এবং ল অফিসেস অফ রন কাতিরেই (নিউ ইয়র্ক)।",
+        },
+        leadership: {
+          title: "নেতৃত্ব",
+          text: "চেয়ারম্যান, সলিড শিল্ড ফাউন্ডেশন, নিউ ইয়র্ক; চেয়ারম্যান, ফর ব্রিটেন, নর্দার্ন আয়ারল্যান্ড।",
+        },
+        litigation: {
+          title: "যুগান্তকারী মামলা",
+          text: "আন্তঃসীমান্ত অনলাইন ক্ষতি নিয়ে ফেসবুকের বিরুদ্ধে বেলফাস্ট হাইকোর্টে মামলা; দ্য গার্ডিয়ান উইকলি, বিবিসি ও ডেইলি মেইলে প্রকাশিত।",
+        },
+        journalism: {
+          title: "আইন সাংবাদিকতা",
+          text: "দ্য ডেইলি স্টারের 'ল অ্যান্ড আওয়ার রাইটস' পাতায় লেখালেখি; বাংলাদেশে আইন সাংবাদিকতার পথিকৃৎ।",
+        },
+        author: {
+          title: "লেখক",
+          text: "Origin of Islam Reconsidered: Beyond Tradition, Vol. I; Codex of a Murtad; ইসলামে ফেরা; প্রকৃত ইসলামের খোঁজে।",
+        },
+      },
+      foreign: {
+        label: "বিদেশি ক্লায়েন্টদের জন্য — দ্রুত ও নিয়মসম্মত বাজারে প্রবেশ",
+        title: "বাংলাদেশ বিনিয়োগ গেটওয়ে",
+        text: "**বিডা / বেজা / বেপজা / বিওআই:** [bidaquickserv.org]-এর ওয়ান স্টপ সার্ভিসের (ওএসএস) মাধ্যমে কোম্পানি নিবন্ধন, ট্রেড লাইসেন্স, আইআরসি/ইআরসি, কারখানা স্থাপন ও পরিবেশগত ছাড়পত্র।",
+        noteTitle: "ফি ও সময়সীমা:",
+        noteText: "ওয়ার্ক পারমিট ফি ৫,০০০ টাকা; কাগজপত্র সঠিক থাকলে ১৫ দিনের মধ্যে অনুমোদন। সম্পূর্ণ ডিজিটাল ওএসএস — সশরীরে কিছু জমা দিতে হয় না।",
+        rmg: { title: "তৈরি পোশাক খাত", text: "দ্বিতীয় বৃহত্তম রপ্তানিকারক দেশে পরামর্শ" },
+        workPermit: { title: "ওয়ার্ক পারমিট", text: "১ অক্টোবর ২০২৫ থেকে ডিজিটাল" },
+        ratio: { title: "অনুপাত", text: "১:২০ স্থানীয় / ১:৫ বিদেশি" },
+      },
+      diaspora: {
+        label: "বিশ্বজুড়ে প্রবাসী বাংলাদেশিদের জন্য",
+        title: "বহু-বিচারব্যবস্থার বৈবাহিক আইন",
+        text: "যুক্তরাজ্য, যুক্তরাষ্ট্র, কানাডা ও অস্ট্রেলিয়ায় বসবাসরত প্রবাসী বাংলাদেশিদের জন্য **আন্তঃসীমান্ত বিবাহবিচ্ছেদ, সন্তানের হেফাজত, ভরণপোষণ ও আন্তর্জাতিক শিশু অপহরণ** সংক্রান্ত আইনি সহায়তা।",
+        note: "গোপনীয়, সাংস্কৃতিকভাবে সংবেদনশীল ও প্রধান আইনজীবীর সরাসরি তত্ত্বাবধানে — কমন ল এবং বাংলাদেশের মুসলিম পারিবারিক আইন অধ্যাদেশ উভয় বিষয়ে দক্ষতাসহ।",
+        items: {
+          hague: "শিশু অপহরণ সংক্রান্ত হেগ কনভেনশন — জরুরি প্রত্যাবর্তন ও আত্মপক্ষ সমর্থন",
+          enforcement: "বাংলাদেশে বিদেশি বিবাহবিচ্ছেদের ডিক্রি কার্যকরকরণ এবং বিপরীতক্রমে",
+          custody: "আন্তঃসীমান্ত হেফাজত — যুক্তরাজ্যের চিলড্রেন অ্যাক্ট, যুক্তরাষ্ট্রের UCCJEA, কানাডার ডিভোর্স অ্যাক্ট",
+          protection: "জোরপূর্বক বিবাহ থেকে সুরক্ষা, FMPO ও নন-মলেস্টেশন আদেশ",
+        },
+      },
+      cyber: {
+        label: "সাইবার আইন, সোশ্যাল মিডিয়া ও গুপ্তচরবৃত্তি",
+        title: "যেখানে ডিজিটাল অধিকার জাতীয় নিরাপত্তার সাথে মিলিত হয়",
+        text: "আমরা সাংবাদিক, অ্যাক্টিভিস্ট, নির্বাহী এবং রাষ্ট্রকে প্ল্যাটফর্মের দায়, ডক্সিং, ডিপফেক মানহানি, ডেটা লঙ্ঘন ও গুপ্তচরবৃত্তির অভিযোগ সংক্রান্ত উচ্চ-ঝুঁকিপূর্ণ সাইবার বিরোধে প্রতিনিধিত্ব করি।",
+        facebook: {
+          title: "ফেসবুক মামলা",
+          text: "আন্তঃসীমান্ত প্ল্যাটফর্ম দায় নিয়ে বেলফাস্ট হাইকোর্টে মামলা; দ্য গার্ডিয়ান উইকলি ও বিবিসিতে প্রকাশিত।",
+        },
+        espionage: {
+          title: "গুপ্তচরবৃত্তি ও গোয়েন্দা সংস্থা",
+          text: "রাষ্ট্রীয় গোপনীয়তা, অফিসিয়াল সিক্রেটস, নজরদারি ও হুইসেলব্লোয়ারের পক্ষে আইনি লড়াই।",
+        },
+        socialMedia: {
+          title: "সোশ্যাল মিডিয়া আইন",
+          text: "মেটা, এক্স ও টিকটকে হয়রানি, মানহানি, ছদ্মবেশ ধারণ ও কনটেন্ট অপসারণের আদেশ।",
+        },
+        antiTerrorism: {
+          title: "সন্ত্রাসবিরোধী পরামর্শ",
+          text: "উগ্রবাদের ঝুঁকি, অনলাইন উগ্রবাদীকরণের প্রমাণ ও সুরক্ষামূলক ব্যবস্থা।",
+        },
+      },
+      media: {
+        title: "আন্তর্জাতিক গণমাধ্যমে",
+        text: "ড. ইসলামের মামলা ও মতামত বিবিসি, দ্য গার্ডিয়ান, ডেইলি মেইল, বেলফাস্ট টেলিগ্রাফ, আরটি ও ইসলাম চ্যানেলে প্রকাশিত হয়েছে।",
+        items: {
+          bbcAsylum: { outlet: "বিবিসি নিউজ", date: "২৩ আগস্ট ২০০৪", title: "আশ্রয় ও সুরক্ষা" },
+          bbcFalluja: { outlet: "বিবিসি", title: "ফালুজা বিষয়ক প্রতিবেদন ও বিশ্লেষণ" },
+          islamChannel: { outlet: "ইসলাম চ্যানেল", title: "টেলিভিশন অনুষ্ঠানে উপস্থিতি" },
+          rt: { outlet: "আরটি", title: "বিশেষজ্ঞ মতামত" },
+          dailyMail: { outlet: "ডেইলি মেইল", title: "যুক্তরাজ্যের সংবাদমাধ্যমে প্রতিবেদন" },
+          dailyExpress: { outlet: "ডেইলি এক্সপ্রেস", date: "২৩ নভেম্বর ২০১৫", title: "আইএসআইএসের হুমকি" },
+          guardian: { outlet: "গার্ডিয়ান উইকলি", date: "১৫ অক্টোবর ২০২১, পৃষ্ঠা ১৩", title: "ফেসবুকের বিরুদ্ধে মামলা" },
+          belfastTelegraph: { outlet: "বেলফাস্ট টেলিগ্রাফ", title: "নর্দার্ন আয়ারল্যান্ডে প্র্যাকটিস" },
+        },
+      },
+      books: {
+        title: "গ্রন্থ ও গবেষণা",
+        featured: "নির্বাচিত গ্রন্থ",
+        buy: "আমাজনে কিনুন",
+        items: {
+          originOfIslam: {
+            title: "Origin of Islam Reconsidered: Beyond Tradition, Vol. I",
+            subtitle: "লেখকের অন্যান্য বই: Codex of a Murtad, ইসলামে ফেরা ও প্রকৃত ইসলামের খোঁজে",
+          },
+        },
+      },
+      research: {
+        title: "স্কলার প্রোফাইল ও প্রবন্ধ",
+        items: {
+          academia: {
+            label: "Academia.edu",
+            description: "গবেষণাপত্র ও অধ্যায়, যার মধ্যে রয়েছে Origins Reconsidered: Beyond Tradition, খণ্ড ১, অধ্যায় ১ (২০২৫)।",
+          },
+          researchGate: {
+            label: "ResearchGate",
+            description: "সাইবার আইন ও অভিবাসন বিষয়ে গবেষণা ও সাইটেশন।",
+          },
+          dailyStar: {
+            label: "দ্য ডেইলি স্টার: ল অ্যান্ড আওয়ার রাইটস",
+            description: "মুফাস্সিল এম এম ইসলামের আর্কাইভকৃত প্রবন্ধ।",
+          },
+        },
       },
       missionTitle: "মিশন ও মূল্যবোধ",
       values: {

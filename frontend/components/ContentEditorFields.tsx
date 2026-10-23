@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, ImagePlus, Loader2, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
@@ -14,6 +14,7 @@ import {
   isBanglaOutdated,
   textBanglaState,
   type ListItem,
+  type ListItemValue,
   type LocalizedValue,
 } from "../lib/adminContent";
 import { siteConfig } from "../lib/siteConfig";
@@ -108,6 +109,7 @@ export function TextFieldEditor({ field, override, onChange }: {
           </button>
         )}
       </div>
+      {field.hint && <p className="hint">{field.hint}</p>}
       <LocalizedInputs value={value} onChange={(next) => onChange(next)} placeholder={def}
         multiline={field.multiline} maxLength={LONG_TEXT} outdated={banglaState === "outdated"} />
     </div>
@@ -177,8 +179,8 @@ export function ListEditor({ list, items, customized, onChange, onReset }: {
           {list.fields ? (
             list.fields.map((field) => (
               <ListItemFieldEditor key={field.name} field={field}
-                value={(item as Record<string, LocalizedValue | string>)[field.name]}
-                onChange={(value) => update(index, { ...(item as Record<string, LocalizedValue | string>), [field.name]: value })} />
+                value={(item as Record<string, ListItemValue>)[field.name]}
+                onChange={(value) => update(index, { ...(item as Record<string, ListItemValue>), [field.name]: value })} />
             ))
           ) : (
             <LocalizedInputs value={item as LocalizedValue} onChange={(value) => update(index, value)}
@@ -195,33 +197,83 @@ export function ListEditor({ list, items, customized, onChange, onReset }: {
   );
 }
 
+function FieldLabel({ field }: { field: ListItemField }) {
+  return (
+    <>
+      {field.label}
+      {!field.optional && <> <span className="text-error">*</span></>}
+      {field.optional && <span className="font-normal text-on-surface-variant"> (optional)</span>}
+      {field.type === "slug" && <span className="font-normal text-on-surface-variant"> (lowercase, hyphens; used in links, e.g. family-law)</span>}
+    </>
+  );
+}
+
 function ListItemFieldEditor({ field, value, onChange }: {
-  field: ListItemField; value: LocalizedValue | string | undefined; onChange: (value: LocalizedValue | string) => void;
+  field: ListItemField; value: ListItemValue | undefined; onChange: (value: ListItemValue) => void;
 }) {
   if (field.type === "localized") {
     const localized = (value as LocalizedValue | undefined) ?? { en: "", bn: "" };
     return (
       <div className="space-y-1">
-        <p className="label">
-          {field.label} <span className="text-error">*</span>
-        </p>
+        <p className="label"><FieldLabel field={field} /></p>
+        {field.hint && <p className="hint">{field.hint}</p>}
         <LocalizedInputs value={{ en: localized.en ?? "", bn: localized.bn ?? "", bnFor: localized.bnFor }} onChange={onChange}
           multiline={field.multiline} maxLength={field.maxLength} />
       </div>
     );
   }
 
+  if (field.type === "image") {
+    return (
+      <div className="space-y-1.5">
+        <p className="label"><FieldLabel field={field} /></p>
+        <ListImageInput value={typeof value === "string" ? value : ""} onChange={onChange} />
+        {field.hint && <p className="hint">{field.hint}</p>}
+      </div>
+    );
+  }
+
   return (
     <label className="block">
-      <span className="label">
-        {field.label}
-        {field.type === "slug" && <span className="font-normal text-on-surface-variant"> (lowercase, hyphens; used in links, e.g. family-law)</span>}
-      </span>
-      <div className="sm:max-w-xs">
-        <TextInput value={(value as string | undefined) ?? ""} maxLength={field.maxLength}
-          onChange={(next) => onChange(field.type === "slug" ? next.toLowerCase().replace(/\s+/g, "-") : next)} />
+      <span className="label"><FieldLabel field={field} /></span>
+      <div className={field.type === "url" ? "" : "sm:max-w-xs"}>
+        {field.type === "url" ? (
+          <input type="url" value={(value as string | undefined) ?? ""} onChange={(e) => onChange(e.target.value)}
+            placeholder="https://" maxLength={field.maxLength} className={inputBase} />
+        ) : (
+          <TextInput value={(value as string | undefined) ?? ""} maxLength={field.maxLength}
+            onChange={(next) => onChange(field.type === "slug" ? next.toLowerCase().replace(/\s+/g, "-") : next)} />
+        )}
       </div>
+      {field.hint && <span className="hint block">{field.hint}</span>}
     </label>
+  );
+}
+
+// ── Photo inside a list item ───────────────────────────────────────────────────
+function ListImageInput({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const { status, choose, input } = useImageUpload(onChange);
+
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      {value ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={value} alt="" className="h-28 w-22 rounded-lg border border-outline-variant object-cover" />
+      ) : (
+        <div className="panel flex h-28 w-22 items-center justify-center p-2 text-center text-xs text-on-surface-variant">No photo</div>
+      )}
+      {input}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={choose} disabled={status !== null} className="btn btn-secondary btn-sm">
+          <UploadIcon status={status} /> {uploadLabel(status, value ? "Replace photo" : "Upload photo")}
+        </button>
+        {value && (
+          <button type="button" onClick={() => onChange("")} disabled={status !== null} className={smallButton}>
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Remove
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -242,11 +294,25 @@ const PLATFORM_LABELS: Record<SocialLink["platform"], string> = {
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // backend upload limit, checked after compression
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024; // larger originals are fine: they're compressed first
 
-export function ImageFieldEditor({ field, value, onChange }: {
-  field: ImageField; value: string | undefined; onChange: (value: string | undefined) => void;
-}) {
+type UploadStatus = "compressing" | "uploading" | null;
+
+const uploadLabel = (status: UploadStatus, idle: string) =>
+  status === "compressing" ? "Compressing…" : status === "uploading" ? "Uploading…" : idle;
+
+function UploadIcon({ status }: { status: UploadStatus }) {
+  return status ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />;
+}
+
+// Compresses and uploads a chosen image, then reports its URL. Render `input`
+// (a hidden file input) once and call `choose` to open the file picker.
+function useImageUpload(onUploaded: (url: string) => void) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<"compressing" | "uploading" | null>(null);
+  const [status, setStatus] = useState<UploadStatus>(null);
+  // The upload outlives the render that started it; report to the latest callback
+  const onUploadedRef = useRef(onUploaded);
+  useEffect(() => {
+    onUploadedRef.current = onUploaded;
+  });
 
   const upload = async (source: File) => {
     if (!source.type.startsWith("image/")) return toast.error("Please choose an image file");
@@ -262,7 +328,7 @@ export function ImageFieldEditor({ field, value, onChange }: {
       const res = await apiFetch(`${API_BASE_URL}/api/admin/content/upload`, { method: "POST", credentials: "include", body: fd });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.url) throw new Error(body.message || "Upload failed");
-      onChange(body.url);
+      onUploadedRef.current(body.url);
       toast.success(compressed
         ? `Image uploaded (compressed ${formatBytes(originalSize)} → ${formatBytes(file.size)}). Save or publish to apply it.`
         : "Image uploaded. Save or publish to apply it.");
@@ -272,7 +338,20 @@ export function ImageFieldEditor({ field, value, onChange }: {
       setStatus(null);
     }
   };
+
+  const input = (
+    <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+      onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} />
+  );
+  return { status, choose: () => inputRef.current?.click(), input };
+}
+
+export function ImageFieldEditor({ field, value, onChange }: {
+  field: ImageField; value: string | undefined; onChange: (value: string | undefined) => void;
+}) {
+  const { status, choose, input } = useImageUpload(onChange);
   const uploading = status !== null;
+  const frame = field.portrait ? "aspect-3/4 w-full max-w-56" : "aspect-16/6 w-full";
 
   return (
     <div className="space-y-3 border-t border-outline-variant pt-5">
@@ -281,21 +360,20 @@ export function ImageFieldEditor({ field, value, onChange }: {
         {field.hint && <p className="text-sm text-on-surface-variant">{field.hint}</p>}
       </div>
       {value ? (
-        <div className="relative overflow-hidden rounded-lg border border-outline-variant">
+        <div className={`relative overflow-hidden rounded-lg border border-outline-variant ${field.portrait ? "max-w-56" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="aspect-[16/6] w-full object-cover" />
+          <img src={value} alt="" className={`${frame} object-cover`} />
         </div>
       ) : (
-        <div className="panel flex aspect-[16/6] w-full items-center justify-center text-sm text-on-surface-variant">
-          No image — the default background is used
+        <div className={`panel flex ${frame} items-center justify-center p-4 text-center text-sm text-on-surface-variant`}>
+          {field.portrait ? "No photo — the default portrait is used" : "No image — the default background is used"}
         </div>
       )}
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-        onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} />
+      {input}
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="btn btn-secondary btn-sm">
-          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />}
-          {status === "compressing" ? "Compressing…" : status === "uploading" ? "Uploading…" : value ? "Replace image" : "Upload image"}
+        <button type="button" onClick={choose} disabled={uploading} className="btn btn-secondary btn-sm">
+          <UploadIcon status={status} />
+          {uploadLabel(status, value ? "Replace image" : "Upload image")}
         </button>
         {value && (
           <button type="button" onClick={() => onChange(undefined)} disabled={uploading} className={smallButton}>

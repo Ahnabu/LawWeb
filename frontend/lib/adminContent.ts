@@ -97,7 +97,9 @@ export function restoreContentRevision(key: ContentPageKey, version: number): Pr
 
 // bnFor: fingerprint of the English the Bangla was written for (see below)
 export type LocalizedValue = { en: string; bn: string; bnFor?: string }
-export type ListItem = LocalizedValue | Record<string, LocalizedValue | string>
+// Record fields: localized text or a plain string (slug, link, photo)
+export type ListItemValue = LocalizedValue | string
+export type ListItem = LocalizedValue | Record<string, ListItemValue>
 
 export const defaultText = (key: string): LocalizedValue => ({
   en: lookupTranslation('en', key) ?? '',
@@ -131,10 +133,15 @@ const withFingerprint = (value: LocalizedValue): LocalizedValue =>
 export function defaultListItems(list: ListDef): ListItem[] {
   return list.defaults.map((item) => {
     if (!list.fields) return withFingerprint(defaultText(item.labelKey))
-    const out: Record<string, LocalizedValue | string> = {}
+    const out: Record<string, ListItemValue> = {}
     for (const field of list.fields) {
-      out[field.name] =
-        field.type === 'localized' ? withFingerprint(defaultText(item[`${field.name}Key`])) : item[field.name] ?? ''
+      if (field.type !== 'localized') {
+        out[field.name] = item[field.name] ?? ''
+        continue
+      }
+      // Optional text (a note only some items have) may have no default
+      const key = item[`${field.name}Key`]
+      out[field.name] = key ? withFingerprint(defaultText(key)) : { en: '', bn: '' }
     }
     return out
   })
