@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getPublishedBlogSummaries } from '../lib/blogs'
 import { getPublicLawyerIds } from '../lib/lawyers'
+import { getPublicGallery } from '../lib/gallery'
 import { getSiteUrl, languageAlternates, localizePath } from '../lib/locale'
 import { SEO_PAGE_PATHS, SINGLE_LANGUAGE_SEO_PATHS } from '../lib/seo'
 
@@ -16,20 +17,28 @@ export const revalidate = 300
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = getSiteUrl()
   const absolute = (path: string) => `${site}${path === '/' ? '' : path}`
-  const [blogs, lawyerIds] = await Promise.all([getPublishedBlogSummaries(), getPublicLawyerIds()])
+  const [blogs, lawyerIds, galleryImages] = await Promise.all([
+    getPublishedBlogSummaries(),
+    getPublicLawyerIds(),
+    getPublicGallery().catch(() => []),
+  ])
 
   const now = new Date()
+  const galleryImageUrls = galleryImages.map((img) => img.imageUrl)
 
   const bilingual: MetadataRoute.Sitemap = Object.values(SEO_PAGE_PATHS).flatMap((path) => {
     const languages = Object.fromEntries(
       Object.entries(languageAlternates(path)).map(([lang, href]) => [lang, absolute(href)]),
     )
+    const isGallery = path === '/gallery'
+
     return (['en', 'bn'] as const).map((locale) => ({
       url: absolute(localizePath(path, locale)),
       lastModified: now,
-      changeFrequency: path === '/' ? 'daily' : 'weekly',
-      priority: path === '/' ? 1.0 : 0.8,
+      changeFrequency: path === '/' ? ('daily' as const) : ('weekly' as const),
+      priority: path === '/' ? 1.0 : isGallery ? 0.85 : 0.8,
       alternates: { languages },
+      ...(isGallery && galleryImageUrls.length > 0 ? { images: galleryImageUrls } : {}),
     }))
   })
 
@@ -53,6 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: date ? new Date(date) : now,
         changeFrequency: 'monthly' as const,
         priority: 0.7,
+        ...(blog.featuredImage ? { images: [blog.featuredImage] } : {}),
       }
     }),
   ]

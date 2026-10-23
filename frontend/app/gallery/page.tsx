@@ -6,7 +6,6 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Images,
   X,
 } from "lucide-react";
@@ -143,10 +142,6 @@ export default function GalleryPage() {
                       className="absolute inset-0 z-10 hidden sm:flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/45 to-transparent p-5 opacity-0 transition-all duration-300 pointer-events-none group-hover:opacity-100 group-focus-visible:opacity-100"
                     >
                       <div className="transform translate-y-3 transition-transform duration-300 group-hover:translate-y-0">
-                        <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-secondary/90 px-2.5 py-0.5 text-[11px] font-semibold text-on-secondary shadow-md backdrop-blur-md">
-                          <Eye className="h-3 w-3" />
-                          {t("gallery.viewDetails")}
-                        </span>
                         <h3 className="font-display text-base sm:text-lg font-bold text-white drop-shadow-md line-clamp-1">
                           {displayTitle}
                         </h3>
@@ -170,10 +165,6 @@ export default function GalleryPage() {
                       <h3 className="font-display text-sm font-bold text-white line-clamp-1 drop-shadow">
                         {displayTitle}
                       </h3>
-                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-secondary">
-                        <Eye className="h-3 w-3" />
-                        {t("gallery.viewDetails")}
-                      </span>
                     </div>
                   </button>
                 </li>
@@ -309,16 +300,16 @@ function GalleryModal({
           Full height modal with smooth continuous scroll.
           The photo does NOT have a scrollbar and does NOT take a fixed height.
           Readability of paragraphs, headlines and bullet points is 100% natural. */}
-      <div className="flex h-full w-full flex-col bg-surface-container-lowest lg:hidden sm:h-[94vh] sm:max-w-xl sm:rounded-2xl sm:border sm:border-outline-variant/30 sm:shadow-2xl overflow-hidden">
+      <div className="flex h-full w-full flex-col bg-surface text-on-surface lg:hidden sm:h-[94vh] sm:max-w-xl sm:rounded-2xl sm:border sm:border-outline-variant sm:shadow-2xl overflow-hidden">
         {/* Mobile Header Bar */}
-        <div className="flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-low px-4 py-3 shrink-0">
+        <div className="flex items-center justify-between border-b border-outline-variant bg-surface-raised px-4 py-3 shrink-0">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-md bg-secondary/15 px-2 py-0.5 text-xs font-semibold text-secondary">
               <Building2 className="h-3 w-3" />
               {t("gallery.firmTag")}
             </span>
             <span
-              className="inline-flex items-center rounded-full bg-surface-container-high px-2 py-0.5 text-[11px] font-semibold tabular-nums text-on-surface-variant"
+              className="inline-flex items-center rounded-full bg-surface-container-high px-2 py-0.5 text-[11px] font-semibold tabular-nums text-on-surface"
               aria-live="polite"
             >
               {counter}
@@ -329,7 +320,7 @@ function GalleryModal({
             ref={closeRef}
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant/40 bg-surface-container-high text-on-surface-variant hover:text-heading"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-on-surface hover:text-heading"
           >
             <X className="h-4 w-4" aria-hidden="true" />
             <span className="sr-only">{t("gallery.close")}</span>
@@ -338,7 +329,7 @@ function GalleryModal({
 
         {/* Mobile Scrollable Body: photo + description flow smoothly together */}
         <div
-          className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4"
+          className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4 bg-surface text-on-surface"
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0]?.clientX ?? null;
           }}
@@ -395,7 +386,7 @@ function GalleryModal({
 
           {/* Rich Description */}
           {description ? (
-            <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low/80 p-4">
+            <div className="rounded-xl border border-outline-variant bg-surface-raised p-4 text-on-surface shadow-sm">
               <RichText value={description} size="base" tone="strong" />
             </div>
           ) : null}
@@ -427,7 +418,7 @@ function GalleryModal({
       {/* ── DESKTOP VIEW MODAL (lg:flex) ────────────────────────────────────
           Side-by-side layout: Full-bleed photo on left, details on right.
           Photo container adapts cleanly without any scrollbar on the image. */}
-      <div className="hidden lg:flex relative max-h-[90vh] w-full max-w-5xl flex-row overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-2xl">
+      <div className="hidden lg:flex relative max-h-[90vh] w-full max-w-5xl flex-row overflow-hidden rounded-2xl border border-outline-variant bg-surface text-on-surface shadow-2xl">
         {/* Left Section: Photo (NO scrollbar, NO fixed height) */}
         <div className="relative flex flex-1 items-center justify-center bg-black/95 p-6 overflow-hidden lg:w-3/5">
           <Image
@@ -465,11 +456,11 @@ function GalleryModal({
         </div>
 
         {/* Right Section: Details Panel */}
-        <div className="flex w-full flex-col border-l border-outline-variant/30 bg-surface-container-low min-h-0 lg:w-[380px] xl:w-[420px]">
+        <div className="flex w-full flex-col border-l border-outline-variant bg-surface text-on-surface min-h-0 lg:w-[380px] xl:w-[420px]">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-lowest/80 px-5 py-3.5">
+          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-raised px-5 py-3.5">
             <span
-              className="inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-1 text-xs font-semibold tabular-nums text-on-surface-variant"
+              className="inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-1 text-xs font-semibold tabular-nums text-on-surface"
               aria-live="polite"
             >
               {counter}
@@ -477,7 +468,7 @@ function GalleryModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/40 bg-surface-container-lowest text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-heading focus-visible:outline-2 focus-visible:outline-secondary"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-on-surface transition-colors hover:bg-surface-container hover:text-heading focus-visible:outline-2 focus-visible:outline-secondary"
             >
               <X className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">{t("gallery.close")}</span>
@@ -485,7 +476,7 @@ function GalleryModal({
           </div>
 
           {/* Scrollable Information Body */}
-          <div className="flex-1 space-y-4 overflow-y-auto p-6 min-h-0 overscroll-contain">
+          <div className="flex-1 space-y-4 overflow-y-auto p-6 min-h-0 overscroll-contain text-on-surface">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary/15 px-2.5 py-1 text-xs font-semibold text-secondary">
                 <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -498,7 +489,7 @@ function GalleryModal({
             </h2>
 
             {description ? (
-              <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest/70 p-4">
+              <div className="rounded-xl border border-outline-variant bg-surface-raised p-4 text-on-surface shadow-sm">
                 <RichText value={description} size="base" tone="strong" />
               </div>
             ) : null}
@@ -506,7 +497,7 @@ function GalleryModal({
 
           {/* Desktop Footer Controls */}
           {total > 1 && (
-            <div className="flex items-center justify-between gap-3 border-t border-outline-variant/30 bg-surface-container-lowest/80 p-4">
+            <div className="flex items-center justify-between gap-3 border-t border-outline-variant bg-surface-raised p-4">
               <button
                 type="button"
                 onClick={() => go(-1)}
