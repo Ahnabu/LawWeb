@@ -22,6 +22,7 @@ import {
   restoreLawyerAdmin,
   toggleLawyerVerification,
   getLawyerDetailsAdmin,
+  uploadLawyerPhotoAdmin,
 } from '../controllers/adminLawyerController';
 import {
   getAllClientsAdmin,
@@ -87,7 +88,7 @@ import {
   reorderGallerySchema,
 } from '../middleware/validation';
 import multer from 'multer';
-import { uploadContentImage, uploadGalleryImage } from '../config/multer.config';
+import { uploadContentImage, uploadGalleryImage, uploadProfileImage } from '../config/multer.config';
 import { recordAudit } from '../utils/audit';
 
 const router = express.Router();
@@ -123,6 +124,23 @@ router.get('/lawyers/:lawyerId/deletion-impact', lawyersView, getLawyerDeletionI
 router.delete('/lawyers/:lawyerId', lawyersManage, deleteLawyerAdmin);
 router.patch('/lawyers/:lawyerId/restore', lawyersManage, restoreLawyerAdmin);
 router.patch('/lawyers/:lawyerId/toggle-verification', lawyersManage, toggleLawyerVerification);
+// Multer/Cloudinary errors become a 400 the form can show, as for the gallery
+const lawyerPhotoUpload: express.RequestHandler = (req, res, next) => {
+  uploadProfileImage.single('image')(req, res, (err: unknown) => {
+    if (!err) return next();
+    const httpCode = (err as { http_code?: number })?.http_code;
+    if (err instanceof multer.MulterError) {
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'The photo must be 5 MB or smaller' : err.message;
+      return res.status(400).json({ status: 400, message });
+    }
+    if (err instanceof Error && (err.message === 'Only image files are allowed' || httpCode === 400)) {
+      return res.status(400).json({ status: 400, message: err.message });
+    }
+    console.error('Lawyer photo upload error:', err);
+    res.status(502).json({ status: 502, message: 'The photo could not be uploaded. Please try again.' });
+  });
+};
+router.post('/lawyers/:lawyerId/photo', lawyersManage, lawyerPhotoUpload, uploadLawyerPhotoAdmin);
 
 // Clients/Users. Lawyer and staff targets need more than clients.*; see the handlers.
 const clientsView = requirePermission('clients.view');

@@ -9,6 +9,9 @@ import StaffAssignment from '../models/StaffAssignment';
 import Consultation from '../models/Consultation';
 import LawyerProfile from '../models/LawyerProfile';
 import LawyerAvailability from '../models/LawyerAvailability';
+import { cloudinary } from '../config/multer.config';
+import { readLawyerProfile, writeProfileImage } from './lawyerProfileController';
+import { consultationFeeOf, consultationFeeSet, parseConsultationFee } from '../utils/consultationFee';
 import { sendAccountSetupLink, ACCOUNT_SETUP_EXPIRY_HOURS } from './authController';
 import { revokeAllSessions } from '../utils/session';
 import { recordAudit } from '../utils/audit';
@@ -47,11 +50,11 @@ const splitName = (name: string) => {
   return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') };
 };
 
-// Attaches the public-profile bits that live on LawyerProfile (designation, photo)
+// Attaches the public-profile bits that live on LawyerProfile (designation, photo, fee)
 const withProfileData = async <T extends { _id: mongoose.Types.ObjectId; profileImageUrl?: string }>(lawyers: T[]) => {
   if (!lawyers.length) return [];
   const profiles = await LawyerProfile.find({ userId: { $in: lawyers.map((l) => l._id) } })
-    .select('userId designation profileImageUrl')
+    .select('userId designation profileImageUrl consultationFee hourlyRate')
     .lean();
   const byUser = new Map(profiles.map((p) => [String(p.userId), p]));
   return lawyers.map((lawyer) => {
@@ -60,6 +63,7 @@ const withProfileData = async <T extends { _id: mongoose.Types.ObjectId; profile
       ...lawyer,
       profileImageUrl: profile?.profileImageUrl || lawyer.profileImageUrl,
       designation: { en: profile?.designation?.en ?? '', bn: profile?.designation?.bn ?? '' },
+      consultationFee: consultationFeeOf(profile),
     };
   });
 };
@@ -274,6 +278,14 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    let feeSet: Record<string, unknown> = {};
+    if (body.consultationFee !== undefined) {
+      const fee = parseConsultationFee(body.consultationFee);
+      if (!fee.ok) return res.status(400).json({ status: 400, message: fee.message });
+      feeSet = consultationFeeSet(fee.value);
+    }
+    const feeChanged = Object.keys(feeSet).length > 0;
+
     const nameChanged = lawyer.isModified('name');
     const emailChanged = lawyer.isModified('email');
     const barIdChanged = lawyer.isModified('barId');
@@ -287,21 +299,18 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
     if (barIdChanged) set.barNumber = lawyer.barId;
     if (designation?.en !== undefined) set['designation.en'] = designation.en;
     if (designation?.bn !== undefined) set['designation.bn'] = designation.bn;
+    Object.assign(set, feeSet);
 
     if (Object.keys(set).length) {
-      const result = await LawyerProfile.updateOne({ userId: lawyer._id }, { $set: set });
-      // A designation edit creates the profile if the lawyer never opened theirs
-      if (result.matchedCount === 0 && designation && Object.keys(designation).length) {
-        await LawyerProfile.create({
-          userId: lawyer._id,
-          ...splitName(lawyer.name),
-          barNumber: lawyer.barId || '',
-          joinedAt: lawyer.createdAt || new Date(),
-          designation: { en: designation.en ?? '', bn: designation.bn ?? '' },
-        }).catch((error) => {
-          if (!isDuplicateKeyError(error)) throw error;
-        });
-      }
+      const createsProfile = Boolean((designation && Object.keys(designation).length) || feeChanged);
+      // A designation or fee edit creates the profile if the lawyer never opened theirs
+      if (createsProfile) await readLawyerProfile(lawyer._id);
+      // Saving a fee retires the legacy hourlyRate it would otherwise fall back to
+      await LawyerProfile.updateOne(
+        { userId: lawyer._id },
+        { $set: set, ...(feeChanged && { $unset: { hourlyRate: '' } }) },
+        { runValidators: true }
+      );
     }
 
     // A contact email that mirrored the login email follows it
@@ -319,7 +328,7 @@ export const updateLawyerAdmin = async (req: AuthRequest, res: Response) => {
       targetId: lawyer._id,
       targetLabel: lawyer.name,
       summary: `Updated lawyer ${lawyer.name}`,
-      metadata: { fields: [...changedAccountFields, ...(designation ? ['designation'] : [])] },
+      metadata: { fields: [...changedAccountFields, ...(designation ? ['designation'] : []), ...(feeChanged ? ['consultationFee'] : [])] },
     });
 
     res.json({
@@ -792,6 +801,44 @@ export const toggleLawyerVerification = async (req: AuthRequest, res: Response) 
     });
   } catch (error) {
     console.error('Toggle lawyer verification error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
+
+// POST /api/admin/lawyers/:lawyerId/photo  (multipart, field "image")
+// Multer has already stored the file in Cloudinary, so a refused request
+// deletes it again rather than leaving an orphan.
+export const uploadLawyerPhotoAdmin = async (req: AuthRequest, res: Response) => {
+  const file = req.file as (Express.Multer.File & { path: string; filename: string }) | undefined;
+  const discardUpload = () => {
+    if (file?.filename) void cloudinary.uploader.destroy(file.filename).catch(() => {/* ignore */});
+  };
+  try {
+    if (!file) return res.status(400).json({ status: 400, message: 'No image file provided' });
+
+    const { lawyerId } = req.params;
+    const lawyer = mongoose.isValidObjectId(lawyerId) ? await User.findById(lawyerId).select('role name deletedAt') : null;
+    if (!lawyer || lawyer.role !== 'lawyer') {
+      discardUpload();
+      return res.status(404).json({ status: 404, message: 'Lawyer not found' });
+    }
+    if (lawyer.deletedAt) {
+      discardUpload();
+      return res.status(409).json({ status: 409, message: 'Restore this lawyer before changing their photo.' });
+    }
+
+    // Seeds a new lawyer's profile (name, Bar ID) before the photo is set on it
+    await readLawyerProfile(lawyer._id);
+    await writeProfileImage(req, lawyer, file);
+
+    res.json({
+      status: 200,
+      message: `${lawyer.name}'s photo was updated`,
+      data: await loadLawyerForAdmin(lawyer._id),
+    });
+  } catch (error) {
+    discardUpload();
+    console.error('Admin upload lawyer photo error:', error);
     res.status(500).json({ status: 500, message: 'Internal server error' });
   }
 };

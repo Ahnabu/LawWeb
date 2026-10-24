@@ -4,6 +4,7 @@ import LawyerAvailability from '../models/LawyerAvailability';
 import LawyerProfile from '../models/LawyerProfile';
 import Consultation from '../models/Consultation';
 import { recordAudit } from '../utils/audit';
+import { consultationFeeOf } from '../utils/consultationFee';
 import mongoose from 'mongoose';
 import {
   ACTIVE_STATUSES,
@@ -46,7 +47,8 @@ export const getAllLawyers = async (req: Request, res: Response) => {
 };
 
 // Public endpoint returning only card data (name, specialization, barId, plus
-// photo and designation from LawyerProfile) for the home and lawyers pages
+// photo, designation and consultation fee from LawyerProfile) for the home and
+// lawyers pages and the booking form
 export const getPublicLawyers = async (req: Request, res: Response) => {
   try {
     const users = await User.find(PUBLIC_LAWYER_FILTER)
@@ -55,7 +57,7 @@ export const getPublicLawyers = async (req: Request, res: Response) => {
       .lean();
 
     const profiles = await LawyerProfile.find({ userId: { $in: users.map((u) => u._id) } })
-      .select('userId designation profileImageUrl')
+      .select('userId designation profileImageUrl consultationFee hourlyRate')
       .lean();
     const profileByUser = new Map(profiles.map((p) => [String(p.userId), p]));
 
@@ -65,6 +67,7 @@ export const getPublicLawyers = async (req: Request, res: Response) => {
         ...user,
         profileImageUrl: profile?.profileImageUrl || user.profileImageUrl || undefined,
         designation: { en: profile?.designation?.en ?? '', bn: profile?.designation?.bn ?? '' },
+        consultationFee: consultationFeeOf(profile),
       };
     });
 
@@ -103,10 +106,16 @@ export const getLawyerProfile = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'User is not a lawyer' });
     }
 
+    let publicProfile = null;
+    if (profile) {
+      const { hourlyRate: _hourlyRate, ...rest } = profile;
+      publicProfile = { ...rest, consultationFee: consultationFeeOf(profile) };
+    }
+
     res.json({
       message: 'Lawyer profile retrieved successfully',
       lawyer,
-      profile: profile || null,
+      profile: publicProfile,
     });
   } catch (error) {
     console.error('Get lawyer profile error:', error);

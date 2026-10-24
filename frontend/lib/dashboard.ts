@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './api'
 import { apiFetch } from './http'
+import type { ConsultationFee } from './fees'
 
 // ─── Consultation types ───────────────────────────────────────────────────────
 
@@ -199,6 +200,7 @@ export interface AdminLawyer extends AdminUser {
   /** Removal clean-up (archiving cases, cancelling appointments) has not finished yet */
   deletionPending?: boolean
   designation: { en: string; bn: string }
+  consultationFee?: ConsultationFee
   updatedAt?: string
 }
 
@@ -223,6 +225,7 @@ export interface LawyerInput {
 
 export interface LawyerUpdateInput extends Partial<LawyerInput> {
   designation?: { en?: string; bn?: string }
+  consultationFee?: Partial<ConsultationFee>
 }
 
 export interface LawyerDeletionImpact {
@@ -262,7 +265,8 @@ async function adminRequest<T>(path: string, init: RequestInit = {}, fallback = 
     credentials: 'include',
     cache: 'no-store',
     ...init,
-    headers: init.body ? { 'Content-Type': 'application/json', ...init.headers } : init.headers,
+    // FormData sets its own multipart Content-Type
+    headers: init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json', ...init.headers } : init.headers,
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body?.message || fallback)
@@ -303,6 +307,17 @@ export function updateAdminLawyer(lawyerId: string, input: LawyerUpdateInput) {
     `/api/admin/lawyers/${lawyerId}`,
     { method: 'PATCH', body: JSON.stringify(input) },
     'Failed to update lawyer'
+  )
+}
+
+/** Sets or replaces the lawyer's public profile photo */
+export function uploadAdminLawyerPhoto(lawyerId: string, file: File) {
+  const form = new FormData()
+  form.append('image', file)
+  return adminRequest<AdminLawyer>(
+    `/api/admin/lawyers/${lawyerId}/photo`,
+    { method: 'POST', body: form },
+    'The photo could not be uploaded'
   )
 }
 
@@ -406,7 +421,7 @@ export interface LawyerProfileData {
   languages: string[]
   education: Education[]
   certifications: Certification[]
-  hourlyRate?: number
+  consultationFee?: ConsultationFee
   isActive: boolean
   joinedAt?: string
 }
