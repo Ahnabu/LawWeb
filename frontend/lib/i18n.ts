@@ -59,7 +59,7 @@ const translationBundle = {
       feature2Detail: "Established 1997, Dhaka Law Leaders",
       feature3Title: "Honest & Transparent",
       feature3Detail: "No hidden fees, clear communication",
-      ctaTitle: "Book a Free Consultation Today.",
+      ctaTitle: "Book a Consultation Today.",
       ctaBookAppointment: "Book Appointment",
       ctaChatWhatsApp: "Chat on WhatsApp",
       appointmentTitle: "Book a Consultation",
