@@ -1,0 +1,424 @@
+{
+  "data": {
+    "global": {
+      "strings": {
+        "nav.about": {
+          "en": "About US",
+          "bnFor": "58e096de"
+        },
+        "nav.lawyers": {
+          "bn": "আইনজীবী",
+          "bnFor": "c835bc94"
+        }
+      }
+    },
+    "home": {
+      "strings": {
+        "common.heroTitle": {
+          "en": "Leading Global Expert on Cyber Laws & Espionage Cases",
+          "bn": "Leading Global Expert on Cyber Laws & Espionage Cases",
+          "bnFor": "fd13ae4f"
+        },
+        "common.heroSubtitle": {
+          "en": "Strategic counsel for foreign investors entering Bangladesh and Bangladeshi diaspora navigating complex cross-border family law across UK, USA, Canada, Australia & Bangladesh.",
+          "bn": "Strategic counsel for foreign investors entering Bangladesh and Bangladeshi diaspora navigating complex cross-border family law across UK, USA, Canada, Australia & Bangladesh.",
+          "bnFor": "676b9fd1"
+        },
+        "common.established": {
+          "en": "Bangladesh Investment • Global Cyber Law • Espionage & Social Media Expertise",
+          "bn": "Bangladesh Investment • Global Cyber Law • Espionage & Social Media Expertise",
+          "bnFor": "23fa5bb6"
+        },
+        "common.ctaTitle": {
+          "en": "Book a Consultation Now.",
+          "bn": "আজই একটি পরামর্শ বুক করুন।",
+          "bnFor": "ae6b452d"
+        },
+        "common.ctaChatWhatsApp": {
+          "bn": "হোয়াটসঅ্যাপে করুন",
+          "bnFor": "00cbd00a"
+        }
+      },
+      "heroImage": "https://res.cloudinary.com/islamlaw/image/upload/v1792764096/lawweb/content/rxxy0ppskwbej67oaba0.webp",
+      "stats": [
+        {
+          "value": {
+            "en": "27+ Years of Practice",
+            "bn": "২৭+ বছরের অভিজ্ঞতা",
+            "bnFor": "ffb89fdb"
+          },
+          "label": {
+            "en": "Experience",
+            "bn": "অভিজ্ঞতা",
+            "bnFor": "ace39749"
+          }
+        },
+        {
+          "value": {
+            "en": "1000+ Cases Won",
+            "bn": "১০০০+ মামলা জিতেছে",
+            "bnFor": "d49c58c8"
+          },
+          "label": {
+            "en": "Wins",
+            "bn": "বিজয়",
+            "bnFor": "81411f3e"
+          }
+        },
+        {
+          "value": {
+            "en": "20+ Practice Areas",
+            "bn": "২০+ অভিজ্ঞতা এলাকা",
+            "bnFor": "00b2f48b"
+          },
+          "label": {
+            "en": "Expertise",
+            "bn": "দক্ষতা",
+            "bnFor": "d6aac06c"
+          }
+        },
+        {
+          "value": {
+            "en": "4 Generations of Legal Excellence",
+            "bn": "আইনগত উৎকর্ষে চার প্রজন্ম",
+            "bnFor": "9fdcf132"
+          },
+          "label": {
+            "en": "Legacy",
+            "bn": "উত্তরাধিকার",
+            "bnFor": "055b887e"
+          }
+        }
+      ],
+      "successStories": [
+        {
+          "title": {
+            "en": "Immigration Appeal Won in 30 Days",
+            "bn": "৩০ দিনে ইমিগ্রেশন আপিল জয়",
+            "bnFor": "a129ad31"
+          },
+          "summary": {
+            "en": "A successful visa appeal for a multinational professional in Dhaka.",
+            "bn": "ঢাকায় একজন বহুজাতিক পেশাজীবীর জন্য সফল ভিসা আপিল।",
+            "bnFor": "8fa1558a"
+          },
+          "quote": {
+            "en": "Islam & Associates International guided me through a fast and stress-free process.",
+            "bn": "ইসলাম অ্যান্ড অ্যাসোসিয়েটস আমাকে দ্রুত এবং চাপহীন প্রক্রিয়ার মধ্য দিয়ে পরিচালনা করেছিল।",
+            "bnFor": "fea79cf9"
+          },
+          "badge": {
+            "en": "Immigration",
+            "bn": "ইমিগ্রেশন",
+            "bnFor": "5bde5a6d"
+          },
+          "initials": "A.A."
+        },
+        {
+          "title": {
+            "en": "Corporate Restructuring Approved",
+            "bn": "কোম্পানির পুনর্গঠন অনুমোদিত",
+            "bnFor": "de8e931c"
+          },
+          "summary": {
+            "en": "Complex restructuring completed with regulatory approval.",
+            "bn": "নিয়ন্ত্রক অনুমোদন সহ জটিল পুনর্গঠন সমাপ্ত হয়েছে।",
+            "bnFor": "9f9897d2"
+          },
+          "quote": {
+            "en": "Their precision and knowledge made the matter painless.",
+            "bn": "তাদের কঠোরতা এবং জ্ঞান এই বিষয়কে সহজ করে তুলেছে।",
+            "bnFor": "0dca5b1c"
+          },
+          "badge": {
+            "en": "Corporate",
+            "bn": "কর্পোরেট",
+            "bnFor": "a9fe0da4"
+          },
+          "initials": "M.R."
+        },
+        {
+          "title": {
+            "en": "Civil Settlement Secured",
+            "bn": "দেওয়ানী সালিশি সুনিশ্চিত",
+            "bnFor": "ed3dfc20"
+          },
+          "summary": {
+            "en": "Amicable resolution of a high-value civil dispute.",
+            "bn": "উচ্চমূল্যের দেওয়ানী বিরোধের মীমাংসা সফলভাবে সম্পন্ন হয়েছে।",
+            "bnFor": "ac491200"
+          },
+          "quote": {
+            "en": "Trustworthy service with excellent communication.",
+            "bn": "চমৎকার যোগাযোগের সাথে বিশ্বস্ত সেবা।",
+            "bnFor": "ecebcdf9"
+          },
+          "badge": {
+            "en": "Civil",
+            "bn": "দেওয়ানী",
+            "bnFor": "5bf4d7c8"
+          },
+          "initials": "S.H."
+        }
+      ]
+    },
+    "practice-areas": {
+      "areas": [
+        {
+          "slug": "immigration",
+          "title": {
+            "en": "Immigration Law",
+            "bn": "ইমিগ্রেশন আইন",
+            "bnFor": "adcd5695"
+          },
+          "description": {
+            "en": "Visa appeals, residency, work permits",
+            "bn": "ভিসা আপিল, বসবাস, কর্ম অনুমতি",
+            "bnFor": "931833e5"
+          },
+          "details": {
+            "en": "Guiding You Through Every Step of Your Immigration Journey Immigration matters can be complex, involving detailed legal requirements, extensive documentation, and strict deadlines. Our Immigration Law practice is committed to providing clear legal guidance and professional support to individuals, families, and businesses navigating immigration procedures.\nWe assist clients in understanding their available options, preparing documentation, addressing legal challenges, and navigating applicable immigration processes with confidence and clarity.\n\nOur Immigration Legal Services\n\n1. Visa and Immigration Assistance\nGuidance on visa categories, eligibility requirements, application procedures, supporting documentation, and immigration-related formalities, subject to applicable laws and regulations.\n\n2. Family-Based Immigration\nLegal guidance for family reunification matters, including spouse, child, parent, and other eligible family-based immigration applications, depending on the relevant jurisdiction.\n\n3. Work and Employment-Based Immigration\nAssistance with understanding employment-related visa pathways, work permits, employer-sponsored immigration procedures, and relevant compliance requirements.\n\n4. Student Visa and Education-Related Immigration\nGuidance on student visa applications, documentation requirements, immigration compliance, and relevant procedures for individuals pursuing educational opportunities abroad.\n\n5. Permanent Residency and Citizenship\nLegal guidance concerning permanent residency pathways, naturalization, citizenship applications, and associated eligibility requirements under applicable immigration laws.\n\n6. Immigration Appeals and Refusals\nAssistance in reviewing visa refusals, identifying potentia",
+            "bn": "ভিসা, আপিল, বসবাস এবং নাগরিকত্ব বিষয়ক সহায়তা।",
+            "bnFor": "c79e68bc"
+          }
+        },
+        {
+          "slug": "criminal",
+          "title": {
+            "en": "Criminal Law",
+            "bn": "ফৌজদারী আইন",
+            "bnFor": "235448d0"
+          },
+          "description": {
+            "en": "Defense for serious charges and bail hearings",
+            "bn": "গুরুতর অভিযোগ এবং জামিন শুনানির জন্য প্রতিরক্ষা",
+            "bnFor": "d790fe0f"
+          },
+          "details": {
+            "en": "Protecting Your Rights. Defending Your Interests.\n\nCriminal law matters can have significant consequences for an individual's freedom, reputation, and future. Our Criminal Law practice is committed to protecting legal rights, providing professional legal guidance, and supporting clients throughout criminal investigations and judicial proceedings.\n\nWe assist individuals facing criminal allegations, those seeking legal remedies as victims of crime, and clients requiring guidance on criminal procedures. Our approach emphasizes due process, confidentiality, careful case assessment, and representation in accordance with applicable laws.\n\nOur Criminal Legal Services\n\n1. Criminal Defense and Representation\n\nLegal assistance for individuals accused or charged with criminal offenses, including case assessment, defense preparation, and representation before competent courts, subject to applicable law.\n\n2. Bail and Pre-Trial Proceedings\n\nAssistance with bail applications, anticipatory or pre-arrest bail where available, remand-related matters, and other preliminary proceedings in accordance with the relevant legal framework.\n\n3. Criminal Complaints and Case Filing\n\nGuidance on preparing criminal complaints, petitions, and related legal documents, as well as understanding the procedures for initiating criminal proceedings.\n\n4. Police Investigations and Interrogation-Related Matters\n\nLegal guidance concerning police investigations, questioning, procedural safeguards, and the protection of individual rights during criminal investigations.\n\n5. White-Collar and Financial Crimes\n\nLegal assistance in matters involving alleged fraud, embezzlement, forgery, financial misconduct, corruption, and other business or financial offenses.\n\n6. Cybercrime and Digital Offenses\n\nLegal guidance on criminal matters involving online fraud, identity theft, unauthorized access, digital harassment, electronic evidence, and other technology-related offenses.\n\n7. Appeals and Review of Crimi",
+            "bn": "অভিযুক্ত ব্যক্তিদের প্রতিরক্ষা কৌশল এবং জামিন প্রক্রিয়া।",
+            "bnFor": "440cb305"
+          }
+        },
+        {
+          "slug": "civil",
+          "title": {
+            "en": "Civil Litigation",
+            "bn": "দেওয়ানী মামলাবিচার",
+            "bnFor": "0c86e156"
+          },
+          "description": {
+            "en": "Disputes, arbitration and civil remedies",
+            "bn": "দিয়ে বিবাদ, সালিশি ও দেওয়ানী প্রতিকার",
+            "bnFor": "b392dd61"
+          },
+          "details": {
+            "en": "Resolving Disputes. Protecting Your Rights. Pursuing Justice.\n\nCivil disputes often involve important personal, financial, and business interests. Our Civil Litigation practice provides legal guidance and representation to individuals, families, businesses, and organizations involved in civil disputes.\n\nWe assist clients in understanding their legal rights, evaluating available remedies, preparing legal documents, and navigating court proceedings. Our approach emphasizes careful case assessment, strategic legal planning, and practical solutions tailored to each client's circumstances.\n\nOur Civil Litigation Services\n\n1. Property and Land Disputes\n\nLegal assistance in disputes involving ownership, possession, boundaries, land records, property rights, and other real estate-related matters, subject to applicable law.\n\n2. Contractual Disputes\n\nGuidance and representation in disputes arising from breach of contract, contractual interpretation, non-performance, and the enforcement of contractual obligations.\n\n3. Business and Commercial Litigation\n\nAssistance with commercial disputes involving business transactions, partnership disagreements, shareholder conflicts, and other business-related legal matters.\n\n4. Money Recovery and Debt Disputes\n\nLegal assistance in recovering outstanding debts, unpaid dues, contractual payments, and other monetary claims through appropriate legal procedures.\n\n5. Injunctions and Interim Relief\n\nGuidance on seeking temporary injunctions, restraining orders where available, and other interim judicial remedies to protect legal rights while a dispute is pending.\n\n6. Declaration and Enforcement of Legal Rights\n\nAssistance with civil claims seeking judicial declarations of legal status, ownership, entitlement, or other rights recognized under applicable law.\n\n7. Specific Performance and Breach of Agreement\n\nLegal guidance on remedies for breach of contractual obligations, including claims for specific performance where legally ava",
+            "bn": "বিভাগ, দাবি এবং বিভিন্ন খাতের সালিশি।",
+            "bnFor": "1403eae4"
+          }
+        },
+        {
+          "slug": "corporate",
+          "title": {
+            "en": "Corporate Law",
+            "bn": "কর্পোরেট আইন",
+            "bnFor": "2d55a40c"
+          },
+          "description": {
+            "en": "Company formation, contracts and compliance",
+            "bn": "কোম্পানি গঠন, চুক্তি ও সম্মতি",
+            "bnFor": "778130c6"
+          },
+          "details": {
+            "en": "Empowering Businesses. Protecting Interests. Enabling Growth.\n\nBusinesses need a strong legal foundation to operate confidently, manage risks, and pursue sustainable growth. Our Corporate Law practice provides legal guidance and support to entrepreneurs, startups, established companies, investors, and business organizations across various stages of their commercial journey.\n\nFrom business formation and corporate governance to commercial agreements and regulatory compliance, we help clients understand their legal obligations, protect their interests, and make informed business decisions in accordance with applicable laws and regulations.\n\nOur Corporate Legal Services\n\n1. Company Formation and Business Registration\n\nGuidance on establishing business entities, selecting appropriate legal structures, preparing incorporation documents, and navigating relevant registration procedures.\n\n2. Corporate Governance and Compliance\n\nAssistance with corporate governance frameworks, directors' responsibilities, shareholder rights, statutory filings, and ongoing compliance requirements.\n\n3. Commercial Contracts and Agreements\n\nDrafting, reviewing, and negotiating commercial agreements, service contracts, partnership agreements, non-disclosure agreements (NDAs), and other business-related legal documents.\n\n4. Mergers and Acquisitions (M&A)\n\nLegal support for mergers, acquisitions, business transfers, and restructuring transactions, including transaction documentation and coordination of relevant legal due diligence.\n\n5. Shareholder and Partnership Matters\n\nGuidance on shareholder agreements, ownership structures, partnership arrangements, internal corporate disputes, and the rights and obligations of business stakeholders.\n\n6. Investment and Funding Agreements\n\nAssistance with investment documentation, equity arrangements, shareholder terms, and other legal aspects of business financing, subject to applicable regulatory requirements.\n\n7. Corporate Restructuring and Reo",
+            "bn": "কর্পোরেট সম্মতি, মের্জার, চুক্তি ও কোম্পানি আইন পরামর্শ।",
+            "bnFor": "d67303c5"
+          }
+        },
+        {
+          "slug": "family",
+          "title": {
+            "en": "Family Law",
+            "bn": "পারিবারিক আইন",
+            "bnFor": "0a62aa81"
+          },
+          "description": {
+            "en": "Divorce, custody and family settlements",
+            "bn": "বিবাহবিচ্ছেদ, হেফাজত এবং পারিবারিক সালিশি",
+            "bnFor": "f5483283"
+          },
+          "details": {
+            "en": "Protecting Families. Safeguarding Rights. Guiding You Forward.\n\nFamily-related legal matters can be emotionally challenging and legally complex. Our Family Law practice is committed to providing compassionate, confidential, and professional legal guidance to individuals and families navigating sensitive personal and domestic matters.\n\nWe assist clients in understanding their legal rights, exploring available legal remedies, preparing relevant documentation, and navigating family-related proceedings with dignity and care. Our approach emphasizes respect, discretion, and practical legal solutions tailored to each client's circumstances.\n\nOur Family Legal Services\n\n1. Divorce and Separation\n\nLegal guidance on divorce proceedings, separation-related matters, applicable legal requirements, and the preparation of relevant documentation under the laws governing the parties.\n\n2. Child Custody and Guardianship\n\nAssistance with child custody, guardianship, visitation arrangements, and related disputes, with consideration of applicable legal standards and the child's welfare.\n\n3. Child and Spousal Maintenance\n\nGuidance on claims involving child support, maintenance, and spousal financial support where available under applicable law.\n\n4. Marriage and Nikahnama-Related Matters\n\nLegal assistance concerning marriage documentation, marriage registration, marital rights, and related legal obligations, subject to the applicable legal framework.\n\n5. Dower (Mahr) and Matrimonial Financial Claims\n\nGuidance on dower-related claims, recovery of unpaid dower, and other matrimonial financial rights where applicable.\n\n6. Domestic Violence and Protection Matters\n\nLegal support concerning domestic abuse, threats, harassment, and available protective remedies, including assistance in understanding the relevant complaint and court procedures.\n\n7. Inheritance and Succession\n\nGuidance on inheritance rights, succession-related documentation, and disputes concerning the distribution of e",
+            "bn": "হেফাজত, বিবাহবিচ্ছেদ এবং পারিবারিক বিরোধ সমাধান।",
+            "bnFor": "5644af87"
+          }
+        },
+        {
+          "slug": "real-estate",
+          "title": {
+            "en": "Real Estate",
+            "bn": "রিয়েল এস্টেট",
+            "bnFor": "f5cfe9db"
+          },
+          "description": {
+            "en": "Property disputes, conveyance, leases",
+            "bn": "সম্পদ বিবাদ, হস্তান্তর, লিজ",
+            "bnFor": "53e5b1a9"
+          },
+          "details": {
+            "en": "Protecting Property Rights. Securing Your Investments.\n\nReal estate transactions and property disputes often involve significant financial interests, complex documentation, and important legal obligations. Our Real Estate Law practice provides legal guidance and support to individuals, property owners, buyers, sellers, investors, developers, and businesses dealing with property-related matters.\n\nFrom property transactions and title verification to land disputes and contractual issues, we help clients understand their legal rights, assess potential risks, and navigate the relevant legal procedures with confidence.\n\nOur Real Estate Legal Services\n\n1. Property Purchase and Sale\n\nLegal assistance with property transactions, including reviewing sale agreements, examining transaction documents, and identifying relevant legal requirements for buyers and sellers.\n\n2. Land Title Verification and Due Diligence\n\nReview of available ownership records, title documents, land records, and related documentation to help identify potential legal risks before a property transaction.\n\n3. Land and Property Disputes\n\nLegal guidance and representation in disputes involving ownership, possession, boundaries, competing claims, and other property-related conflicts.\n\n4. Property Registration and Documentation\n\nAssistance with preparing and reviewing deeds, sale agreements, transfer documents, and other paperwork required for property transactions and registration procedures.\n\n5. Real Estate Development and Construction\n\nLegal support for property developers, construction companies, and investors concerning development agreements, construction contracts, project documentation, and related legal obligations.\n\n6. Lease and Tenancy Agreements\n\nDrafting, reviewing, and advising on residential and commercial lease agreements, rental obligations, tenancy disputes, and termination-related matters.\n\n7. Land Mutation and Record-Related Matters\n\nGuidance on land mutation, record correct",
+            "bn": "সম্পত্তি হস্তান্তর, বিবাদ এবং লیز চুক্তি সহায়তা।",
+            "bnFor": "62e52859"
+          }
+        },
+        {
+          "slug": "tax-law",
+          "title": {
+            "en": "Tax Law",
+            "bn": "আয়কর আইন",
+            "bnFor": "5aa1d176"
+          },
+          "description": {
+            "en": "Protecting Your Interests. Ensuring Compliance.",
+            "bn": "আপনার স্বার্থ রক্ষা করা। নিয়ম পরিপালন নিশ্চিত করা।",
+            "bnFor": "2347ac00"
+          },
+          "details": {
+            "en": "Navigating Tax Laws. Protecting Your Interests. Ensuring Compliance.\n\nTax regulations can be complex, and failure to meet tax obligations may lead to financial penalties, disputes, and other legal consequences. Our Tax Law practice provides legal guidance and support to individuals, professionals, entrepreneurs, and businesses seeking to understand their tax obligations and address tax-related legal matters.\n\nFrom tax compliance and regulatory guidance to tax disputes and appeals, we help clients understand applicable requirements, evaluate their legal options, and navigate tax-related procedures with clarity and confidence.\n\nOur Tax Legal Services\n\n1. Tax Compliance and Legal Advisory\n\nGuidance on understanding applicable tax laws, statutory obligations, filing requirements, and compliance procedures relevant to individuals and businesses.\n\n2. Income Tax Matters\n\nLegal assistance concerning individual and corporate income tax obligations, tax assessments, filing-related issues, and other income tax matters under applicable law.\n\n3. Corporate Tax Advisory\n\nGuidance for businesses concerning corporate taxation, tax-related legal obligations, and compliance requirements associated with their operations and business structures.\n\n4. VAT and Indirect Tax Matters\n\nAssistance with understanding value-added tax (VAT), applicable indirect taxes, registration requirements, documentation, and related compliance obligations.\n\n5. Tax Disputes and Litigation\n\nLegal support in disputes involving tax assessments, disputed liabilities, alleged non-compliance, and other tax-related matters before the relevant authorities or courts, where authorized.\n\n6. Tax Appeals and Objections\n\nAssistance with reviewing tax decisions, preparing objections and appeals, identifying potential legal grounds, and pursuing available remedies within applicable deadlines.\n\n7. Tax Audits and Assessments\n\nGuidance on responding to tax audits, notices, inquiries, and assessments, including reviewing",
+            "bn": "আইপি নিবন্ধন, বাস্তবায়ন এবং বিরোধ প্রতিরক্ষা।",
+            "bnFor": "b6439da8"
+          }
+        },
+        {
+          "slug": "banking-finance",
+          "title": {
+            "en": "Banking & Finance",
+            "bn": "ব্যাংকিং ও ফাইনান্স",
+            "bnFor": "2be31765"
+          },
+          "description": {
+            "en": "Loans, restructuring, compliance",
+            "bn": "ঋণ, পুনর্গঠন, সম্মতি",
+            "bnFor": "7668693a"
+          },
+          "details": {
+            "en": "Securing Financial Interests. Strengthening Legal Confidence.\n\nBanking and financial transactions involve complex legal frameworks, regulatory obligations, and significant financial interests. Our Banking and Finance Law practice provides legal guidance and support to individuals, businesses, financial institutions, investors, and commercial organizations dealing with banking and finance-related matters.\n\nFrom loan agreements and financial transactions to debt recovery and banking disputes, we help clients understand their legal rights, navigate regulatory requirements, and address financial legal challenges with clarity and professionalism.\n\nOur Banking and Finance Legal Services\n\n1. Banking Law and Regulatory Compliance\n\nGuidance on banking-related legal obligations, regulatory requirements, financial documentation, and compliance matters under applicable laws and regulations.\n\n2. Loan and Financing Agreements\n\nDrafting, reviewing, and advising on loan agreements, credit facilities, financing arrangements, repayment terms, and related contractual obligations.\n\n3. Corporate and Commercial Financing\n\nLegal support for businesses seeking financing, including secured lending, commercial credit arrangements, working capital facilities, and related transaction documentation.\n\n4. Debt Recovery and Financial Claims\n\nAssistance with outstanding loans, unpaid financial obligations, recovery claims, contractual defaults, and available legal remedies.\n\n5. Banking Disputes and Litigation\n\nLegal assistance in disputes involving financial institutions, lending arrangements, banking transactions, contractual obligations, and other banking-related claims.\n\n6. Security Interests and Collateral\n\nGuidance on guarantees, mortgages, pledges, collateral arrangements, and other forms of security used to support financial obligations, subject to applicable law.\n\n7. Financial Restructuring and Loan Rescheduling\n\nLegal support concerning loan restructuring, repaymen",
+            "bn": "ঋণ চুক্তি, পুনর্গঠন এবং আর্থিক নিয়ন্ত্রণ সমর্থন।",
+            "bnFor": "16c08f8b"
+          }
+        },
+        {
+          "slug": "cyber-law",
+          "title": {
+            "en": "Cyber Law",
+            "bn": "সাইবার আইন",
+            "bnFor": "fdd0cdce"
+          },
+          "description": {
+            "en": "Cybercrime, data privacy, digital security, and online legal disputes.",
+            "bn": "সাইবার অপরাধ, তথ্যের গোপনীয়তা, ডিজিটাল নিরাপত্তা এবং অনলাইন আইনি বিরোধ।",
+            "bnFor": "9a04567a"
+          },
+          "details": {
+            "en": "Protecting Digital Rights. Securing Your Online Future.\n\nAs technology becomes an essential part of everyday life and business, cyber-related legal challenges continue to grow. Our Cyber Law practice provides legal guidance and representation for individuals, businesses, and organizations dealing with digital disputes, cybercrime, data privacy concerns, and online legal issues.\n\nWe assist clients with matters involving unauthorized access to computer systems, online fraud, identity theft, cyber harassment, digital evidence, data protection, and the misuse of confidential information. We also advise businesses on legal compliance, cybersecurity responsibilities, electronic transactions, and the protection of digital assets.\n\nOur approach focuses on understanding each client's situation, assessing legal risks, and developing practical strategies to protect their rights and interests. Whether you are facing an online legal dispute or seeking preventive legal advice for your business, we are committed to providing professional support and clear legal guidance in the digital age.",
+            "bn": "ডিজিটাল অধিকার সুরক্ষা। নিরাপদ অনলাইন ভবিষ্যৎ নিশ্চিতকরণ।\n\nপ্রযুক্তি দৈনন্দিন জীবন ও ব্যবসার অবিচ্ছেদ্য অংশ হয়ে ওঠার সঙ্গে সঙ্গে সাইবার সংক্রান্ত আইনি চ্যালেঞ্জও বৃদ্ধি পাচ্ছে। আমাদের সাইবার আইন বিভাগ ব্যক্তি, ব্যবসা প্রতিষ্ঠান এবং বিভিন্ন সংস্থাকে ডিজিটাল বিরোধ, সাইবার অপরাধ, তথ্যের গোপনীয়তা এবং অনলাইন আইনি সমস্যা মোকাবিলায় আইনি পরামর্শ ও প্রতিনিধিত্ব প্রদান করে।\n\nআমরা কম্পিউটার সিস্টেমে অননুমোদিত প্রবেশ, অনলাইন জালিয়াতি, পরিচয় চুরি, সাইবার হয়রানি, ডিজিটাল প্রমাণ, তথ্য সুরক্ষা এবং গোপনীয় তথ্যের অপব্যবহার সংক্রান্ত বিষয়ে সহায়তা করি। পাশাপাশি, ব্যবসা প্রতিষ্ঠানকে আইনি পরিপালন, সাইবার নিরাপত্তা সংক্রান্ত দায়িত্ব, ইলেকট্রনিক লেনদেন এবং ডিজিটাল সম্পদ সুরক্ষা বিষয়ে পরামর্শ প্রদান করি।\n\nআমাদের লক্ষ্য হলো প্রতিটি ক্লায়েন্টের পরিস্থিতি যথাযথভাবে বিশ্লেষণ করা, আইনি ঝুঁকি মূল্যায়ন করা এবং তাঁদের অধিকার ও স্বার্থ রক্ষায় কার্যকর কৌশল তৈরি করা। অনলাইন আইনি বিরোধের সম্মুখীন হলে কিংবা ব্যবসার জন্য আগাম আইনি পরামর্শের প্রয়োজন হলে, ডিজিটাল যুগের চ্যালেঞ্জ মোকাবিলায় আমরা পেশাদার সহায়তা ও সুস্পষ্ট আইনি দিকনির্দেশনা দিতে প্রতিশ্রুতিবদ্ধ।",
+            "bnFor": "6af9e296"
+          }
+        }
+      ]
+    },
+    "site": {
+      "strings": {
+        "site.firmName": {
+          "en": "Islam & Associates International",
+          "bn": "ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল",
+          "bnFor": "39d5f25a"
+        },
+        "site.address": {
+          "en": "Bangladesh",
+          "bn": "বাংলাদেশ",
+          "bnFor": "144748a4"
+        }
+      },
+      "settings": {
+        "phone": "+8801629787585",
+        "phoneDisplay": "+8801629787585",
+        "email": "islamm@tcd.ie",
+        "whatsappNumber": "8801629787585"
+      }
+    },
+    "about": {
+      "strings": {
+        "about.heroLabel": {
+          "en": "About Islam & Associates International",
+          "bn": "ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল",
+          "bnFor": "f61d41dd"
+        },
+        "about.overviewText": {
+          "en": "Consult, Send Documents, Get Legal Opinions & Court Representation Online. In-Person Representation in Supreme Court & All 64 Districts When You Need It.",
+          "bnFor": "95b65ed3"
+        },
+        "about.certificationsTitle": {
+          "en": "Trust Bar",
+          "bn": "Trust Bar",
+          "bnFor": "10f8e1d0"
+        },
+        "about.heroSubtitle": {
+          "en": "A century-long legal dynasty from Zamindari Bengal to global tribunals.",
+          "bn": "জমিদারি  বাংলা থেকে বৈশ্বিক ট্রাইব্যুনাল পর্যন্ত শতাব্দী প্রাচীন এক আইনি রাজবংশ",
+          "bnFor": "28c6ba76"
+        }
+      },
+      "certifications": [
+        {
+          "en": "Bangladesh Bar Council Enrolled",
+          "bn": "Bangladesh Bar Council Enrolled",
+          "bnFor": "7fafb2eb"
+        },
+        {
+          "en": "SSL Secured Client Portal",
+          "bn": "SSL Secured Client Portal",
+          "bnFor": "00a27c79"
+        },
+        {
+          "en": "PhD, Swiss School of Business and Research (SSBR) with primary research from Trinity College Dublin, Dublin University",
+          "bn": "PhD, Swiss School of Business and Research (SSBR) with primary research from Trinity College Dublin, Dublin University",
+          "bnFor": "4152ae67"
+        },
+        {
+          "en": "8 Research Publications",
+          "bn": "8 Research Publications",
+          "bnFor": "a47e2467"
+        },
+        {
+          "en": "Service in 64 Districts",
+          "bn": "Service in 64 Districts",
+          "bnFor": "0d9d4700"
+        }
+      ],
+      "credentials": [
+        {
+          "en": "Advocate, Bangladesh Bar Council",
+          "bn": "Advocate, Bangladesh Bar Council",
+          "bnFor": "5cf8cb8b"
+        },
+        {
+          "en": "PhD, Trinity College Dublin",
+          "bn": "PhD, Trinity College Dublin",
+          "bnFor": "c221bdb3"
+        },
+        {
+          "en": "Former British-Bangladeshi lawyer",
+          "bn": "Former British-Bangladeshi lawyer",
+          "bnFor": "a26bf29a"
+        },
+        {
+          "en": "Journalist & human rights defender",
+          "bn": "Journalist & human rights defender",
+          "bnFor": "93737e19"
+        }
+      ]
+    }
+  }
+}

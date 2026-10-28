@@ -19,6 +19,7 @@ import { API_BASE_URL } from "../../../lib/api";
 import { useSiteSettings } from "../../../components/contentHooks";
 import { RichText } from "../../../components/RichText";
 import { isRichTextEmpty } from "../../../lib/richText";
+import { feeParts, type ConsultationFee } from "../../../lib/fees";
 
 interface LawyerUser {
   _id: string;
@@ -69,7 +70,7 @@ interface LawyerProfileData {
   languages: string[];
   education: { degree: string; institution: string; year: number; description?: { en: string; bn: string } }[];
   certifications: { name: string; issuingBody: string; year: number; description?: { en: string; bn: string } }[];
-  hourlyRate?: number;
+  consultationFee?: ConsultationFee;
   yearAdmitted?: number;
 }
 
@@ -104,6 +105,7 @@ export default function LawyerDetailPage() {
     : "??";
 
   const whatsappNumber = profile?.whatsappNumber || siteSettings.whatsappNumber;
+  const [mainFee, ...otherFees] = feeParts(profile?.consultationFee);
 
   // Get bilingual content based on current locale
   const designation = profile?.designation?.[locale] || profile?.designation?.en || "Attorney at Law";
@@ -219,12 +221,19 @@ export default function LawyerDetailPage() {
                     Not accepting new clients
                   </div>
                 ) : (
-                  <Link
-                    href={`/appointment?lawyerId=${id}`}
-                    className="btn btn-primary btn-block"
-                  >
-                    Book Appointment
-                  </Link>
+                  <>
+                    <Link
+                      href={`/appointment?lawyerId=${id}`}
+                      className="btn btn-primary btn-block"
+                    >
+                      {mainFee ? `Book Consultation for ${mainFee}` : "Book Appointment"}
+                    </Link>
+                    {otherFees.length > 0 && (
+                      <p className="text-center text-xs text-on-surface-variant tabular-nums">
+                        or {otherFees.join(" / ")} for clients paying in US dollars
+                      </p>
+                    )}
+                  </>
                 )}
                 <a
                   href={`https://wa.me/${whatsappNumber}`}
@@ -281,15 +290,17 @@ export default function LawyerDetailPage() {
                 </div>
               )}
 
-              {/* Hourly rate */}
-              {profile?.hourlyRate && (
+              {/* Consultation fee */}
+              {mainFee && (
                 <div className="card p-5">
                   <p className="text-sm text-on-surface-variant">
                     Consultation Fee
                   </p>
-                  <p className="mt-1 font-display text-2xl font-bold text-heading">
-                    ৳{profile.hourlyRate.toLocaleString()}
-                    <span className="ml-1 text-sm font-normal text-on-surface-variant">/hr</span>
+                  <p className="mt-1 font-display text-2xl font-bold text-heading tabular-nums">
+                    {mainFee}
+                    {otherFees.length > 0 && (
+                      <span className="ml-2 text-base font-semibold text-on-surface-variant">/ {otherFees.join(" / ")}</span>
+                    )}
                   </p>
                 </div>
               )}
@@ -438,12 +449,19 @@ export default function LawyerDetailPage() {
                     Currently Unavailable
                   </p>
                 ) : (
-                  <Link
-                    href={`/appointment?lawyerId=${id}`}
-                    className="btn btn-primary btn-lg mt-5"
-                  >
-                    Book Appointment
-                  </Link>
+                  <>
+                    <Link
+                      href={`/appointment?lawyerId=${id}`}
+                      className="btn btn-primary btn-lg mt-5"
+                    >
+                      {mainFee ? `Book Consultation for ${mainFee}` : "Book Appointment"}
+                    </Link>
+                    {otherFees.length > 0 && (
+                      <p className="mt-2 text-xs text-white/75 tabular-nums">
+                        or {otherFees.join(" / ")} for clients paying in US dollars
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>

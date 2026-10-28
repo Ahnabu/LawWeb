@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './api'
 import { lookupTranslation, type Locale } from './i18n'
+import contentSnapshot from './contentSnapshot.json'
 
 // ── CMS content (published) ─────────────────────────────────────────────────
 // Mirrors backend/src/config/contentSchemas.ts. Content is sparse: a page,
@@ -58,22 +59,40 @@ export type PublishedContent = Partial<Record<ContentPageKey, PageContent>>
 export const CONTENT_REVALIDATE_SECONDS = 300
 export const CONTENT_CACHE_TAG = 'content'
 
+// A serverless backend cold start (function boot + MongoDB connect) can take
+// several seconds, so one short attempt is not enough
+const CONTENT_FETCH_ATTEMPTS = 2
+const CONTENT_FETCH_TIMEOUT_MS = 8000
+
+// Fallback when the backend can't be reached: the published content as of the
+// last build (scripts/snapshot-content.mjs), not the code defaults. Next caches
+// whatever the layout renders for the whole revalidate window, so falling back
+// to {} would serve the pre-CMS text to every visitor until the next refresh.
+function snapshotContent(): PublishedContent {
+  const data = (contentSnapshot as { data?: unknown }).data
+  return data && typeof data === 'object' ? (data as PublishedContent) : {}
+}
+
 // Server-only: called from the root layout. Uses the Next data cache, so the
 // backend sees at most one request per revalidate window (plus on-demand
 // revalidation after a publish), not one per page view.
 export async function getPublishedContent(): Promise<PublishedContent> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/content`, {
-      next: { revalidate: CONTENT_REVALIDATE_SECONDS, tags: [CONTENT_CACHE_TAG] },
-      signal: AbortSignal.timeout(5000),
-    })
-    if (!res.ok) return {}
-    const body = await res.json()
-    return body && typeof body.data === 'object' && body.data !== null ? body.data : {}
-  } catch {
-    // Backend down or unreachable: the site renders from code defaults
-    return {}
+  for (let attempt = 1; attempt <= CONTENT_FETCH_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/content`, {
+        next: { revalidate: CONTENT_REVALIDATE_SECONDS, tags: [CONTENT_CACHE_TAG] },
+        signal: AbortSignal.timeout(CONTENT_FETCH_TIMEOUT_MS),
+      })
+      if (res.ok) {
+        const body = await res.json()
+        if (body && typeof body.data === 'object' && body.data !== null) return body.data
+      }
+      console.error(`CMS content fetch failed (attempt ${attempt}): HTTP ${res.status}`)
+    } catch (error) {
+      console.error(`CMS content fetch failed (attempt ${attempt}):`, error)
+    }
   }
+  return snapshotContent()
 }
 
 // Merge every page's string overrides into one map, in CONTENT_PAGE_KEYS order
