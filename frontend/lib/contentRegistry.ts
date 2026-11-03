@@ -173,6 +173,7 @@ export const contentRegistry: ContentPageDef[] = [
           text('common.quickLinks', 'Quick links heading'),
           text('common.footerPracticeAreas', 'Practice areas heading'),
           text('common.footerRights', 'Copyright line'),
+          text('nav.careers', 'Careers quick link'),
         ],
       },
       {
@@ -792,6 +793,67 @@ export const contentRegistry: ContentPageDef[] = [
         ],
       },
       seoSection('gallery'),
+    ],
+  },
+  {
+    key: 'careers',
+    title: 'Careers',
+    description:
+      'Text on the public Careers page. The openings themselves are posted under Careers in the dashboard.',
+    publicPath: '/careers',
+    sections: [
+      {
+        title: 'Header & search',
+        texts: [
+          text('careersPage.label', 'Eyebrow'),
+          text('careersPage.title', 'Title'),
+          text('careersPage.subtitle', 'Subtitle', true),
+          text('careersPage.searchPlaceholder', 'Search placeholder'),
+          text('careersPage.allDepartments', 'All departments label'),
+        ],
+      },
+      {
+        title: 'Listing',
+        texts: [
+          text('careersPage.opening', 'Opening (singular)'),
+          text('careersPage.openings', 'Openings (plural)'),
+          text('careersPage.noOpenings', 'Empty state'),
+          text('careersPage.loadError', 'Load error'),
+          text('careersPage.viewDetails', 'View details link'),
+          text('careersPage.publishedOn', 'Posted label'),
+        ],
+      },
+      {
+        title: 'Opening details',
+        description: 'The labels on the page of a single opening.',
+        texts: [
+          text('careersPage.backToCareers', 'Back link'),
+          text('careersPage.location', 'Location label'),
+          text('careersPage.experience', 'Experience label'),
+          text('careersPage.salary', 'Salary label'),
+          text('careersPage.deadline', 'Deadline label'),
+          text('careersPage.aboutTheRole', 'About the role heading'),
+          text('careersPage.requirementsHeading', 'Requirements heading'),
+          text('careersPage.howToApply', 'How to apply heading'),
+          text('careersPage.applyByEmail', 'Apply by email heading'),
+          text('careersPage.applicationNote', 'Application note', true),
+          text('careersPage.sendCv', 'Send CV button'),
+          text('careersPage.applyOnline', 'Apply online button'),
+        ],
+      },
+      {
+        title: 'Job types',
+        texts: [
+          text('careersPage.employmentTypes.full-time', 'Full time'),
+          text('careersPage.employmentTypes.part-time', 'Part time'),
+          text('careersPage.employmentTypes.contract', 'Contract'),
+          text('careersPage.employmentTypes.internship', 'Internship'),
+          text('careersPage.workplaceTypes.on-site', 'On site'),
+          text('careersPage.workplaceTypes.hybrid', 'Hybrid'),
+          text('careersPage.workplaceTypes.remote', 'Remote'),
+        ],
+      },
+      seoSection('careers'),
     ],
   },
 ]

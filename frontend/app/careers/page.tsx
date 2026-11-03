@@ -76,9 +76,9 @@ export default function CareersPage() {
       <Navbar />
       <section className="page-hero px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-semibold text-secondary">{t("common.careersPage.label")}</p>
-          <h1 className="mt-3 max-w-3xl text-white">{t("common.careersPage.title")}</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">{t("common.careersPage.subtitle")}</p>
+          <p className="text-sm font-semibold text-secondary">{t("careersPage.label")}</p>
+          <h1 className="mt-3 max-w-3xl text-white">{t("careersPage.title")}</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">{t("careersPage.subtitle")}</p>
         </div>
       </section>
 
@@ -86,13 +86,13 @@ export default function CareersPage() {
         {/* Search and department filter */}
         <div className="space-y-4">
           <label className="relative block w-full sm:max-w-sm">
-            <span className="sr-only">{t("common.careersPage.searchPlaceholder")}</span>
+            <span className="sr-only">{t("careersPage.searchPlaceholder")}</span>
             <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t("common.careersPage.searchPlaceholder")}
+              placeholder={t("careersPage.searchPlaceholder")}
               className="field pl-9"
             />
           </label>
@@ -107,7 +107,7 @@ export default function CareersPage() {
                 }}
                 className="chip"
               >
-                {t("common.careersPage.allDepartments")}
+                {t("careersPage.allDepartments")}
               </button>
               {departments.map((name) => (
                 <button
@@ -134,26 +134,26 @@ export default function CareersPage() {
             ))}
           </div>
         ) : hasError ? (
-          <div className="notice notice-error text-center">{t("common.careersPage.loadError")}</div>
+          <div className="notice notice-error text-center">{t("careersPage.loadError")}</div>
         ) : openings.length === 0 ? (
           <div className="py-16 text-center">
             <BriefcaseBusiness aria-hidden="true" className="mx-auto mb-4 h-10 w-10 text-outline" />
-            <p className="text-on-surface-variant">{t("common.careersPage.noOpenings")}</p>
+            <p className="text-on-surface-variant">{t("careersPage.noOpenings")}</p>
           </div>
         ) : (
           <>
             <p className="text-sm text-on-surface-variant">
-              {total} {t(total === 1 ? "common.careersPage.opening" : "common.careersPage.openings")}
+              {total} {t(total === 1 ? "careersPage.opening" : "careersPage.openings")}
             </p>
             <div className="grid gap-5 sm:grid-cols-2">
               {openings.map((opening) => (
                 <article key={opening._id} className="card card-interactive flex flex-col p-5 sm:p-6">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="chip">
-                      {t(`common.careersPage.employmentTypes.${opening.employmentType}`)}
+                      {t(`careersPage.employmentTypes.${opening.employmentType}`)}
                     </span>
                     <span className="chip">
-                      {t(`common.careersPage.workplaceTypes.${opening.workplaceType}`)}
+                      {t(`careersPage.workplaceTypes.${opening.workplaceType}`)}
                     </span>
                   </div>
 
@@ -163,25 +163,25 @@ export default function CareersPage() {
                   <dl className="mt-4 space-y-1 text-sm text-on-surface-variant">
                     {opening.location && (
                       <div className="flex gap-2">
-                        <dt className="shrink-0">{t("common.careersPage.location")}</dt>
+                        <dt className="shrink-0">{t("careersPage.location")}</dt>
                         <dd>{opening.location}</dd>
                       </div>
                     )}
                     {opening.experience && (
                       <div className="flex gap-2">
-                        <dt className="shrink-0">{t("common.careersPage.experience")}</dt>
+                        <dt className="shrink-0">{t("careersPage.experience")}</dt>
                         <dd>{opening.experience}</dd>
                       </div>
                     )}
                     {opening.salary && (
                       <div className="flex gap-2">
-                        <dt className="shrink-0">{t("common.careersPage.salary")}</dt>
+                        <dt className="shrink-0">{t("careersPage.salary")}</dt>
                         <dd>{opening.salary}</dd>
                       </div>
                     )}
                     {opening.deadline && (
                       <div className="flex gap-2">
-                        <dt className="shrink-0">{t("common.careersPage.deadline")}</dt>
+                        <dt className="shrink-0">{t("careersPage.deadline")}</dt>
                         <dd>{fmtDate(opening.deadline)}</dd>
                       </div>
                     )}
@@ -194,7 +194,7 @@ export default function CareersPage() {
                   <div className="mt-5 flex items-center justify-between gap-3 border-t border-outline-variant pt-4">
                     {opening.publishedAt ? (
                       <p className="text-xs text-on-surface-variant">
-                        {t("common.careersPage.publishedOn")} {fmtDate(opening.publishedAt)}
+                        {t("careersPage.publishedOn")} {fmtDate(opening.publishedAt)}
                       </p>
                     ) : (
                       <span />
@@ -203,7 +203,7 @@ export default function CareersPage() {
                       href={localePath(`/careers/${opening.slug}`)}
                       className="text-link inline-flex min-h-8 items-center gap-1 text-sm"
                     >
-                      {t("common.careersPage.viewDetails")} <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                      {t("careersPage.viewDetails")} <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
                     </Link>
                   </div>
                 </article>

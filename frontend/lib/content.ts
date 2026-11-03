@@ -17,6 +17,7 @@ export const CONTENT_PAGE_KEYS = [
   'blogs',
   'contact',
   'gallery',
+  'careers',
 ] as const
 
 export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number]

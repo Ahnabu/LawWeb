@@ -37,14 +37,14 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
             className="inline-flex min-h-8 items-center gap-1.5 text-sm text-white/80 transition-colors hover:text-white"
           >
             <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-            {t("common.careersPage.backToCareers")}
+            {t("careersPage.backToCareers")}
           </Link>
           <h1 className="mt-4 max-w-3xl text-white">{career.title}</h1>
           <p className="mt-3 text-base text-white/80">{career.department}</p>
 
           <div className="mt-6 flex flex-wrap gap-2">
-            <span className="chip">{t(`common.careersPage.employmentTypes.${career.employmentType}`)}</span>
-            <span className="chip">{t(`common.careersPage.workplaceTypes.${career.workplaceType}`)}</span>
+            <span className="chip">{t(`careersPage.employmentTypes.${career.employmentType}`)}</span>
+            <span className="chip">{t(`careersPage.workplaceTypes.${career.workplaceType}`)}</span>
             {career.location && <span className="chip">{career.location}</span>}
           </div>
         </div>
@@ -54,25 +54,25 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
         <dl className="grid gap-4 sm:grid-cols-2">
           {career.location && (
             <div>
-              <dt className="text-sm text-on-surface-variant">{t("common.careersPage.location")}</dt>
+              <dt className="text-sm text-on-surface-variant">{t("careersPage.location")}</dt>
               <dd className="mt-0.5 font-medium text-on-surface">{career.location}</dd>
             </div>
           )}
           {career.experience && (
             <div>
-              <dt className="text-sm text-on-surface-variant">{t("common.careersPage.experience")}</dt>
+              <dt className="text-sm text-on-surface-variant">{t("careersPage.experience")}</dt>
               <dd className="mt-0.5 font-medium text-on-surface">{career.experience}</dd>
             </div>
           )}
           {career.salary && (
             <div>
-              <dt className="text-sm text-on-surface-variant">{t("common.careersPage.salary")}</dt>
+              <dt className="text-sm text-on-surface-variant">{t("careersPage.salary")}</dt>
               <dd className="mt-0.5 font-medium text-on-surface">{career.salary}</dd>
             </div>
           )}
           {career.deadline && (
             <div>
-              <dt className="text-sm text-on-surface-variant">{t("common.careersPage.deadline")}</dt>
+              <dt className="text-sm text-on-surface-variant">{t("careersPage.deadline")}</dt>
               <dd className="mt-0.5 font-medium text-on-surface">{fmtDate(career.deadline)}</dd>
             </div>
           )}
@@ -80,21 +80,21 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
 
         <section>
           <h2 className="font-display text-xl font-semibold text-heading">
-            {t("common.careersPage.aboutTheRole")}
+            {t("careersPage.aboutTheRole")}
           </h2>
           <RichText className="mt-3" value={career.description} size="base" tone="strong" />
         </section>
 
         <section>
           <h2 className="font-display text-xl font-semibold text-heading">
-            {t("common.careersPage.requirementsHeading")}
+            {t("careersPage.requirementsHeading")}
           </h2>
           <RichText className="mt-3" value={career.requirements} size="base" tone="strong" />
         </section>
 
         <section>
           <h2 className="font-display text-xl font-semibold text-heading">
-            {t("common.careersPage.howToApply")}
+            {t("careersPage.howToApply")}
           </h2>
           {career.applicationInstructions && (
             <RichText className="mt-3" value={career.applicationInstructions} size="base" tone="strong" />
@@ -103,11 +103,11 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
           <div className="card mt-5 space-y-4 p-5 sm:p-6">
             {career.applicationEmail && (
               <div>
-                <p className="text-sm font-semibold text-on-surface">{t("common.careersPage.applyByEmail")}</p>
-                <p className="mt-1 text-sm text-on-surface-variant">{t("common.careersPage.applicationNote")}</p>
+                <p className="text-sm font-semibold text-on-surface">{t("careersPage.applyByEmail")}</p>
+                <p className="mt-1 text-sm text-on-surface-variant">{t("careersPage.applicationNote")}</p>
                 <a href={mailtoHref} className="btn btn-primary mt-3">
                   <Mail className="h-4 w-4" aria-hidden="true" />
-                  {t("common.careersPage.sendCv")}
+                  {t("careersPage.sendCv")}
                 </a>
                 <p className="mt-2 break-all text-sm text-on-surface-variant">{career.applicationEmail}</p>
               </div>
@@ -115,7 +115,7 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
 
             {career.applicationUrl && (
               <div>
-                <p className="text-sm font-semibold text-on-surface">{t("common.careersPage.applyOnline")}</p>
+                <p className="text-sm font-semibold text-on-surface">{t("careersPage.applyOnline")}</p>
                 <a
                   href={career.applicationUrl}
                   target="_blank"
@@ -123,13 +123,13 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
                   className="btn btn-secondary mt-3"
                 >
                   <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-                  {t("common.careersPage.applyOnline")}
+                  {t("careersPage.applyOnline")}
                 </a>
               </div>
             )}
 
             {!career.applicationEmail && !career.applicationUrl && (
-              <p className="text-sm text-on-surface-variant">{t("common.careersPage.applicationNote")}</p>
+              <p className="text-sm text-on-surface-variant">{t("careersPage.applicationNote")}</p>
             )}
           </div>
         </section>
@@ -137,7 +137,7 @@ export function CareerDetail({ career }: { career: CareerOpening }) {
         <div>
           <Link href={localePath("/careers")} className="btn btn-secondary">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            {t("common.careersPage.backToCareers")}
+            {t("careersPage.backToCareers")}
           </Link>
         </div>
       </article>

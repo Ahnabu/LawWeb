@@ -105,7 +105,7 @@ export function PhoneCountryField({
           aria-expanded={isOpen}
           aria-controls={listId}
           disabled={disabled}
-          className={`field flex min-w-30 shrink-0 items-center justify-between gap-2 text-left ${
+          className={`field flex w-auto min-w-28 max-w-[50%] shrink-0 items-center justify-between gap-2 text-left ${
             invalid ? "field-invalid" : ""
           }`}
         >
@@ -126,7 +126,7 @@ export function PhoneCountryField({
           required
           placeholder={placeholder}
           autoComplete="tel-national"
-          className={`field flex-1 ${invalid ? "field-invalid" : ""}`}
+          className={`field min-w-24 flex-1 ${invalid ? "field-invalid" : ""}`}
         />
       </div>
 
