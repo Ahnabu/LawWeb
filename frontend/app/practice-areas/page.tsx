@@ -30,8 +30,8 @@ export default function PracticeAreasPage() {
         </div>
       </section>
 
-      {/* Six teaser cards (two rows of three); the full write-ups are the
-          accordions on /practice-areas/all, behind the single "See more" button */}
+      {/* Six teaser cards (two rows of three); clicking a card opens the
+          matching accordion on /practice-areas/all#slug */}
       <section className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -40,6 +40,8 @@ export default function PracticeAreasPage() {
                 key={area.id}
                 title={area.title}
                 description={structuredTextExcerpt(area.details) || area.description}
+                slug={area.slug}
+                detailBasePath={localePath('/practice-areas/all')}
               />
             ))}
           </div>

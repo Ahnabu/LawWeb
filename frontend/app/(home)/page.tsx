@@ -104,11 +104,17 @@ export default function HomePage() {
               the full write-ups live on the Practice Areas page */}
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
             {areas.slice(0, HOME_PRACTICE_AREA_LIMIT).map((area) => (
-              <PracticeAreaCard key={area.id} title={area.title} description={area.description} />
+              <PracticeAreaCard
+                key={area.id}
+                title={area.title}
+                description={area.description}
+                slug={area.slug}
+                detailBasePath={localePath('/practice-areas/all')}
+              />
             ))}
           </div>
           <div className="mt-8 flex justify-center sm:mt-10">
-            <Link href={localePath('/practice-areas')} className="btn btn-secondary">
+            <Link href={localePath('/practice-areas/all')} className="btn btn-secondary">
               {t('common.viewAll')}
             </Link>
           </div>
