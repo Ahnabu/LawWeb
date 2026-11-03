@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/snapshot-content.mjs",
     "build": "next build",
+    "snapshot:content": "node scripts/snapshot-content.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run"

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildStringOverrides,
+  getPublishedContent,
   isLocalizedText,
   pickText,
   resolveDefaultItem,
@@ -8,6 +9,7 @@ import {
   resolveString,
 } from '../lib/content'
 import { lookupTranslation, translate } from '../lib/i18n'
+import contentSnapshot from '../lib/contentSnapshot.json'
 
 // Public-site resolution of CMS content (lib/content.ts)
 
@@ -96,5 +98,29 @@ describe('SEO defaults', () => {
       expect(lookupTranslation(locale, `seo.${page}.title`)).toBeTruthy()
       expect(lookupTranslation(locale, `seo.${page}.description`)).toBeTruthy()
     }
+  })
+})
+
+describe('getPublishedContent fallback', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('serves the build snapshot, not empty defaults, when the backend fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fetchMock = vi.fn().mockRejectedValue(new Error('timeout'))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await getPublishedContent()).toEqual(contentSnapshot.data)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries once after a failed attempt', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const live = { home: { strings: { 'common.heroTitle': { en: 'Live' } } } }
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ data: live })))
+    expect(await getPublishedContent()).toEqual(live)
   })
 })

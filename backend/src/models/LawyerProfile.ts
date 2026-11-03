@@ -35,6 +35,8 @@ export interface ILawyerProfile extends Document {
   languages: string[];
   education: IEducation[];
   certifications: ICertification[];
+  consultationFee?: { bdt?: number | null; usd?: number | null };
+  // Legacy BDT fee, read as consultationFee.bdt when that is unset
   hourlyRate?: number;
   isActive: boolean;
   joinedAt?: Date;
@@ -84,6 +86,10 @@ const LawyerProfileSchema: Schema = new Schema(
     languages: [{ type: String }],
     education: [EducationSchema],
     certifications: [CertificationSchema],
+    consultationFee: {
+      type: new Schema({ bdt: { type: Number, min: 0 }, usd: { type: Number, min: 0 } }, { _id: false }),
+      default: undefined,
+    },
     hourlyRate: { type: Number },
     isActive: { type: Boolean, default: true },
     joinedAt: { type: Date },

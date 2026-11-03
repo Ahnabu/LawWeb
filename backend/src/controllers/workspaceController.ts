@@ -6,6 +6,8 @@ import { createCase, listCasesInScope } from './caseController';
 import { listConsultationsInScope } from './consultationController';
 import { readAvailability, writeAvailability } from './lawyerController';
 import { readLawyerProfile, writeLawyerProfile, writeProfileImage } from './lawyerProfileController';
+import { consultationFeeOf } from '../utils/consultationFee';
+import type { ILawyerProfile } from '../models/LawyerProfile';
 import { can } from '../access/policy';
 import type { AuthedRequest } from '../access/types';
 
@@ -67,10 +69,17 @@ export const updateWorkspaceAvailability = async (req: WorkspaceRequest, res: Re
   }
 };
 
+// The form edits consultationFee only, so the legacy hourlyRate is folded into it
+const withFee = (profile: ILawyerProfile | null) => {
+  if (!profile) return profile;
+  const { hourlyRate: _hourlyRate, ...rest } = profile.toObject();
+  return { ...rest, consultationFee: consultationFeeOf(profile) };
+};
+
 export const getWorkspaceProfile = async (req: WorkspaceRequest, res: Response) => {
   try {
     const profile = await readLawyerProfile(req.workspace.lawyerId);
-    res.json({ status: 200, message: 'Profile retrieved successfully', data: profile });
+    res.json({ status: 200, message: 'Profile retrieved successfully', data: withFee(profile) });
   } catch (error) {
     serverError(res, 'Workspace profile', error);
   }
@@ -80,7 +89,7 @@ export const updateWorkspaceProfile = async (req: WorkspaceRequest, res: Respons
   try {
     const result = await writeLawyerProfile(req, lawyerOf(req), req.body ?? {});
     if (!result.ok) return res.status(400).json({ status: 400, message: result.message });
-    res.json({ status: 200, message: 'Profile updated successfully', data: result.profile });
+    res.json({ status: 200, message: 'Profile updated successfully', data: withFee(result.profile) });
   } catch (error) {
     serverError(res, 'Workspace update profile', error);
   }

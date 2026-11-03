@@ -19,6 +19,7 @@ import {
 } from '../lib/booking'
 import { useAuth } from './AuthProvider'
 import { apiFetch } from '../lib/http'
+import { formatFee } from '../lib/fees'
 
 // In-progress form kept across the login round trip
 const DRAFT_KEY = 'appointmentDraft'
@@ -83,6 +84,7 @@ export function AppointmentBookingForm() {
   const [submitting, setSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({})
   const [form, setForm] = useState<BookingForm>({ ...EMPTY_FORM, lawyerId: preselectedLawyerId })
+  const selectedFee = formatFee(lawyers.find((l) => l._id === form.lawyerId)?.consultationFee)
   const [booked, setBooked] = useState<BookedSummary | null>(null)
   const phonePrefilled = useRef(false)
   const confirmationRef = useRef<HTMLDivElement>(null)
@@ -343,6 +345,7 @@ export function AppointmentBookingForm() {
               </select>
             </label>
             {fieldErrors.lawyerId && <p className="text-xs text-error">{fieldErrors.lawyerId}</p>}
+            {selectedFee && <p className="text-xs text-on-surface-variant">Consultation fee: <span className="font-semibold text-on-surface tabular-nums">{selectedFee}</span></p>}
             {availabilityLoading && <p className="text-xs text-on-surface-variant">Loading availability...</p>}
             {availability && (
               <p className="text-xs text-success">

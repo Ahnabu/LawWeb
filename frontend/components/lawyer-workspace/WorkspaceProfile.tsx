@@ -45,7 +45,7 @@ const emptyProfile: LawyerProfileData = {
   languages: [],
   education: [],
   certifications: [],
-  hourlyRate: undefined,
+  consultationFee: { bdt: null, usd: null },
   isActive: true,
 };
 
@@ -334,15 +334,21 @@ export function WorkspaceProfile({ lawyerId }: { lawyerId: WorkspaceLawyerId }) 
               setProfile((p) => ({ ...p, yearAdmitted: v ? Number(v) : undefined }))
             }
           />
-          <Field
-            label="Hourly Rate (BDT)"
-            type="number"
-            value={String(profile.hourlyRate || "")}
-            edit={editMode}
-            onChange={(v) =>
-              setProfile((p) => ({ ...p, hourlyRate: v ? Number(v) : undefined }))
-            }
-          />
+          {(["bdt", "usd"] as const).map((currency) => (
+            <Field
+              key={currency}
+              label={currency === "bdt" ? "Consultation Fee (৳ BDT)" : "Consultation Fee ($ USD)"}
+              type="number"
+              value={profile.consultationFee?.[currency] != null ? String(profile.consultationFee[currency]) : ""}
+              edit={editMode}
+              onChange={(v) =>
+                setProfile((p) => ({
+                  ...p,
+                  consultationFee: { bdt: null, usd: null, ...p.consultationFee, [currency]: v === "" ? null : Number(v) },
+                }))
+              }
+            />
+          ))}
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium text-on-surface-variant">
               Accepting new clients

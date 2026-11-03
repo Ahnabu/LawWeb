@@ -4,12 +4,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "./api";
+import type { ConsultationFee } from "./fees";
 
 export interface BookableLawyer {
   _id: string;
   name: string;
   barId?: string;
   specialization?: string;
+  consultationFee?: ConsultationFee;
 }
 
 export interface DaySchedule {

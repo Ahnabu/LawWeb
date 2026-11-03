@@ -4,6 +4,7 @@ import User from '../models/User';
 import { cloudinary } from '../config/multer.config';
 import { recordAudit } from '../utils/audit';
 import { normalizeRichText, RICH_TEXT_LIMITS } from '../utils/richText';
+import { consultationFeeSet, parseConsultationFee } from '../utils/consultationFee';
 import type { AuthedRequest as AuthRequest } from '../access/types';
 
 // Cores take an explicit lawyer, so the Phase 3 workspace routes (/:lawyerId)
@@ -45,7 +46,7 @@ const ALLOWED_PROFILE_FIELDS = [
   'firstName', 'lastName', 'designation', 'bio',
   'contactEmail', 'contactPhone', 'whatsappNumber', 'barNumber',
   'yearAdmitted', 'practiceAreas', 'languages', 'education',
-  'certifications', 'hourlyRate', 'isActive',
+  'certifications', 'isActive',
 ];
 
 export const writeLawyerProfile = async (req: AuthRequest, lawyer: LawyerRef, body: Record<string, unknown>) => {
@@ -71,9 +72,17 @@ export const writeLawyerProfile = async (req: AuthRequest, lawyer: LawyerRef, bo
     updates.bio = bio;
   }
 
+  let feeSet: Record<string, unknown> = {};
+  if (body.consultationFee !== undefined) {
+    const fee = parseConsultationFee(body.consultationFee);
+    if (!fee.ok) return { ok: false as const, message: fee.message };
+    feeSet = consultationFeeSet(fee.value);
+  }
+  const hasFee = Object.keys(feeSet).length > 0;
+
   const profile = await LawyerProfile.findOneAndUpdate(
     { userId: lawyer._id },
-    { $set: updates },
+    { $set: { ...updates, ...feeSet }, ...(hasFee && { $unset: { hourlyRate: '' } }) },
     { new: true, upsert: true, runValidators: true }
   );
 
@@ -84,7 +93,7 @@ export const writeLawyerProfile = async (req: AuthRequest, lawyer: LawyerRef, bo
     targetId: lawyer._id,
     targetLabel: lawyer.name,
     summary: auditSummary(req, lawyer, 'updated their public profile', 'updated {lawyer} public profile'),
-    metadata: { fields: Object.keys(updates) },
+    metadata: { fields: [...Object.keys(updates), ...(hasFee ? ['consultationFee'] : [])] },
   });
 
   return { ok: true as const, profile };

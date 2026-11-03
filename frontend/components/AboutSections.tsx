@@ -181,12 +181,14 @@ export function ClientServicesSection({ className = '' }: { className?: string }
               ))}
             </dl>
           )}
+          {/* Fee & timeline note hidden at client's request (Oct 2026).
           <div className="mt-3 flex gap-3 rounded-lg bg-(--hero-to) px-5 py-4">
             <Check className="mt-0.5 h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
             <p className="text-sm leading-6 text-white/90">
               <span className="font-semibold text-secondary">{t('about.foreign.noteTitle')}</span> {t('about.foreign.noteText')}
             </p>
           </div>
+          */}
         </div>
 
         <div className="lg:pl-10">

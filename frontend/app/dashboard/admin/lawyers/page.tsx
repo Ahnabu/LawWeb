@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Plus, X, ShieldCheck, ShieldOff, Pencil, User,
-  GripVertical, ChevronUp, ChevronDown, Loader2,
+  GripVertical, ChevronUp, ChevronDown, Loader2, Camera,
   Ban, LockOpen, Archive, CalendarX, UserX, RotateCcw, AlertTriangle, UsersRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,9 +23,15 @@ import { summarizePermissions } from "../../../../lib/delegation";
 import {
   addAdminLawyer, blockAdminUser, deleteAdminLawyer, getAdminLawyerDetails, getAdminLawyers,
   getLawyerDeletionImpact, reorderAdminLawyers, restoreAdminLawyer, toggleLawyerVerification, unblockAdminUser,
-  updateAdminLawyer,
+  updateAdminLawyer, uploadAdminLawyerPhoto,
   type AdminLawyer, type AdminLawyerCounts, type AdminLawyerDetails, type LawyerDeletionImpact,
 } from "../../../../lib/dashboard";
+import { compressImage } from "../../../../lib/imageCompression";
+import { formatFee } from "../../../../lib/fees";
+
+// Matches the backend profile-photo upload (Cloudinary crops it to 500×500)
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 
 interface LawyerFormValues {
   name: string;
@@ -35,15 +41,28 @@ interface LawyerFormValues {
   specialization: string;
   designationEn: string;
   designationBn: string;
+  feeBdt: string;
+  feeUsd: string;
 }
 
 type FormErrors = Partial<Record<keyof LawyerFormValues, string>>;
 
 const EMPTY_FORM: LawyerFormValues = {
   name: "", email: "", phone: "", barId: "", specialization: "", designationEn: "", designationBn: "",
+  feeBdt: "", feeUsd: "",
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FEE_MAX = 10_000_000;
+
+const feeError = (value: string) => {
+  if (!value.trim()) return undefined;
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 && amount <= FEE_MAX ? undefined : "Enter an amount from 0 to 10,000,000.";
+};
+
+// "" clears the fee
+const toFee = (value: string) => (value.trim() ? Number(value) : null);
 const PHONE_PATTERN = /^[+\d][\d\s()-]{4,29}$/;
 
 function validateLawyerForm(values: LawyerFormValues): FormErrors {
@@ -57,6 +76,8 @@ function validateLawyerForm(values: LawyerFormValues): FormErrors {
   if (values.specialization.trim().length > 200) errors.specialization = "Keep it under 200 characters.";
   if (values.designationEn.trim().length > 120) errors.designationEn = "Keep it under 120 characters.";
   if (values.designationBn.trim().length > 120) errors.designationBn = "Keep it under 120 characters.";
+  errors.feeBdt = feeError(values.feeBdt);
+  errors.feeUsd = feeError(values.feeUsd);
   return errors;
 }
 
@@ -519,6 +540,7 @@ export default function AdminLawyersPage() {
                   <DetailRow label="Phone" value={detailsLawyer.phone || "—"} />
                   <DetailRow label="Bar ID" value={detailsLawyer.barId || "—"} />
                   <DetailRow label="Specialization" value={detailsLawyer.specialization || "—"} />
+                  <DetailRow label="Consultation fee" value={formatFee(detailsLawyer.consultationFee) || "Not set"} />
                   <DetailRow
                     label="Public order"
                     value={`#${lawyers.findIndex((l) => l._id === detailsLawyer._id) + 1 || "—"}${isPublic(detailsLawyer) ? "" : " (hidden)"}`}
@@ -973,12 +995,54 @@ function LawyerFormModal({
     specialization: lawyer.specialization ?? "",
     designationEn: lawyer.designation?.en ?? "",
     designationBn: lawyer.designation?.bn ?? "",
+    feeBdt: lawyer.consultationFee?.bdt != null ? String(lawyer.consultationFee.bdt) : "",
+    feeUsd: lawyer.consultationFee?.usd != null ? String(lawyer.consultationFee.usd) : "",
   } : EMPTY_FORM), [lawyer]);
 
   const [form, setForm] = useState<LawyerFormValues>(initial);
   const [errors, setErrors] = useState<FormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // A new photo is uploaded on submit, after the account exists
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
+
+  const clearPhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+    setPhotoError(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const source = e.target.files?.[0];
+    if (!source) return;
+    setPhotoError(null);
+    if (!PHOTO_TYPES.includes(source.type)) {
+      setPhotoError("Choose a JPG, PNG or WebP image.");
+      e.target.value = "";
+      return;
+    }
+    setIsPreparingPhoto(true);
+    try {
+      const { file } = await compressImage(source, { maxWidth: 1000, maxHeight: 1000 });
+      if (file.size > PHOTO_MAX_BYTES) {
+        setPhotoError("The photo must be 5 MB or smaller.");
+        e.target.value = "";
+        return;
+      }
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    } finally {
+      setIsPreparingPhoto(false);
+    }
+  };
 
   const set = (key: keyof LawyerFormValues) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -1008,25 +1072,63 @@ function LawyerFormModal({
         if (trimmed.designationEn !== initial.designationEn.trim() || trimmed.designationBn !== initial.designationBn.trim()) {
           payload.designation = { en: trimmed.designationEn, bn: trimmed.designationBn };
         }
-        if (Object.keys(payload).length === 0) {
+        if (trimmed.feeBdt !== initial.feeBdt.trim() || trimmed.feeUsd !== initial.feeUsd.trim()) {
+          payload.consultationFee = { bdt: toFee(trimmed.feeBdt), usd: toFee(trimmed.feeUsd) };
+        }
+        const hasDetails = Object.keys(payload).length > 0;
+        if (!hasDetails && !photo) {
           toast.info("No changes to save");
           onClose();
           return;
         }
-        const { message, data } = await updateAdminLawyer(lawyer._id, payload);
+        let saved = lawyer;
+        let message = "";
+        if (hasDetails) {
+          const updated = await updateAdminLawyer(lawyer._id, payload);
+          saved = updated.data;
+          message = updated.message;
+        }
+        if (photo) {
+          try {
+            const uploaded = await uploadAdminLawyerPhoto(lawyer._id, photo);
+            saved = uploaded.data;
+            message = hasDetails ? `${saved.name}'s details and photo were updated` : uploaded.message;
+          } catch (err) {
+            // Nothing was saved: let the outer handler show it in the form
+            if (!hasDetails) throw err;
+            toast.error(err instanceof Error ? `Details saved, but the photo was not uploaded: ${err.message}` : "Photo was not uploaded");
+            onSaved(saved, "edit");
+            return;
+          }
+        }
         toast.success(message || "Lawyer updated");
-        onSaved(data, "edit");
+        onSaved(saved, "edit");
       } else {
         const { message, data, emailSent } = await addAdminLawyer({
           name: trimmed.name, email: trimmed.email, phone: trimmed.phone,
           barId: trimmed.barId, specialization: trimmed.specialization,
         });
         let saved = data;
+        // Designation and fee live on the public profile, saved once the account exists
+        const profileFields: Record<string, unknown> = {};
         if (trimmed.designationEn || trimmed.designationBn) {
+          profileFields.designation = { en: trimmed.designationEn, bn: trimmed.designationBn };
+        }
+        if (trimmed.feeBdt || trimmed.feeUsd) {
+          profileFields.consultationFee = { bdt: toFee(trimmed.feeBdt), usd: toFee(trimmed.feeUsd) };
+        }
+        if (Object.keys(profileFields).length) {
           try {
-            saved = (await updateAdminLawyer(data._id, { designation: { en: trimmed.designationEn, bn: trimmed.designationBn } })).data;
+            saved = (await updateAdminLawyer(data._id, profileFields)).data;
           } catch (err) {
-            toast.error(err instanceof Error ? `Lawyer created, but the designation was not saved: ${err.message}` : "Designation was not saved");
+            toast.error(err instanceof Error ? `Lawyer created, but the designation and fee were not saved: ${err.message}` : "Designation and fee were not saved");
+          }
+        }
+        if (photo) {
+          try {
+            saved = (await uploadAdminLawyerPhoto(data._id, photo)).data;
+          } catch (err) {
+            toast.error(err instanceof Error ? `Lawyer created, but the photo was not uploaded: ${err.message}` : "Photo was not uploaded");
           }
         }
         if (emailSent) toast.success(message);
@@ -1047,7 +1149,7 @@ function LawyerFormModal({
   const field = (
     key: keyof LawyerFormValues,
     label: string,
-    opts: { type?: string; placeholder?: string; required?: boolean; wide?: boolean; lang?: string; autoComplete?: string; disabled?: boolean; hint?: string } = {},
+    opts: { type?: string; placeholder?: string; required?: boolean; wide?: boolean; lang?: string; autoComplete?: string; disabled?: boolean; hint?: string; inputMode?: "decimal" } = {},
   ) => (
     <label className={`block ${opts.wide ? "sm:col-span-2" : ""}`}>
       <span className="label">{label} {opts.required && <span className="text-error">*</span>}</span>
@@ -1056,6 +1158,7 @@ function LawyerFormModal({
         value={form[key]}
         onChange={set(key)}
         lang={opts.lang}
+        inputMode={opts.inputMode}
         autoComplete={opts.autoComplete ?? "off"}
         aria-invalid={Boolean(errors[key])}
         className={fieldClass(key)}
@@ -1087,6 +1190,57 @@ function LawyerFormModal({
           <p role="alert" className="notice notice-error">{formError}</p>
         )}
 
+        {/* Profile photo */}
+        <div className="flex items-center gap-4">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-outline-variant bg-surface-raised">
+            {photoPreview || lawyer?.profileImageUrl ? (
+              <Image
+                src={photoPreview ?? lawyer!.profileImageUrl!}
+                alt={photoPreview ? "New photo preview" : `${lawyer?.name ?? "Lawyer"}'s photo`}
+                fill
+                sizes="80px"
+                unoptimized={Boolean(photoPreview)}
+                className="object-cover"
+              />
+            ) : (
+              <div aria-hidden="true" className="monogram h-full w-full rounded-none border-0 text-2xl">
+                {form.name.trim().charAt(0).toUpperCase() || <User className="h-7 w-7" />}
+              </div>
+            )}
+            {isPreparingPhoto && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2 className="h-5 w-5 animate-spin text-white" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <span className="label mb-0">Profile Photo</span>
+            <div className="flex flex-wrap gap-2">
+              <label className={`btn btn-secondary btn-sm cursor-pointer ${isSubmitting || isPreparingPhoto ? "pointer-events-none opacity-60" : ""}`}>
+                <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+                {photoPreview || lawyer?.profileImageUrl ? "Change Photo" : "Upload Photo"}
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(e) => void handlePhotoChange(e)}
+                  disabled={isSubmitting || isPreparingPhoto}
+                />
+              </label>
+              {photo && (
+                <button type="button" onClick={clearPhoto} disabled={isSubmitting} className="btn btn-ghost btn-sm">
+                  {lawyer?.profileImageUrl ? "Keep current" : "Remove"}
+                </button>
+              )}
+            </div>
+            <span className="block text-xs text-on-surface-variant">
+              {photo ? "Uploaded when you save. " : ""}JPG, PNG or WebP, up to 5 MB. Shown cropped to a square.
+            </span>
+            {photoError && <span role="alert" className="error-text block">{photoError}</span>}
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           {field("name", "Full Name", { required: true, wide: true, placeholder: "Lawyer's full name" })}
           {field("email", "Email Address", {
@@ -1098,6 +1252,11 @@ function LawyerFormModal({
           {field("specialization", "Specialization", { wide: true, placeholder: "e.g. Immigration & Corporate Law" })}
           {field("designationEn", "Designation (English)", { placeholder: "e.g. Senior Advocate" })}
           {field("designationBn", "Designation (বাংলা)", { lang: "bn", placeholder: "যেমন: সিনিয়র অ্যাডভোকেট" })}
+          {field("feeBdt", "Consultation Fee (৳ BDT)", { inputMode: "decimal", placeholder: "e.g. 5000" })}
+          {field("feeUsd", "Consultation Fee ($ USD)", { inputMode: "decimal", placeholder: "e.g. 50" })}
+          <p className="-mt-2 text-xs text-on-surface-variant sm:col-span-2">
+            Shown on the lawyer&apos;s card, profile and the booking button. Leave blank to hide. The lawyer can also change it from their profile.
+          </p>
         </div>
 
         </div>
@@ -1106,7 +1265,7 @@ function LawyerFormModal({
             className="btn btn-ghost">
             Cancel
           </button>
-          <button type="submit" disabled={isSubmitting}
+          <button type="submit" disabled={isSubmitting || isPreparingPhoto}
             className="btn btn-primary">
             {isSubmitting ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save Changes" : "Create Lawyer Account"}
           </button>
