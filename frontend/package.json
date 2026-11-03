@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/snapshot-content.mjs",
+    "prebuild": "node scripts/snapshot-content.mjs && node scripts/copy-flags.mjs",
+    "flags": "node scripts/copy-flags.mjs",
     "build": "next build",
     "snapshot:content": "node scripts/snapshot-content.mjs",
     "start": "next start",

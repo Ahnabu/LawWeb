@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import Image from "next/image";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { countryOptions, type CountryOption } from "../lib/phone";
 
@@ -16,6 +18,27 @@ type PhoneFieldProps = {
   id?: string;
   placeholder?: string;
 };
+
+/** Height the list takes when it is fully open. */
+const MENU_HEIGHT = 320;
+/** Gap between the field and the list. */
+const MENU_GAP = 4;
+/** Height of the search row at the top of the list. */
+const MENU_HEADER = 62;
+
+/** The flag of a country, drawn from the copies in public/flags. */
+function CountryFlag({ code }: { code: string }) {
+  return (
+    <Image
+      src={`/flags/${code.toLowerCase()}.svg`}
+      alt=""
+      width={20}
+      height={15}
+      aria-hidden="true"
+      className="h-3.5 w-5 shrink-0 rounded-[2px] object-cover ring-1 ring-outline-variant"
+    />
+  );
+}
 
 /**
  * A country picker with a national number box next to it. The two parts are
@@ -35,8 +58,14 @@ export function PhoneCountryField({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [menu, setMenu] = useState<{ left: number; top: number; width: number; height: number } | null>(
+    null,
+  );
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -49,10 +78,27 @@ export function PhoneCountryField({
     );
   }, [query]);
 
+  // The list opens above the field. It is placed on the page (not inside the
+  // form card) so the scrolling form column cannot clip it.
+  const placeMenu = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.min(320, window.innerWidth - 48);
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const opensUp = spaceAbove >= MENU_HEIGHT || spaceAbove >= spaceBelow;
+    const room = Math.max(160, Math.min(MENU_HEIGHT, (opensUp ? spaceAbove : spaceBelow) - MENU_GAP));
+    const top = opensUp ? rect.top - room - MENU_GAP : rect.bottom + MENU_GAP;
+    setMenu({ left, top: Math.max(8, top), width, height: room });
+  }, []);
+
   const open = () => {
     setIsOpen(true);
     setQuery("");
     setActiveIndex(0);
+    placeMenu();
     // The search box needs the focus after the list is on screen
     window.setTimeout(() => searchRef.current?.focus(), 0);
   };
@@ -60,7 +106,20 @@ export function PhoneCountryField({
   const close = () => {
     setIsOpen(false);
     setQuery("");
+    triggerRef.current?.focus();
   };
+
+  // Keep the list where it belongs when the page moves under it.
+  useEffect(() => {
+    if (!isOpen) return;
+    const reposition = () => placeMenu();
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    return () => {
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [isOpen, placeMenu]);
 
   const pick = (option: CountryOption) => {
     onCountryChange(option);
@@ -89,10 +148,80 @@ export function PhoneCountryField({
     }
   };
 
+  const list = (
+    <div
+      className="fixed z-50 overflow-hidden rounded-lg border border-outline-variant bg-surface-raised shadow-xl"
+      style={{
+        left: menu?.left ?? 0,
+        top: menu?.top ?? 0,
+        width: menu?.width ?? 320,
+      }}
+      onKeyDown={onKeyDown}
+    >
+      <div className="border-b border-outline-variant p-2">
+        <div className="relative">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-on-surface-variant"
+          />
+          <input
+            ref={searchRef}
+            type="search"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActiveIndex(0);
+            }}
+            placeholder="Search a country"
+            aria-label="Search a country"
+            className="field field-sm pl-8"
+          />
+        </div>
+      </div>
+
+      <ul
+        id={listId}
+        role="listbox"
+        className="overflow-y-auto py-1"
+        style={{ maxHeight: Math.max(80, (menu?.height ?? MENU_HEIGHT) - MENU_HEADER) }}
+      >
+        {filtered.length === 0 && (
+          <li className="px-3 py-3 text-sm text-on-surface-variant">No country found</li>
+        )}
+        {filtered.map((option, index) => (
+          <li key={option.code}>
+            <button
+              type="button"
+              role="option"
+              aria-selected={option.code === country.code}
+              onClick={() => pick(option)}
+              onMouseEnter={() => setActiveIndex(index)}
+              className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                index === activeIndex ? "bg-surface-container" : ""
+              }`}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <CountryFlag code={option.code} />
+                <span className="truncate text-on-surface">{option.name}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="text-on-surface-variant">{option.dialCode}</span>
+                {option.code === country.code && (
+                  <Check aria-hidden="true" className="h-3.5 w-3.5 text-secondary" />
+                )}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative">
       <div className="flex gap-2">
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => (isOpen ? close() : open())}
           onKeyDown={(event) => {
@@ -105,13 +234,14 @@ export function PhoneCountryField({
           aria-expanded={isOpen}
           aria-controls={listId}
           disabled={disabled}
-          className={`field flex w-auto min-w-28 max-w-[50%] shrink-0 items-center justify-between gap-2 text-left ${
+          className={`field flex w-auto min-w-32 max-w-[50%] shrink-0 items-center justify-between gap-2 text-left ${
             invalid ? "field-invalid" : ""
           }`}
         >
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-2">
+            <CountryFlag code={country.code} />
             <span className="font-semibold text-on-surface">{country.dialCode}</span>
-            <span className="max-w-24 truncate text-sm text-on-surface-variant">{country.code}</span>
+            <span className="max-w-16 truncate text-sm text-on-surface-variant">{country.code}</span>
           </span>
           <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-on-surface-variant" />
         </button>
@@ -130,71 +260,22 @@ export function PhoneCountryField({
         />
       </div>
 
-      {isOpen && (
-        <>
-          {/* Clicking outside closes the list */}
-          <button
-            type="button"
-            aria-label="Close the country list"
-            tabIndex={-1}
-            onClick={close}
-            className="fixed inset-0 z-40 cursor-default"
-          />
-          <div
-            className="absolute left-0 z-50 mt-1 w-[min(20rem,calc(100vw-3rem))] overflow-hidden rounded-lg border border-outline-variant bg-surface-raised shadow-xl"
-            onKeyDown={onKeyDown}
-          >
-            <div className="border-b border-outline-variant p-2">
-              <div className="relative">
-                <Search
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-on-surface-variant"
-                />
-                <input
-                  ref={searchRef}
-                  type="search"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setActiveIndex(0);
-                  }}
-                  placeholder="Search a country"
-                  aria-label="Search a country"
-                  className="field field-sm pl-8"
-                />
-              </div>
-            </div>
-
-            <ul id={listId} role="listbox" className="max-h-64 overflow-y-auto py-1">
-              {filtered.length === 0 && (
-                <li className="px-3 py-3 text-sm text-on-surface-variant">No country found</li>
-              )}
-              {filtered.map((option, index) => (
-                <li key={option.code}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={option.code === country.code}
-                    onClick={() => pick(option)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                      index === activeIndex ? "bg-surface-container" : ""
-                    }`}
-                  >
-                    <span className="truncate text-on-surface">{option.name}</span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      <span className="text-on-surface-variant">{option.dialCode}</span>
-                      {option.code === country.code && (
-                        <Check aria-hidden="true" className="h-3.5 w-3.5 text-secondary" />
-                      )}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
+      {isOpen &&
+        mounted &&
+        createPortal(
+          <>
+            {/* Clicking outside closes the list */}
+            <button
+              type="button"
+              aria-label="Close the country list"
+              tabIndex={-1}
+              onClick={close}
+              className="fixed inset-0 z-40 cursor-default"
+            />
+            {list}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
