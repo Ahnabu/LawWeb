@@ -29,6 +29,7 @@ export const SEO_PAGE_PATHS: Record<SeoPageKey, string> = {
 export const SINGLE_LANGUAGE_SEO_PATHS = {
   lawyers: '/lawyers',
   appointment: '/appointment',
+  careers: '/careers',
 } as const
 
 type SingleLanguagePageKey = keyof typeof SINGLE_LANGUAGE_SEO_PATHS

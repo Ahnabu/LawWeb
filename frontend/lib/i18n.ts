@@ -11,6 +11,7 @@ const translationBundle = {
       practiceAreas: "Practice Areas",
       blogs: "Blog",
       gallery: "Gallery",
+      careers: "Careers",
       caseTracker: "Case Tracker",
       appointment: "Appointment",
       contact: "Contact",
@@ -249,6 +250,9 @@ const translationBundle = {
           "Search talented lawyers by name or specialty and find an experienced advocate for your case.",
         bookConsultation: "Book a Consultation",
         loadMoreLawyers: "Load More Lawyers",
+        staffHeading: "Our Admins and Staff",
+        staffSubtitle:
+          "Meet the people who keep the firm running day to day. They are here to help you with every step of your matter.",
       },
       lawyerDetails: {
         breadcrumb: "Home > Our Lawyers >",
@@ -675,6 +679,46 @@ const translationBundle = {
       openFullPhoto: "Open original image",
       descriptionLabel: "Description",
     },
+    // ── Careers (app/careers) ──────────────────────────────────────────────
+    // The openings themselves come from the admin Careers page; this is the
+    // page around them.
+    careersPage: {
+      label: "Careers",
+      title: "Build Your Career With Us",
+      subtitle:
+        "We are always looking for talented people. Browse our current openings and find the role that fits you.",
+      searchPlaceholder: "Search by title, department or location",
+      allDepartments: "All",
+      opening: "opening",
+      openings: "openings",
+      noOpenings: "There are no open positions right now. Please check back soon.",
+      loadError: "We couldn't load the openings. Please try again later.",
+      viewDetails: "View Details",
+      publishedOn: "Posted",
+      backToCareers: "Back to all openings",
+      aboutTheRole: "About the Role",
+      requirementsHeading: "Requirements",
+      howToApply: "How to Apply",
+      applyByEmail: "Send your CV by email",
+      applicationNote: "Attach your CV and, if you have one, a short cover letter.",
+      sendCv: "Send an email",
+      applyOnline: "Apply online",
+      location: "Location",
+      experience: "Experience",
+      salary: "Salary",
+      deadline: "Deadline",
+      employmentTypes: {
+        "full-time": "Full time",
+        "part-time": "Part time",
+        contract: "Contract",
+        internship: "Internship",
+      },
+      workplaceTypes: {
+        "on-site": "On site",
+        hybrid: "Hybrid",
+        remote: "Remote",
+      },
+    },
     seo: {
       home: {
         title: "Islam & Associates International | Law Firm in Dhaka, Bangladesh",
@@ -712,6 +756,10 @@ const translationBundle = {
         title: "Book a Legal Consultation | Islam & Associates International",
         description: "Book a consultation with a lawyer at Islam & Associates International in Dhaka. Choose a lawyer and a time, or message us on WhatsApp for a quick reply.",
       },
+      careers: {
+        title: "Careers | Islam & Associates International",
+        description: "Current openings at Islam & Associates International in Dhaka, Bangladesh. Browse the roles we are hiring for, read the requirements and apply by email or online.",
+      },
       gallery: {
         title: "Photo Gallery | Islam & Associates International",
         description: "Photos from Islam & Associates International: our chambers in Dhaka, our lawyers and the events we take part in.",
@@ -726,6 +774,7 @@ const translationBundle = {
       practiceAreas: "অভিজ্ঞতা",
       blogs: "ব্লগ",
       gallery: "গ্যালারি",
+      careers: "ক্যারিয়ার",
       caseTracker: "কেস ট্র্যাকার",
       appointment: "অ্যাপয়েন্টমেন্ট",
       contact: "যোগাযোগ",
@@ -960,6 +1009,9 @@ const translationBundle = {
           "নাম বা বিশেষত্ব দ্বারা দক্ষ আইনজীবী অনুসন্ধান করুন এবং একটি অভিজ্ঞ প্রতিরক্ষা পান।",
         bookConsultation: "একটি পরামর্শ বুক করুন",
         loadMoreLawyers: "আরও আইনজীবী দেখুন",
+        staffHeading: "আমাদের অ্যাডমিন ও স্টাফ",
+        staffSubtitle:
+          "আমাদের দৈনন্দিন কাজ সামলানো মানুষদের সাথে পরিচিত হন। আপনার যেকোনো বিষয়ে তারা সাহায্য করতে প্রস্তুত।",
       },
       lawyerDetails: {
         breadcrumb: "হোম > আমাদের আইনজীবী >",
@@ -1380,6 +1432,44 @@ const translationBundle = {
       openFullPhoto: "মূল ছবি খুলুন",
       descriptionLabel: "বিবরণ",
     },
+    // ── Careers (app/careers) ──────────────────────────────────────────────
+    careersPage: {
+      label: "ক্যারিয়ার",
+      title: "আমাদের সাথে আপনার ক্যারিয়ার গড়ুন",
+      subtitle:
+        "আমরা সবসময় দক্ষ মানুষ খুঁজি। আমাদের চলতি পদের তালিকা দেখুন এবং আপনার জন্য উপযুক্ত ভূমিকাটি খুঁজুন।",
+      searchPlaceholder: "পদের নাম, বিভাগ বা ঠিকানা দিয়ে খুঁজুন",
+      allDepartments: "সব",
+      opening: "টি পদ",
+      openings: "টি পদ",
+      noOpenings: "এই মুহূর্তে কোনো পদ খোলা নেই। কিছুক্ষণ পরে আবার দেখুন।",
+      loadError: "পদের তালিকা লোড করা যায়নি। পরে আবার চেষ্টা করুন।",
+      viewDetails: "বিস্তারিত দেখুন",
+      publishedOn: "প্রকাশের তারিখ",
+      backToCareers: "সব পদে ফিরে যান",
+      aboutTheRole: "পদ সম্পর্কে",
+      requirementsHeading: "যোগ্যতা",
+      howToApply: "আবেদনের নিয়ম",
+      applyByEmail: "ইমেইলে সিভি পাঠান",
+      applicationNote: "আপনার সিভি এবং থাকলে একটি সংক্ষিপ্ত কভার লেটার সংযুক্ত করুন।",
+      sendCv: "ইমেইল পাঠান",
+      applyOnline: "অনলাইনে আবেদন করুন",
+      location: "ঠিকানা",
+      experience: "অভিজ্ঞতা",
+      salary: "বেতন",
+      deadline: "শেষ তারিখ",
+      employmentTypes: {
+        "full-time": "ফুল টাইম",
+        "part-time": "পার্ট টাইম",
+        contract: "কন্ট্রাক্ট",
+        internship: "ইন্টার্নশিপ",
+      },
+      workplaceTypes: {
+        "on-site": "অফিসে",
+        hybrid: "হাইব্রিড",
+        remote: "রিমোট",
+      },
+    },
     seo: {
       home: {
         title: "ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল | ঢাকা, বাংলাদেশের শীর্ষস্থানীয় আইন প্রতিষ্ঠান",
@@ -1416,6 +1506,10 @@ const translationBundle = {
       appointment: {
         title: "আইনি পরামর্শ বুক করুন | ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল",
         description: "ঢাকার ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনালের একজন আইনজীবীর সাথে পরামর্শ বুক করুন। আইনজীবী ও সময় বেছে নিন, অথবা দ্রুত উত্তরের জন্য হোয়াটসঅ্যাপে লিখুন।",
+      },
+      careers: {
+        title: "ক্যারিয়ার | ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল",
+        description: "ঢাকার আইন প্রতিষ্ঠান ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনালের চলতি পদের তালিকা। আমরা যে পদে নিয়োগ করছি তা দেখুন, যোগ্যতা পড়ুন এবং ইমেইল বা অনলাইনে আবেদন করুন।",
       },
       gallery: {
         title: "ছবির গ্যালারি | ইসলাম অ্যান্ড অ্যাসোসিয়েটস ইন্টারন্যাশনাল",

@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { getPublishedBlogSummaries } from '../lib/blogs'
 import { getPublicLawyerIds } from '../lib/lawyers'
 import { getPublicGallery } from '../lib/gallery'
+import { getPublishedCareerSummaries } from '../lib/careers'
 import { getSiteUrl, languageAlternates, localizePath } from '../lib/locale'
 import { SEO_PAGE_PATHS, SINGLE_LANGUAGE_SEO_PATHS } from '../lib/seo'
 
@@ -17,10 +18,11 @@ export const revalidate = 300
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = getSiteUrl()
   const absolute = (path: string) => `${site}${path === '/' ? '' : path}`
-  const [blogs, lawyerIds, galleryImages] = await Promise.all([
+  const [blogs, lawyerIds, galleryImages, careers] = await Promise.all([
     getPublishedBlogSummaries(),
     getPublicLawyerIds(),
     getPublicGallery().catch(() => []),
+    getPublishedCareerSummaries(),
   ])
 
   const now = new Date()
@@ -63,6 +65,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'monthly' as const,
         priority: 0.7,
         ...(blog.coverImageUrl ? { images: [blog.coverImageUrl] } : {}),
+      }
+    }),
+    ...careers.map((career) => {
+      const date = career.publishedAt ?? career.createdAt
+      return {
+        url: absolute(`/careers/${encodeURIComponent(career.slug)}`),
+        lastModified: date ? new Date(date) : now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
       }
     }),
   ]

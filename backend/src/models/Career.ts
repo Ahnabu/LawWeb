@@ -15,11 +15,13 @@ export interface ICareer extends Document {
   salary?: string;
   deadline?: Date | null;
   status: CareerStatus;
+  // Both are rich text (HTML from the dashboard editor)
   description: string;
-  requirements: string; // Stored HTML / formatted text
-  attachmentUrl?: string;
-  attachmentName?: string;
+  requirements: string;
+  // How to apply: where the CV goes (an email address or a form link)
   applicationEmail?: string;
+  applicationUrl?: string;
+  // The steps shown under "How to apply" (rich text)
   applicationInstructions?: string;
   authorId: mongoose.Types.ObjectId;
   authorName: string;
@@ -55,9 +57,8 @@ const CareerSchema: Schema = new Schema(
     },
     description: { type: String, required: true, trim: true },
     requirements: { type: String, required: true, trim: true },
-    attachmentUrl: { type: String, trim: true, default: '' },
-    attachmentName: { type: String, trim: true, default: '' },
     applicationEmail: { type: String, trim: true, default: '' },
+    applicationUrl: { type: String, trim: true, default: '' },
     applicationInstructions: { type: String, trim: true, default: '' },
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     authorName: { type: String, required: true, trim: true },

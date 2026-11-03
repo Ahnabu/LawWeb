@@ -215,6 +215,95 @@ export declare const reorderGallerySchema: z.ZodObject<{
         order: z.ZodArray<z.ZodString>;
     }, z.core.$strip>;
 }, z.core.$strip>;
+export declare const createTeamMemberSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodString;
+        role: z.ZodString;
+        photoUrl: z.ZodOptional<z.ZodString>;
+        phone: z.ZodOptional<z.ZodString>;
+        email: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+        bio: z.ZodOptional<z.ZodString>;
+        isVisible: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateTeamMemberSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodOptional<z.ZodString>;
+        role: z.ZodOptional<z.ZodString>;
+        photoUrl: z.ZodOptional<z.ZodString>;
+        phone: z.ZodOptional<z.ZodString>;
+        email: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+        bio: z.ZodOptional<z.ZodString>;
+        isVisible: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const reorderTeamMembersSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        order: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const createCareerSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        title: z.ZodString;
+        department: z.ZodOptional<z.ZodString>;
+        employmentType: z.ZodOptional<z.ZodEnum<{
+            "full-time": "full-time";
+            "part-time": "part-time";
+            contract: "contract";
+            internship: "internship";
+        }>>;
+        workplaceType: z.ZodOptional<z.ZodEnum<{
+            "on-site": "on-site";
+            hybrid: "hybrid";
+            remote: "remote";
+        }>>;
+        location: z.ZodOptional<z.ZodString>;
+        experience: z.ZodOptional<z.ZodString>;
+        salary: z.ZodOptional<z.ZodString>;
+        deadline: z.ZodOptional<z.ZodString>;
+        description: z.ZodString;
+        requirements: z.ZodString;
+        applicationEmail: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+        applicationUrl: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+        applicationInstructions: z.ZodOptional<z.ZodString>;
+        status: z.ZodOptional<z.ZodEnum<{
+            draft: "draft";
+            published: "published";
+            closed: "closed";
+        }>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateCareerSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        title: z.ZodOptional<z.ZodString>;
+        department: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        employmentType: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+            "full-time": "full-time";
+            "part-time": "part-time";
+            contract: "contract";
+            internship: "internship";
+        }>>>;
+        workplaceType: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+            "on-site": "on-site";
+            hybrid: "hybrid";
+            remote: "remote";
+        }>>>;
+        location: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        experience: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        salary: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        deadline: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        description: z.ZodOptional<z.ZodString>;
+        requirements: z.ZodOptional<z.ZodString>;
+        applicationEmail: z.ZodOptional<z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>>;
+        applicationUrl: z.ZodOptional<z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>>;
+        applicationInstructions: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        status: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+            draft: "draft";
+            published: "published";
+            closed: "closed";
+        }>>>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
 export declare const formatZodIssues: (error: z.ZodError) => {
     field: string;
     message: string;

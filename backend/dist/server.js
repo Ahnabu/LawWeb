@@ -25,6 +25,8 @@ const blogs_1 = __importDefault(require("./routes/blogs"));
 const content_1 = __importDefault(require("./routes/content"));
 const contact_1 = __importDefault(require("./routes/contact"));
 const gallery_1 = __importDefault(require("./routes/gallery"));
+const team_1 = __importDefault(require("./routes/team"));
+const careers_1 = __importDefault(require("./routes/careers"));
 const access_1 = __importDefault(require("./routes/access"));
 const workspace_1 = __importDefault(require("./routes/workspace"));
 const security_1 = require("./middleware/security");
@@ -228,6 +230,8 @@ app.use("/api/blogs", blogs_1.default);
 app.use("/api/content", content_1.default);
 app.use("/api/contact", contact_1.default);
 app.use("/api/gallery", gallery_1.default);
+app.use("/api/team", team_1.default);
+app.use("/api/careers", careers_1.default);
 app.use("/api/access", access_1.default);
 app.use("/api/workspace/:lawyerId", workspace_1.default);
 // Error handling middleware

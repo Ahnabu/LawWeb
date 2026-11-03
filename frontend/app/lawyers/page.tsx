@@ -7,6 +7,7 @@ import { Footer } from '../../components/Footer'
 import { Navbar } from '../../components/Navbar'
 import { WhatsAppCta } from '../../components/WhatsAppCta'
 import { LawyerPublicCard, type PublicLawyer } from '../../components/LawyerPublicCard'
+import { TeamMemberCard, type PublicTeamMember } from '../../components/TeamMemberCard'
 import { useLanguage } from '../../components/LanguageProvider'
 import { API_BASE_URL } from '../../lib/api'
 
@@ -16,6 +17,7 @@ export default function LawyersPage() {
   const [filtered, setFiltered] = useState<PublicLawyer[]>([])
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [team, setTeam] = useState<PublicTeamMember[]>([])
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/lawyers/public`)
@@ -40,6 +42,14 @@ export default function LawyersPage() {
       ),
     )
   }, [search, lawyers])
+
+  // The admins and staff sit below the lawyers and are not part of that search.
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/team`)
+      .then((r) => r.json())
+      .then((d) => setTeam(d.data ?? []))
+      .catch(() => {})
+  }, [])
 
   return (
     <main className="min-h-screen bg-surface text-on-surface">
@@ -84,6 +94,23 @@ export default function LawyersPage() {
             filtered.map((lawyer) => <LawyerPublicCard key={lawyer._id} {...lawyer} />)
           )}
         </div>
+
+        {/* Our admins and staff */}
+        {team.length > 0 && (
+          <div className="mx-auto mt-16 max-w-6xl">
+            <h2 className="font-display text-2xl font-semibold text-heading sm:text-3xl">
+              {t('common.lawyersPage.staffHeading')}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant sm:text-base">
+              {t('common.lawyersPage.staffSubtitle')}
+            </p>
+            <div className="mt-8 grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {team.map((member) => (
+                <TeamMemberCard key={member._id} {...member} />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
       <Footer />
       <WhatsAppCta />

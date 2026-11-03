@@ -505,7 +505,7 @@ const futureWeekday = (offset: number) => {
 
   await staffRow('GET /api/access/catalog', { superAdmin: 200, staffEditor: 200, staffReception: 200, staffAccountant: 200, staffNone: 200 },
     (a) => as(a, 'GET', '/api/access/catalog'),
-    { staffNone: (j) => j.data.permissions.length === 25 && j.data.templates.length === 4 && j.data.delegable.includes('cases.view') && !j.data.delegable.includes('audit.view') });
+    { staffNone: (j) => j.data.permissions.length === 27 && j.data.templates.length === 4 && j.data.delegable.includes('cases.view') && !j.data.delegable.includes('audit.view') });
   const catalogClient = await request('clientA', 'GET', '/api/access/catalog');
   expect(`P2 GET /api/access/catalog :: client -> ${catalogClient.status}`, catalogClient.status === 403);
   const catalogLawyer = await request('lawyerA', 'GET', '/api/access/catalog');

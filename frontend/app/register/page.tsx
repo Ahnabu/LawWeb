@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { safeRedirectPath, signUp } from "../../lib/auth";
 import { AuthShell } from "../../components/AuthShell";
+import { PhoneCountryField } from "../../components/PhoneCountryField";
+import { countryOptions, phoneProblem, toE164, type CountryOption } from "../../lib/phone";
 
 const signUpSteps = [
   "Enter your profile details.",
@@ -22,6 +24,7 @@ function RegisterPageContent() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [country, setCountry] = useState<CountryOption>(() => countryOptions[0]);
   const [barId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
@@ -107,14 +110,10 @@ function RegisterPageContent() {
     if (!phone.trim()) {
       return fail("phone", "Phone number is required");
     }
-    if (
-      !/^(\+?8801[3-9]\d{8}|01[3-9]\d{8})$/.test(phone.replace(/[\s\-()]/g, ""))
-    ) {
-      return fail(
-        "phone",
-        "Enter a valid Bangladeshi phone number, such as +8801XXXXXXXXX",
-      );
-    }
+    // The number is stored in E.164, with the country code the visitor picked
+    const fullPhone = toE164(country.dialCode, phone);
+    const phoneError = phoneProblem(fullPhone);
+    if (phoneError) return fail("phone", phoneError);
 
     setFieldErrors(nextFieldErrors);
     return true;
@@ -138,7 +137,7 @@ function RegisterPageContent() {
         normalizedEmail,
         password,
         role,
-        phone.trim(),
+        toE164(country.dialCode, phone),
         role === "lawyer" ? barId.trim() : undefined,
       );
       if (typeof window !== "undefined") {
@@ -394,23 +393,24 @@ function RegisterPageContent() {
             <span className="label">
               Phone Number <span className="text-error">*</span>
             </span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
+            <PhoneCountryField
+              country={country}
+              onCountryChange={(next) => {
+                setCountry(next);
                 clearFieldError("phone");
               }}
-              required
-              className={fieldClass(fieldErrors.phone)}
-              placeholder="+8801XXXXXXXXX"
+              value={phone}
+              onValueChange={(next) => {
+                setPhone(next);
+                clearFieldError("phone");
+              }}
+              invalid={Boolean(fieldErrors.phone)}
               disabled={isSubmitting}
-              autoComplete="tel"
             />
             {fieldErrors.phone ? (
               <p className="error-text">{fieldErrors.phone}</p>
             ) : (
-              <p className="hint lg:hidden">Valid Bangladeshi number, e.g. +8801712345678</p>
+              <p className="hint">Pick your country, then enter the number in that country&apos;s format.</p>
             )}
           </label>
         </div>

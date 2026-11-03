@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRequest = exports.formatZodIssues = exports.reorderGallerySchema = exports.updateGalleryImageSchema = exports.galleryImageIdSchema = exports.grantDelegationSchema = exports.updateDelegationSchema = exports.inviteAssistantSchema = exports.updateStaffSchema = exports.createStaffSchema = exports.updateRoleSchema = exports.createRoleSchema = exports.auditLogListSchema = exports.auditLogQueryFields = exports.contactMessageSchema = exports.contentRevisionSchema = exports.saveContentDraftSchema = exports.contentPageSchema = exports.changePasswordSchema = exports.resetPasswordSchema = exports.verifyEmailSchema = exports.emailOnlySchema = exports.loginSchema = exports.registerSchema = exports.passwordSchema = void 0;
+exports.validateRequest = exports.formatZodIssues = exports.updateCareerSchema = exports.createCareerSchema = exports.reorderTeamMembersSchema = exports.updateTeamMemberSchema = exports.createTeamMemberSchema = exports.reorderGallerySchema = exports.updateGalleryImageSchema = exports.galleryImageIdSchema = exports.grantDelegationSchema = exports.updateDelegationSchema = exports.inviteAssistantSchema = exports.updateStaffSchema = exports.createStaffSchema = exports.updateRoleSchema = exports.createRoleSchema = exports.auditLogListSchema = exports.auditLogQueryFields = exports.contactMessageSchema = exports.contentRevisionSchema = exports.saveContentDraftSchema = exports.contentPageSchema = exports.changePasswordSchema = exports.resetPasswordSchema = exports.verifyEmailSchema = exports.emailOnlySchema = exports.loginSchema = exports.registerSchema = exports.passwordSchema = void 0;
 const zod_1 = require("zod");
 const contentSchemas_1 = require("../config/contentSchemas");
 const permissions_1 = require("../access/permissions");
+const phone_1 = require("../utils/phone");
 // Shared by register, reset and change password. bcrypt ignores bytes past 72.
 exports.passwordSchema = zod_1.z.string()
     .min(8, 'Password must be at least 8 characters')
@@ -17,7 +18,9 @@ exports.registerSchema = zod_1.z.object({
         password: exports.passwordSchema,
         role: zod_1.z.enum(['lawyer', 'client']).default('client'),
         barId: zod_1.z.string().max(50).optional(),
-        phone: zod_1.z.string().regex(/^(\+?8801[3-9]\d{8}|01[3-9]\d{8})$/, 'Enter a valid Bangladeshi phone number, such as +8801XXXXXXXXX'),
+        // International format with the country calling code (+8801712345678).
+        // The form sends a country code, so any country is accepted here.
+        phone: zod_1.z.string().trim().refine((value) => (0, phone_1.phoneProblem)(value) === null, 'Enter a valid phone number with its country code, such as +8801712345678'),
     }),
 });
 exports.loginSchema = zod_1.z.object({
@@ -177,6 +180,90 @@ exports.reorderGallerySchema = zod_1.z.object({
             .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
     }),
 });
+// ── Public team page (admin + staff members) ─────────────────────────────────
+// The role is free text: the firm writes the job title as it likes.
+const teamRole = zod_1.z.string().trim().min(1, 'Role is required').max(120, 'Role must be at most 120 characters');
+const teamName = zod_1.z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long');
+const teamEmail = zod_1.z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email('Enter a valid email address')
+    .max(254)
+    .optional()
+    .or(zod_1.z.literal(''));
+exports.createTeamMemberSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        name: teamName,
+        role: teamRole,
+        photoUrl: zod_1.z.string().trim().max(500).optional(),
+        phone: staffPhone.optional(),
+        email: teamEmail,
+        bio: zod_1.z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
+        isVisible: zod_1.z.boolean().optional(),
+    }),
+});
+exports.updateTeamMemberSchema = zod_1.z.object({
+    body: zod_1.z
+        .object({
+        name: teamName.optional(),
+        role: teamRole.optional(),
+        photoUrl: zod_1.z.string().trim().max(500).optional(),
+        phone: staffPhone.optional(),
+        email: teamEmail,
+        bio: zod_1.z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
+        isVisible: zod_1.z.boolean().optional(),
+    })
+        .refine((b) => b.name !== undefined ||
+        b.role !== undefined ||
+        b.photoUrl !== undefined ||
+        b.phone !== undefined ||
+        b.email !== undefined ||
+        b.bio !== undefined ||
+        b.isVisible !== undefined, 'Nothing to update'),
+});
+exports.reorderTeamMembersSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        order: zod_1.z
+            .array(objectId)
+            .min(1, 'order must list at least one team member')
+            .max(500)
+            .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
+    }),
+});
+// ── Career openings (admin) ──────────────────────────────────────────────────
+const careerText = (max, label) => zod_1.z.string().trim().max(max, `${label} must be at most ${max} characters`);
+const careerBody = zod_1.z.object({
+    title: zod_1.z.string().trim().min(2, 'Title must be at least 2 characters').max(200, 'Title must be at most 200 characters'),
+    department: zod_1.z.string().trim().min(1, 'Department is required').max(120).optional(),
+    employmentType: zod_1.z.enum(['full-time', 'part-time', 'contract', 'internship']).optional(),
+    workplaceType: zod_1.z.enum(['on-site', 'hybrid', 'remote']).optional(),
+    location: zod_1.z.string().trim().max(120).optional(),
+    experience: zod_1.z.string().trim().max(200).optional(),
+    salary: zod_1.z.string().trim().max(200).optional(),
+    deadline: zod_1.z.string().trim().optional(),
+    description: careerText(5000, 'Description'),
+    requirements: careerText(5000, 'Requirements'),
+    applicationEmail: zod_1.z
+        .string()
+        .trim()
+        .toLowerCase()
+        .email('Enter a valid email address')
+        .max(254)
+        .optional()
+        .or(zod_1.z.literal('')),
+    applicationUrl: zod_1.z
+        .string()
+        .trim()
+        .max(500)
+        .refine((value) => !value || /^https:\/\/[^\s"'()]+$/i.test(value), 'The application link must be an https address')
+        .optional()
+        .or(zod_1.z.literal('')),
+    applicationInstructions: careerText(5000, 'Application instructions').optional(),
+    status: zod_1.z.enum(['draft', 'published', 'closed']).optional(),
+});
+exports.createCareerSchema = zod_1.z.object({ body: careerBody });
+exports.updateCareerSchema = zod_1.z.object({ body: careerBody.partial() });
 const formatZodIssues = (error) => error.issues.map((issue) => ({
     field: issue.path.join('.'),
     message: issue.message,

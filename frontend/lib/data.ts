@@ -4,6 +4,7 @@ export const navLinks = [
   { labelKey: 'nav.practiceAreas', fallback: 'Practice Areas', href: '/practice-areas' },
   { labelKey: 'nav.blogs', fallback: 'Blog', href: '/blogs' },
   { labelKey: 'nav.gallery', fallback: 'Gallery', href: '/gallery' },
+  { labelKey: 'nav.careers', fallback: 'Careers', href: '/careers' },
   { labelKey: 'nav.appointment', fallback: 'Appointment', href: '/appointment' },
   { labelKey: 'nav.contact', fallback: 'Contact', href: '/contact' },
 ]
