@@ -52,6 +52,8 @@ export interface StaffMember {
   email: string
   phone?: string
   role: 'staff'
+  // The photo shown on the public team page
+  profileImageUrl?: string
   // Populated: name (list) or name + permissions (details); null = no role
   staffRoleId: { _id: string; name: string; permissions?: string[] } | null
   isVerified: boolean
@@ -233,4 +235,11 @@ export function revokeStaffDelegation(staffId: string, lawyerId: string): Promis
 
 export function deleteStaff(staffId: string): Promise<Result<{ _id: string }>> {
   return request(`/api/admin/staff/${staffId}`, { method: 'DELETE' }, 'Failed to delete staff member')
+}
+
+/** Sets or replaces the staff member's photo (shown on the public team page) */
+export function uploadStaffPhoto(staffId: string, file: File): Promise<Result<StaffMember>> {
+  const form = new FormData()
+  form.append('image', file)
+  return request<StaffMember>(`/api/admin/staff/${staffId}/photo`, { method: 'POST', body: form }, 'The photo could not be uploaded')
 }

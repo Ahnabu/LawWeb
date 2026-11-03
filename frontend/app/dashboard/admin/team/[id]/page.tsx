@@ -20,7 +20,8 @@ import {
   type StaffRole,
 } from "../../../../../lib/adminAccess";
 import { BlockUserDialog } from "../../users/_components/BlockUserDialog";
-import { UserAvatar, UserStatusBadge } from "../../users/_components/userActions";
+import { UserStatusBadge } from "../../users/_components/userActions";
+import { StaffPhotoButton } from "../_components/StaffPhotoButton";
 import { StaffDelegations } from "../_components/StaffDelegations";
 
 const STAFF_BLOCK_CONSEQUENCES = [
@@ -190,7 +191,11 @@ export default function AdminStaffDetailsPage() {
       <section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
-            <UserAvatar name={member.name} size="lg" />
+            <StaffPhotoButton
+              member={member}
+              size="lg"
+              onUploaded={(updated) => setMember((prev) => (prev ? { ...prev, ...updated } : prev))}
+            />
             <div className="min-w-0">
               <h3 className="truncate font-display text-xl font-semibold text-on-surface">{member.name}</h3>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">

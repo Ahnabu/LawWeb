@@ -54,6 +54,7 @@ export declare const contentPageSchema: z.ZodObject<{
             "practice-areas": "practice-areas";
             "track-case": "track-case";
             blogs: "blogs";
+            careers: "careers";
         }>;
     }, z.core.$strip>;
 }, z.core.$strip>;
@@ -69,6 +70,7 @@ export declare const saveContentDraftSchema: z.ZodObject<{
             "practice-areas": "practice-areas";
             "track-case": "track-case";
             blogs: "blogs";
+            careers: "careers";
         }>;
     }, z.core.$strip>;
     body: z.ZodObject<{
@@ -87,6 +89,7 @@ export declare const contentRevisionSchema: z.ZodObject<{
             "practice-areas": "practice-areas";
             "track-case": "track-case";
             blogs: "blogs";
+            careers: "careers";
         }>;
         version: z.ZodCoercedNumber<unknown>;
     }, z.core.$strip>;
@@ -211,33 +214,6 @@ export declare const updateGalleryImageSchema: z.ZodObject<{
     }, z.core.$strip>;
 }, z.core.$strip>;
 export declare const reorderGallerySchema: z.ZodObject<{
-    body: z.ZodObject<{
-        order: z.ZodArray<z.ZodString>;
-    }, z.core.$strip>;
-}, z.core.$strip>;
-export declare const createTeamMemberSchema: z.ZodObject<{
-    body: z.ZodObject<{
-        name: z.ZodString;
-        role: z.ZodString;
-        photoUrl: z.ZodOptional<z.ZodString>;
-        phone: z.ZodOptional<z.ZodString>;
-        email: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
-        bio: z.ZodOptional<z.ZodString>;
-        isVisible: z.ZodOptional<z.ZodBoolean>;
-    }, z.core.$strip>;
-}, z.core.$strip>;
-export declare const updateTeamMemberSchema: z.ZodObject<{
-    body: z.ZodObject<{
-        name: z.ZodOptional<z.ZodString>;
-        role: z.ZodOptional<z.ZodString>;
-        photoUrl: z.ZodOptional<z.ZodString>;
-        phone: z.ZodOptional<z.ZodString>;
-        email: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
-        bio: z.ZodOptional<z.ZodString>;
-        isVisible: z.ZodOptional<z.ZodBoolean>;
-    }, z.core.$strip>;
-}, z.core.$strip>;
-export declare const reorderTeamMembersSchema: z.ZodObject<{
     body: z.ZodObject<{
         order: z.ZodArray<z.ZodString>;
     }, z.core.$strip>;

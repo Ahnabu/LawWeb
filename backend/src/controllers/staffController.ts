@@ -9,6 +9,7 @@ import { parsePagination } from '../utils/pagination';
 import { recordAudit } from '../utils/audit';
 import { revokeAllSessions } from '../utils/session';
 import { blockAccount, blockReasonFrom, blockState, unblockAccount } from '../utils/accountBlock';
+import { cloudinary } from '../config/multer.config';
 import { ACCOUNT_SETUP_EXPIRY_HOURS, sendAccountSetupLink } from './authController';
 import { grantDelegation, revokeDelegation, updateDelegation } from '../access/delegations';
 import type { AuthedRequest } from '../access/types';
@@ -19,7 +20,7 @@ import type { AuthedRequest } from '../access/types';
 
 type AuthRequest = AuthedRequest & Request;
 
-const STAFF_FIELDS = 'name email phone role staffRoleId isVerified isBlocked blockedAt blockedReason createdAt updatedAt';
+const STAFF_FIELDS = 'name email phone role profileImageUrl staffRoleId isVerified isBlocked blockedAt blockedReason createdAt updatedAt';
 
 const STATUS_FILTERS: Record<string, Record<string, unknown>> = {
   all: {},
@@ -196,6 +197,57 @@ export const createStaffAdmin = async (req: AuthRequest, res: Response) => {
   }
 };
 
+
+// POST /api/admin/staff/:staffId/photo  (multipart, field "image")
+// The file is already in Cloudinary, so a refused request deletes it again
+// rather than leaving an orphan behind.
+export const uploadStaffPhotoAdmin = async (req: AuthRequest, res: Response) => {
+  const file = req.file as (Express.Multer.File & { path: string; filename: string }) | undefined;
+  const discardUpload = () => {
+    if (file?.filename) void cloudinary.uploader.destroy(file.filename).catch(() => {/* ignore */});
+  };
+  try {
+    if (!file) return res.status(400).json({ status: 400, message: 'No image file provided' });
+
+    const target = await findStaff(req.params.staffId, 'name profileImageUrl');
+    if (!target) {
+      discardUpload();
+      return notFound(res);
+    }
+
+    // The old photo is replaced, so its Cloudinary copy is removed
+    const previous = (target as { profileImageUrl?: string }).profileImageUrl;
+    if (previous) {
+      const filename = previous.split('/').pop()?.split('.')[0];
+      if (filename) await cloudinary.uploader.destroy(`lawweb/profiles/${filename}`).catch(() => {/* ignore */});
+    }
+
+    await User.updateOne(
+      { _id: target._id, role: 'staff' },
+      { $set: { profileImageUrl: file.path } },
+      { runValidators: true }
+    );
+
+    recordAudit(req, {
+      action: 'staff.photo_updated',
+      category: 'access',
+      targetType: 'staff',
+      targetId: target._id,
+      targetLabel: target.name,
+      summary: `Updated ${target.name}'s photo`,
+    });
+
+    res.json({
+      status: 200,
+      message: `${target.name}'s photo was updated`,
+      data: await loadStaff(target._id),
+    });
+  } catch (error) {
+    discardUpload();
+    console.error('Admin upload staff photo error:', error);
+    res.status(500).json({ status: 500, message: 'Internal server error' });
+  }
+};
 // GET /api/admin/staff/:staffId
 export const getStaffDetailsAdmin = async (req: AuthRequest, res: Response) => {
   try {

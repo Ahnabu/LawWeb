@@ -227,65 +227,6 @@ export const reorderGallerySchema = z.object({
   }),
 });
 
-// ── Public team page (admin + staff members) ─────────────────────────────────
-// The role is free text: the firm writes the job title as it likes.
-const teamRole = z.string().trim().min(1, 'Role is required').max(120, 'Role must be at most 120 characters');
-const teamName = z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long');
-const teamEmail = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .email('Enter a valid email address')
-  .max(254)
-  .optional()
-  .or(z.literal(''));
-
-export const createTeamMemberSchema = z.object({
-  body: z.object({
-    name: teamName,
-    role: teamRole,
-    photoUrl: z.string().trim().max(500).optional(),
-    phone: staffPhone.optional(),
-    email: teamEmail,
-    bio: z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
-    isVisible: z.boolean().optional(),
-  }),
-});
-
-export const updateTeamMemberSchema = z.object({
-  body: z
-    .object({
-      name: teamName.optional(),
-      role: teamRole.optional(),
-      photoUrl: z.string().trim().max(500).optional(),
-      phone: staffPhone.optional(),
-      email: teamEmail,
-      bio: z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
-      isVisible: z.boolean().optional(),
-    })
-    .refine(
-      (b) =>
-        b.name !== undefined ||
-        b.role !== undefined ||
-        b.photoUrl !== undefined ||
-        b.phone !== undefined ||
-        b.email !== undefined ||
-        b.bio !== undefined ||
-        b.isVisible !== undefined,
-      'Nothing to update',
-    ),
-});
-
-export const reorderTeamMembersSchema = z.object({
-  body: z.object({
-    order: z
-      .array(objectId)
-      .min(1, 'order must list at least one team member')
-      .max(500)
-      .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
-  }),
-});
-
 // ── Career openings (admin) ──────────────────────────────────────────────────
 const careerText = (max: number, label: string) =>
   z.string().trim().max(max, `${label} must be at most ${max} characters`);

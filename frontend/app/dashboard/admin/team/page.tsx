@@ -15,7 +15,8 @@ import {
   type StaffRole,
   type StaffStatusFilter,
 } from "../../../../lib/adminAccess";
-import { UserAvatar, UserStatusBadge } from "../users/_components/userActions";
+import { UserStatusBadge } from "../users/_components/userActions";
+import { StaffPhotoButton } from "./_components/StaffPhotoButton";
 
 const LIMIT = 20;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -99,11 +100,11 @@ export default function AdminTeamPage() {
         <div className="space-y-1">
           <h3 className="font-display text-xl font-semibold text-on-surface sm:text-2xl">Team</h3>
           <p className="text-sm text-on-surface-variant">
-            Staff accounts for firm employees. Each has one{" "}
+            Staff accounts for firm employees, shown on the public team page under the lawyers. Each has one{" "}
             <Link href="/dashboard/admin/roles" className="text-link">
               role
             </Link>{" "}
-            that decides which admin pages they can use.
+            that decides which admin pages they can use. Click the camera on a photo to change it.
           </p>
         </div>
         <button type="button" onClick={() => setShowAdd(true)} className="btn btn-primary">
@@ -205,7 +206,12 @@ export default function AdminTeamPage() {
                   <tr key={member._id} className="transition-colors hover:bg-surface-container/60">
                     <td className="px-3 py-3.5 sm:px-4">
                       <div className="flex min-w-0 items-center gap-3">
-                        <UserAvatar name={member.name} />
+                        <StaffPhotoButton
+                          member={member}
+                          onUploaded={(updated) =>
+                            setStaff((prev) => prev.map((m) => (m._id === updated._id ? { ...m, ...updated } : m)))
+                          }
+                        />
                         <div className="min-w-0">
                           <Link
                             href={`/dashboard/admin/team/${member._id}`}

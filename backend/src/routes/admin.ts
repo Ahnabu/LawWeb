@@ -62,6 +62,7 @@ import {
   createStaffAdmin,
   getStaffDetailsAdmin,
   updateStaffAdmin,
+  uploadStaffPhotoAdmin,
   blockStaffAdmin,
   unblockStaffAdmin,
   deleteStaffAdmin,
@@ -166,6 +167,23 @@ router.patch('/staff/:staffId', requireSuperAdmin, validateRequest(updateStaffSc
 router.patch('/staff/:staffId/block', requireSuperAdmin, blockStaffAdmin);
 router.patch('/staff/:staffId/unblock', requireSuperAdmin, unblockStaffAdmin);
 router.delete('/staff/:staffId', requireSuperAdmin, deleteStaffAdmin);
+// The staff photo (multipart, field "image"); Multer has already stored it
+const staffPhotoUpload: express.RequestHandler = (req, res, next) => {
+  uploadProfileImage.single('image')(req, res, (err: unknown) => {
+    if (!err) return next();
+    const httpCode = (err as { http_code?: number })?.http_code;
+    if (err instanceof multer.MulterError) {
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'The photo must be 5 MB or smaller' : err.message;
+      return res.status(400).json({ status: 400, message });
+    }
+    if (err instanceof Error && (err.message === 'Only image files are allowed' || httpCode === 400)) {
+      return res.status(400).json({ status: 400, message: err.message });
+    }
+    console.error('Staff photo upload error:', err);
+    res.status(502).json({ status: 502, message: 'The photo could not be uploaded. Please try again.' });
+  });
+};
+router.post('/staff/:staffId/photo', requireSuperAdmin, staffPhotoUpload, uploadStaffPhotoAdmin);
 // Lawyers a staff member assists (a lawyer manages their own from /api/workspace/me/team)
 router.post('/staff/:staffId/delegations', requireSuperAdmin, validateRequest(grantDelegationSchema), grantDelegationAdmin);
 router.patch('/staff/:staffId/delegations/:lawyerId', requireSuperAdmin, validateRequest(updateDelegationSchema), updateDelegationAdmin);

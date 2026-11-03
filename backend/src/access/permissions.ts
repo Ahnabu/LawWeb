@@ -36,7 +36,6 @@ export const PERMISSIONS = [
   { key: 'clients.view', group: 'Admin areas', label: 'View clients', scope: 'firm' },
   { key: 'clients.manage', group: 'Admin areas', label: 'Edit, block and delete clients', scope: 'firm', implies: ['clients.view'] },
   { key: 'blogs.manage', group: 'Admin areas', label: 'Manage blogs', scope: 'firm' },
-  { key: 'team.manage', group: 'Admin areas', label: 'Manage the public team page', scope: 'firm' },
   { key: 'careers.manage', group: 'Admin areas', label: 'Manage career openings', scope: 'firm' },
   { key: 'gallery.manage', group: 'Admin areas', label: 'Manage the photo gallery', scope: 'firm' },
   { key: 'content.edit', group: 'Admin areas', label: 'Edit site content drafts', scope: 'firm' },

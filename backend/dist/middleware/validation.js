@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRequest = exports.formatZodIssues = exports.updateCareerSchema = exports.createCareerSchema = exports.reorderTeamMembersSchema = exports.updateTeamMemberSchema = exports.createTeamMemberSchema = exports.reorderGallerySchema = exports.updateGalleryImageSchema = exports.galleryImageIdSchema = exports.grantDelegationSchema = exports.updateDelegationSchema = exports.inviteAssistantSchema = exports.updateStaffSchema = exports.createStaffSchema = exports.updateRoleSchema = exports.createRoleSchema = exports.auditLogListSchema = exports.auditLogQueryFields = exports.contactMessageSchema = exports.contentRevisionSchema = exports.saveContentDraftSchema = exports.contentPageSchema = exports.changePasswordSchema = exports.resetPasswordSchema = exports.verifyEmailSchema = exports.emailOnlySchema = exports.loginSchema = exports.registerSchema = exports.passwordSchema = void 0;
+exports.validateRequest = exports.formatZodIssues = exports.updateCareerSchema = exports.createCareerSchema = exports.reorderGallerySchema = exports.updateGalleryImageSchema = exports.galleryImageIdSchema = exports.grantDelegationSchema = exports.updateDelegationSchema = exports.inviteAssistantSchema = exports.updateStaffSchema = exports.createStaffSchema = exports.updateRoleSchema = exports.createRoleSchema = exports.auditLogListSchema = exports.auditLogQueryFields = exports.contactMessageSchema = exports.contentRevisionSchema = exports.saveContentDraftSchema = exports.contentPageSchema = exports.changePasswordSchema = exports.resetPasswordSchema = exports.verifyEmailSchema = exports.emailOnlySchema = exports.loginSchema = exports.registerSchema = exports.passwordSchema = void 0;
 const zod_1 = require("zod");
 const contentSchemas_1 = require("../config/contentSchemas");
 const permissions_1 = require("../access/permissions");
@@ -177,57 +177,6 @@ exports.reorderGallerySchema = zod_1.z.object({
             .array(objectId)
             .min(1, 'order must list at least one image')
             .max(1000)
-            .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
-    }),
-});
-// ── Public team page (admin + staff members) ─────────────────────────────────
-// The role is free text: the firm writes the job title as it likes.
-const teamRole = zod_1.z.string().trim().min(1, 'Role is required').max(120, 'Role must be at most 120 characters');
-const teamName = zod_1.z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long');
-const teamEmail = zod_1.z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Enter a valid email address')
-    .max(254)
-    .optional()
-    .or(zod_1.z.literal(''));
-exports.createTeamMemberSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        name: teamName,
-        role: teamRole,
-        photoUrl: zod_1.z.string().trim().max(500).optional(),
-        phone: staffPhone.optional(),
-        email: teamEmail,
-        bio: zod_1.z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
-        isVisible: zod_1.z.boolean().optional(),
-    }),
-});
-exports.updateTeamMemberSchema = zod_1.z.object({
-    body: zod_1.z
-        .object({
-        name: teamName.optional(),
-        role: teamRole.optional(),
-        photoUrl: zod_1.z.string().trim().max(500).optional(),
-        phone: staffPhone.optional(),
-        email: teamEmail,
-        bio: zod_1.z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
-        isVisible: zod_1.z.boolean().optional(),
-    })
-        .refine((b) => b.name !== undefined ||
-        b.role !== undefined ||
-        b.photoUrl !== undefined ||
-        b.phone !== undefined ||
-        b.email !== undefined ||
-        b.bio !== undefined ||
-        b.isVisible !== undefined, 'Nothing to update'),
-});
-exports.reorderTeamMembersSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        order: zod_1.z
-            .array(objectId)
-            .min(1, 'order must list at least one team member')
-            .max(500)
             .refine((ids) => new Set(ids).size === ids.length, 'order contains duplicate IDs'),
     }),
 });

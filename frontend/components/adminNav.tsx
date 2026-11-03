@@ -13,7 +13,6 @@ import {
   Settings,
   UserCog,
   Users,
-  UsersRound,
 } from "lucide-react";
 import type { SidebarItem } from "../types/dashboard";
 import { canOpenAdminArea } from "../lib/access";
@@ -37,11 +36,10 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/dashboard/admin/users", label: "Users", icon: icon(Users), description: "Client accounts" },
   { href: "/dashboard/admin/blogs", label: "Blogs", icon: icon(Newspaper), description: "Write and publish blog posts" },
   { href: "/dashboard/admin/gallery", label: "Gallery", icon: icon(Images), description: "Photos on the public Gallery page" },
-  { href: "/dashboard/admin/team-members", label: "Team Members", icon: icon(UsersRound), description: "Admins and staff shown on the public Team page" },
   { href: "/dashboard/admin/careers", label: "Careers", icon: icon(BriefcaseBusiness), description: "Job openings on the public Careers page" },
   { href: "/dashboard/admin/content", label: "Content", icon: icon(FileText), description: "Text and images on the public site" },
   { href: "/dashboard/admin/audit-logs", label: "Audit Logs", icon: icon(History), description: "Who did what, and when" },
-  { href: "/dashboard/admin/team", label: "Team", icon: icon(UserCog), description: "Staff accounts" },
+  { href: "/dashboard/admin/team", label: "Team", icon: icon(UserCog), description: "Staff accounts and the public Team page" },
   { href: "/dashboard/admin/roles", label: "Roles", icon: icon(KeyRound), description: "What each staff role can do" },
 ];
 
